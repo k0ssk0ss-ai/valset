@@ -28,7 +28,7 @@ function Compare-Prefs($cur, $new, [switch]$BindsOnly) {
         $o = Format-Key (Get-Binding $cur $a $i); $w = Format-Key (Get-Binding $new $a $i)
         if ($o -ne $w) { $out.Add([pscustomobject]@{ What = "$(Get-ActionLabel $a)$(if ([int]$i) { L ' · доп.' ' · alt' })"; Old = $o; New = $w }) }
     }
-    if ($BindsOnly) { return , $out }
+    if ($BindsOnly) { return , $out.ToArray() }
     foreach ($g in 'floatSettings', 'intSettings', 'boolSettings', 'stringSettings') {
         $a = @{}; $b = @{}
         foreach ($e in @($cur.$g)) { if ($e) { $a[$e.settingEnum] = $e.value } }
@@ -46,7 +46,7 @@ function Compare-Prefs($cur, $new, [switch]$BindsOnly) {
             $out.Add([pscustomobject]@{ What = $what; Old = (Format-PrefValue $k $a[$k]); New = (Format-PrefValue $k $b[$k]) })
         }
     }
-    , $out
+    , $out.ToArray()   # массив, не List: @() вокруг List[object] в PowerShell 5.1 падает «Argument types do not match»
 }
 
 # Совпадают ли наборы целиком (все группы). Порядок записей мог отличаться — тогда просто запишем ещё раз.

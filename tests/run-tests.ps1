@@ -115,6 +115,14 @@ try {
     Check 'GameUserSettings.ini скопирован'    ((Get-FileHash "$acc\WindowsClient\GameUserSettings.ini").Hash -eq (Get-FileHash $GfxIni).Hash)
     Check 'копия старого файла рядом'          (Test-Path "$acc\Windows\RiotUserSettings.ini.valset.bak")
 
+    # Аккаунт ещё не играл на этом ПК: регион не знаем — графика заранее во все регионы ПК (игра создала -eu, а угадали -ap).
+    $ConfigRoot = Join-Path $tmp 'cfgroot'; $GameProc = 'valset-test-no-such-process'
+    New-Item -ItemType Directory -Force "$ConfigRoot\3303fe2d-0000-0000-0000-000000000000-ap", "$ConfigRoot\3303fe2d-0000-0000-0000-000000000000-eu" | Out-Null
+    $np = 'dd2f12fb-0000-0000-0000-000000000000'
+    $n = Invoke-ApplyGraphics $np *> $null; $n = @(Get-ChildItem $ConfigRoot -Directory -Filter "$np-*").Count
+    Check 'новый аккаунт: графика во все регионы ПК' ($n -eq 2 -and (Test-Path "$ConfigRoot\$np-eu\Windows\RiotUserSettings.ini")) "папок: $n"
+    $ConfigRoot = Join-Path $env:LOCALAPPDATA 'VALORANT\Saved\Config'; $GameProc = 'VALORANT-Win64-Shipping'
+
     Write-Host 'слежение'
     $WatchMutexName = "Local\valset-watch-test-$PID"   # не путать с настоящим слежением на этом ПК
     Check 'не запущено' (-not (Test-WatchRunning))
@@ -131,6 +139,8 @@ try {
     $sens = $b.floatSettings | Where-Object settingEnum -like '*MouseSensitivity' | Select-Object -First 1
     $sens.value = 0.5
     $d = Compare-Prefs $a $b
+    $many = Compare-Prefs ([pscustomobject]@{ floatSettings = @(1..60 | ForEach-Object { @{ settingEnum = "EAresFloatSettingName::T$_"; value = 1 } }) }) ([pscustomobject]@{})
+    Check 'отличия — массив: @() не падает (PowerShell 5.1 и List[object])' ($many -is [array] -and @($many).Count -ge 0)
     Check 'видно 2 отличия' ($d.Count -eq 2) "получено $($d.Count): $(($d | ForEach-Object What) -join '; ')"
     Check 'бинд подписан по-человечески' (@($d | Where-Object { $_.What -like 'Пинг*доп.*' -and $_.New -eq 'G' }).Count -eq 1)
     Check 'чувствительность 0.314 → 0.5' (@($d | Where-Object { $_.What -eq 'Чувствительность' -and $_.Old -eq '0.314' -and $_.New -eq '0.5' }).Count -eq 1)

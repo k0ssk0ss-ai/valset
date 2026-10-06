@@ -23,7 +23,7 @@ param(
     [int]$Interval = 3
 )
 $ErrorActionPreference = 'Stop'
-$Version = '1.0.0'
+$Version = '1.0.1'
 $script:Fancy = $Command -notin 'watch', 'gfxwait'   # скрытые режимы — без оформления
 
 # Собранный valset.cmd передаёт свой путь через VALSET_FILE; при запуске из исходников — сам .ps1.

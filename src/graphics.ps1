@@ -69,10 +69,11 @@ function Invoke-ApplyGraphics([string]$puuid) {
     if ($puuid) {
         $all = @(Get-AccountDirs | Where-Object { $_.Name.StartsWith("$puuid-") })  # все регионы аккаунта (-eu, -ap)
         $dirs = if ($all) { @($all.FullName) } else {
-            # аккаунт ещё не запускал игру здесь — готовим папку заранее, регион как у эталона
-            $src = Get-AccountDir (Get-Source)
-            $region = if ($src) { $src.Name.Substring(37) } else { 'eu' }
-            @(Join-Path $ConfigRoot "$puuid-$region")
+            # аккаунт ещё не запускал игру здесь — готовим папки заранее во всех регионах этого ПК: регион аккаунта
+            # отсюда не узнать, а угаданный по эталону промахивается (игра создала -eu, а графика легла в -ap)
+            $regions = @(Get-AccountDirs | ForEach-Object { $_.Name.Substring(37) } | Sort-Object -Unique)
+            if (-not $regions) { $regions = @('eu') }
+            @($regions | ForEach-Object { Join-Path $ConfigRoot "$puuid-$_" })
         }
     } else {
         $dirs = @(Get-AccountDirs | ForEach-Object { $_.FullName })
