@@ -1,0 +1,6 @@
+EAresIntSettingName::AntiAliasing=1
+EAresIntSettingName::AnisotropicFiltering=16
+EAresBoolSettingName::LimitFramerateAlways=True
+EAresFloatSettingName::MaxFramerateAlways=240
+EAresIntSettingName::NvidiaReflexLowLatencySetting=2
+EAresIntSettingName::MaterialQuality=2
