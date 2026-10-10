@@ -208,6 +208,24 @@ try {
     Check 'без токена — нет сессии' ($null -eq (Get-GameTokenSession))
     Check 'сторож держит токен в игре' ($AgentSrc.Contains('HoldToken();') -and $AgentSrc.Contains('VALSET_GAME_TOKEN'))
 
+    Write-Host 'код прицела'
+    # Пары «код из игры ↔ тот же прицел в облаке» — пять прицелов владельца (fixtures).
+    $xc = @(Get-Content "$fx\crosshair-codes.txt" -Encoding UTF8 | Where-Object { $_ -and $_ -notlike '#*' })
+    $xp = @((Get-Content "$fx\crosshair-profiles.json" -Raw -Encoding UTF8 | ConvertFrom-Json).profiles)
+    $xn = 'точка', 'КРЕСТ', 'BIG точка', 'точка крутая', 'крестик'
+    for ($i = 0; $i -lt 5; $i++) {
+        $e = $xp | Where-Object { $_.profileName -eq $xn[$i] }
+        if ($i -eq 4) {   # облачная копия «крестика» старше кода: в коде смещение 1 и расширенные настройки, прозрачность обводки не указана
+            $e = ConvertTo-Json $e -Depth 32 | ConvertFrom-Json
+            $e.primary.innerLines.lineOffset = 1; $e.bUseAdvancedOptions = $true; $e.primary.outlineOpacity = 0.5
+        }
+        $a = ConvertTo-Json (ConvertFrom-CrosshairCode $xc[$i] $xn[$i]) -Depth 32 -Compress
+        Check "код → «$($xn[$i])» как в облаке" ($a -eq (ConvertTo-Json $e -Depth 32 -Compress)) $xc[$i]
+    }
+    $xu = ConvertFrom-CrosshairCode '0;s;1;P;c;5;u;2AFF00FF;o;0;f;0;0l;2;0v;2;0g;1;0o;1;0a;1;0f;0;1b;0' 'про'
+    Check 'свой цвет: u → colorCustom, c → цвет из палитры' ((ConvertTo-Json $xu.primary.colorCustom -Compress) -eq '{"b":0,"g":255,"r":42,"a":255}' -and $xu.primary.color.r -eq 0 -and -not $xu.primary.bUseCustomColor)
+    Check 'свой цвет: вертикаль отдельно, обводка прозрачная' ($xu.primary.innerLines.bAllowVertScaling -and $xu.primary.outlineOpacity -eq 0 -and $xu.profileName -eq 'про')
+
     Write-Host 'шкала качества'
     Check 'знакомые значения — без предупреждения' (-not (Get-QualityOddities))
     $gr = [IO.File]::ReadAllText($GfxRiot)

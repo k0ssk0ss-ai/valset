@@ -168,4 +168,19 @@
    группы — целиком), чувствительность × его DPI / мой DPI (DPI спрашивается один раз, config.dpi), только на время.
    Формат записи: {nick, team, source, updated, dpi, prefs:{floatSettings:[{settingEnum,value}],…}} — как profile.json.
    На основном во время примерки «Запомнить как мои» не предлагается. Осталось: наполнить список, перевод кода прицела.
+   Источники (проверено 2026-10-10): prosettings.net — на про есть DPI, сенса, scoped, код прицела, бинды (движение,
+   способности), миникарта (rotate/centered/size/zoom/названия), графика (material/texture/detail/UI/AA/AF/bloom/…),
+   цвет подсветки врагов; брать вручную со ссылкой, не скрейпить. Nightbot: nightbot.tv/t/<канал>/commands — публично,
+   без чата (!sens/!settings/!crosshair). Свежесть — главная проблема: TenZ на сайте 0.14@1600, в !sens 0.08@1600;
+   его !settings ведёт на Google Doc с настройками от самого стримера (не открылся у меня — доступ браузера).
+   Страницы на prosettings.net есть (проверено 2026-10-10, /players/<ник>/): tenz florescent tarik kyedae something
+   nats redgar shao suygetsu sheydos aspas demon1 derke chronicle yay less jinggg f0rsaken zekken boaster leaf sacy
+   alfajer kingg sayf zellsis marved cned qraxs zyppan jamppi primmie trent cryocells johnqt t3xture meteor jawgemo
+   haodong starxo keznit mazino frz zest benjyfishy; без кода прицела: ange1 kiles mixwell shao.
+   Новое поколение (активные за 90 дн. по vlr.gg/stats, 2026-10-10; у всех на prosettings есть код+миникарта+графика):
+   Sayonara lukxo keiko mada s0pp Kr1stal trexx Kicks brawk N4RRATE Avez Xross Francis Rb iZu BABYBAY Asuna bang
+   timotino vora Verno mwzera heat Meiy K1ra xavi8k PatMen yetujey zerona dgzin artzin Ethan OXY Wo0t MiniBoo koalanoob
+   reduxx Sato Skuba. Нет страницы: erde, Akame, Xiesta, kamyk, eggsterr (kamo — только Fortnite).
+   Код прицела TenZ (его Google Doc из !settings): 0;s;1;P;c;5;u;2AFF00FF;o;0;f;0;0l;2;0v;2;0g;1;0o;1;0a;1;0f;0;1b;0
+   (+ ещё 2 на первой странице, остальные на второй).
 4. Видео 20–30 с, сообщение модераторам r/VALORANT, пост (черновик — dist\reddit-post.md; подача «на время» — решить).
