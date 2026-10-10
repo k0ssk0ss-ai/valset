@@ -32,7 +32,7 @@ $pros = foreach ($f in Get-ChildItem $raw -Filter 'part*.json' | Sort-Object Nam
         if (Num $m.zoom) { $fl += [ordered]@{ settingEnum = 'EAresFloatSettingName::MinimapZoom'; value = (Num $m.zoom) } }
         if ("$($m.rotate)" -match '^(Rotate|Fixed)$') { $bl += [ordered]@{ settingEnum = 'EAresBoolSettingName::MinimapRotates'; value = ($m.rotate -eq 'Rotate') } }
         $c = OnOff $m.keepCentered
-        if ($null -ne $c) { $bl += [ordered]@{ settingEnum = 'EAresBoolSettingName::MinimapTranslates'; value = (-not $c) } }
+        if ($null -ne $c) { $bl += [ordered]@{ settingEnum = 'EAresBoolSettingName::MinimapTranslates'; value = $c } }
 
         if (-not $fl.Count -and -not $code) { continue }   # нечего примерять
         $prefs = [ordered]@{}
