@@ -1,7 +1,7 @@
 ﻿# agent.ps1 — помощник в фоне: уведомления и (по желанию) автоперенос. По умолчанию выключен.
 #
 # Как устроено — без опроса, только ожидание событий:
-#   сторож   — крошечная программа (valset-agent-6.exe), стартует со входом в Windows (HKCU\...\Run).
+#   сторож   — крошечная программа (valset-agent-7.exe), стартует со входом в Windows (HKCU\...\Run).
 #              Клиент Riot закрыт → спит, пока Windows не сообщит о появлении его lockfile (FileSystemWatcher).
 #              Клиент открыт → слушает локальный канал событий клиента (WebSocket, WAMP) и ждёт:
 #                Create /entitlements/v1/token                    — вход в аккаунт → `valset watch`
@@ -18,7 +18,7 @@
 # config.json: { autoApply, notify } — по умолчанию оба выкл: фоновую программу человек включает сам.
 # Сторож работает, только если включено хоть что-то.
 
-$AgentExe      = Join-Path $Root 'valset-agent-6.exe'
+$AgentExe      = Join-Path $Root 'valset-agent-7.exe'
 $AgentMutex    = 'Local\valset-agent'
 $AgentStopName = 'Local\valset-agent-stop'
 $RunKey        = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
@@ -43,13 +43,17 @@ static class ValsetAgent {
     }
 
     // Токен текущего входа ({accessToken, token, subject}); после выхода из аккаунта клиент его уже не отдаст.
-    static void HoldToken() {
+    static string Local(string path) {
         try {
             var wc = new WebClient(); wc.Encoding = Encoding.UTF8;
             wc.Headers[HttpRequestHeader.Authorization] = LockAuth;
-            string j = wc.DownloadString("https://127.0.0.1:" + LockPort + "/entitlements/v1/token");
-            if (j.Contains("\"accessToken\"") && j.Contains("\"subject\"")) GameToken = j;
-        } catch { }
+            return wc.DownloadString("https://127.0.0.1:" + LockPort + path);
+        } catch { return ""; }
+    }
+
+    static void HoldToken() {
+        string j = Local("/entitlements/v1/token");
+        if (j.Contains("\"accessToken\"") && j.Contains("\"subject\"")) GameToken = j;
     }
 
     static void AfterGame() {   // событие приходит, когда процесс игры уже завершён; 3 с — запас, ждать дольше незачем
@@ -72,6 +76,9 @@ static class ValsetAgent {
             var sub = Encoding.UTF8.GetBytes("[5, \"OnJsonApiEvent\"]");
             ws.SendAsync(new ArraySegment<byte>(sub), WebSocketMessageType.Text, true, CancellationToken.None).Wait();
             Run("watch");   // клиент уже открыт — вход мог быть раньше
+            // и игра могла уже идти (сторож перезапустился посреди игры) — тогда сразу держим её токен
+            GameSeen = Local("/product-session/v1/external-sessions").Contains("\"productId\":\"valorant\"");
+            if (GameSeen) HoldToken();
             LastLogin = DateTime.Now; Trim();
             var buf = new byte[65536]; var sb = new StringBuilder(); bool dirty = false;
             while (ws.State == WebSocketState.Open) {
