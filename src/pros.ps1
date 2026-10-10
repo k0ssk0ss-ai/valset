@@ -88,7 +88,7 @@ function Invoke-ApplyPro($pro) {
 # Экран выбора: список по страницам (влезает в окно) + поиск по нику. Возвращает $true, если ждать клавишу.
 function Show-Pros {
     $all = Get-Pros; $list = $all; $q = ''; $pg = 0
-    $size = 15; try { $size = [Math]::Max(5, [Math]::Min(20, [Console]::WindowHeight - 14)) } catch {}
+    $size = 10; try { $size = [Math]::Max(5, [Math]::Min(10, [Console]::WindowHeight - 16)) } catch {}   # больше 10 не влезает в окна с неверной высотой
     while ($true) {
         $pages = [Math]::Max(1, [Math]::Ceiling($list.Count / $size)); $pg = [Math]::Min($pg, $pages - 1)
         $shown = @($list | Select-Object -Skip ($pg * $size) -First $size)
