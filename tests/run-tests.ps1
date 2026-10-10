@@ -215,9 +215,9 @@ try {
     $xn = 'точка', 'КРЕСТ', 'BIG точка', 'точка крутая', 'крестик'
     for ($i = 0; $i -lt 5; $i++) {
         $e = $xp | Where-Object { $_.profileName -eq $xn[$i] }
-        if ($i -eq 4) {   # облачная копия «крестика» старше кода: в коде смещение 1 и расширенные настройки, прозрачность обводки не указана
+        if ($i -eq 4) {   # обводка выключена (h;0) — её прозрачность игра в код не пишет, остаётся по умолчанию
             $e = ConvertTo-Json $e -Depth 32 | ConvertFrom-Json
-            $e.primary.innerLines.lineOffset = 1; $e.bUseAdvancedOptions = $true; $e.primary.outlineOpacity = 0.5
+            $e.primary.outlineOpacity = 0.5
         }
         $a = ConvertTo-Json (ConvertFrom-CrosshairCode $xc[$i] $xn[$i]) -Depth 32 -Compress
         Check "код → «$($xn[$i])» как в облаке" ($a -eq (ConvertTo-Json $e -Depth 32 -Compress)) $xc[$i]
