@@ -58,47 +58,14 @@ try {
     $j = Get-Content $ProfilePath -Raw -Encoding UTF8
     Check 'deflate+base64 туда и обратно' ((Expand-Pref (Compress-Pref $j)) -eq $j)
 
-    Write-Host 'редактор: чтение'
-    $vals = @{}
-    foreach ($d in $SettingDefs) { $vals[$d.Label] = Format-Setting $d }
-    Check 'все настройки читаются' ($vals.Count -eq $SettingDefs.Count)
-    Check 'чувствительность 0.35'      ($vals['Чувствительность'] -eq '0.35') $vals['Чувствительность']
-    Check 'снайперский — удержание'    ($vals['Снайперский прицел'] -eq 'удержание')
-    Check 'статистика FPS — текст и график' ($vals['FPS'] -eq 'текст и график')
-    Check 'разрешение 1920×1080'      ($vals['Разрешение'] -eq '1920×1080')
-    Check 'лимит FPS 240'              ($vals['Лимит FPS'] -eq '240')
-    Check 'нет ключа → стандарт игры'      ($vals['Качество текстур'] -eq 'стандарт игры (сейчас = высокое)')
-
-    Write-Host 'редактор: запись и обратное чтение'
-    $def = { param($l) $SettingDefs | Where-Object Label -eq $l }
-    $cases = @(
-        @('Чувствительность', 0.314, '0.314'), @('Снайперский прицел', $false, 'переключение'),
-        @('Громкость музыки', (ConvertFrom-FreeInput (& $def 'Громкость музыки') '40'), '40%'),
-        @('Разрешение', (ConvertFrom-FreeInput (& $def 'Разрешение') '1728 х 1080'), '1728×1080'),
-        @('Лимит FPS', '144', '144'), @('Лимит FPS', 'off', 'без лимита'),
-        @('NVIDIA Reflex', $null, 'стандарт'), @('Режим экрана', '1', 'оконный без рамки'), @('Кровь', $true, 'показывать'),
-        @('Качество материалов', '2', 'среднее'), @('Качество материалов', $null, 'стандарт игры (сейчас = высокое)')
-    )
-    foreach ($c in $cases) {
-        $d = & $def $c[0]
-        Set-SettingValue $d $c[1]
-        $got = Format-Setting $d
-        Check "$($c[0]) → $($c[2])" ($got -eq $c[2]) "получено: $got"
-    }
-    $p = Read-Profile
-    Check 'дублей настроек нет' (@($p.boolSettings | Where-Object settingEnum -like '*HoldInputForSniperScopes').Count -eq 1)
-    $hp = @(Get-HistoryPoints)
-    Check 'перед правкой — одна версия в истории' ($hp.Count -eq 1 -and $hp[0].Why -like '*«Изменить»*') "версий: $($hp.Count)"
-
-    Write-Host 'бинды'
-    Set-Bind $p 'Ping' 1 'G'
-    $p = Read-Profile
-    Check 'доп. клавиша пинга = G' ((Format-Key (Get-Binding $p 'Ping' 1)) -eq 'G')
-    Check 'основная не тронута'    ((Format-Key (Get-Binding $p 'Ping' 0)) -eq 'Mouse5')
-    Set-Bind $p 'Ping' 1 $null
-    Check 'стандарт убирает запись' ($null -eq (Get-Binding (Read-Profile) 'Ping' 1))
+    Write-Host 'подписи в предпросмотре'
+    Check 'чувствительность — число'      ((Format-PrefValue 'EAresFloatSettingName::MouseSensitivity' 0.35) -eq '0.35')
+    Check 'снайперский — удержание'       ((Format-PrefValue 'EAresBoolSettingName::HoldInputForSniperScopes' $true) -eq 'удержание')
+    Check 'FPS — текст и график'          ((Format-PrefValue 'EAresIntSettingName::PlayerPerfShowFrameRate' 3) -eq 'текст и график')
+    Check 'музыка — в процентах'          ((Format-PrefValue 'EAresFloatSettingName::AllMusicOverallVolume' 0.4) -eq '40%')
+    Check 'голосовой чат — в процентах'   ((Format-PrefValue 'EAresIntSettingName::VoiceVolume' 75) -eq '75%')
+    Check 'нет значения → стандарт'       ((Format-PrefValue 'EAresIntSettingName::VoiceVolume' $null) -eq 'стандарт')
     Check 'способность C названа «Способность 1»' ((Get-ActionLabel 'Activate_GrenadeAbility') -like 'Способность 1*')
-
     Write-Host 'графика: запись в папку аккаунта'
     $acc = Join-Path $tmp 'acc'
     New-Item -ItemType Directory -Force "$acc\Windows", "$acc\WindowsClient" | Out-Null
@@ -110,7 +77,7 @@ try {
     Check 'старый графический ключ убран'     (-not ($after -match 'ShadowQuality'))
     Check 'не-графика сохранена'              (($after -match 'CrosshairProfileName=тест').Count -eq 1)
     Check 'статистика FPS не считается графикой' (($after -match 'PlayerPerfShowFrameRate').Count -eq 1)
-    Check 'графика эталона записана'           (($after -match 'MaxFramerateAlways=144').Count -eq 1)
+    Check 'графика эталона записана'           (($after -match 'MaxFramerateAlways=240').Count -eq 1)
     Check 'BOM файла сохранён'                 (((Get-Content "$acc\Windows\RiotUserSettings.ini" -Encoding Byte -TotalCount 3) -join ',') -eq '239,187,191')
     Check 'GameUserSettings.ini скопирован'    ((Get-FileHash "$acc\WindowsClient\GameUserSettings.ini").Hash -eq (Get-FileHash $GfxIni).Hash)
     Check 'копия старого файла рядом'          (Test-Path "$acc\Windows\RiotUserSettings.ini.valset.bak")
@@ -134,46 +101,18 @@ try {
     $a = Read-Profile
     $b = $a | ConvertTo-Json -Depth 32 | ConvertFrom-Json
     Check 'одинаковые наборы — без записи' (Test-PrefsEqual $a $b)
-    Set-Bind $b 'Ping' 1 'G'
-    $b = Read-Profile
+    ($b.actionMappings | Where-Object { $_.name -eq 'Ping' -and [int]$_.bindIndex -eq 0 } | Select-Object -First 1).key = 'G'
     $sens = $b.floatSettings | Where-Object settingEnum -like '*MouseSensitivity' | Select-Object -First 1
+    $before = $sens.value
     $sens.value = 0.5
     $d = Compare-Prefs $a $b
     $many = Compare-Prefs ([pscustomobject]@{ floatSettings = @(1..60 | ForEach-Object { @{ settingEnum = "EAresFloatSettingName::T$_"; value = 1 } }) }) ([pscustomobject]@{})
     Check 'отличия — массив: @() не падает (PowerShell 5.1 и List[object])' ($many -is [array] -and @($many).Count -ge 0)
     Check 'видно 2 отличия' ($d.Count -eq 2) "получено $($d.Count): $(($d | ForEach-Object What) -join '; ')"
-    Check 'бинд подписан по-человечески' (@($d | Where-Object { $_.What -like 'Пинг*доп.*' -and $_.New -eq 'G' }).Count -eq 1)
-    Check 'чувствительность 0.314 → 0.5' (@($d | Where-Object { $_.What -eq 'Чувствительность' -and $_.Old -eq '0.314' -and $_.New -eq '0.5' }).Count -eq 1)
+    Check 'бинд подписан по-человечески' (@($d | Where-Object { $_.What -like 'Пинг*' -and $_.New -eq 'G' }).Count -eq 1)
+    Check "чувствительность $before → 0.5" (@($d | Where-Object { $_.What -eq 'Чувствительность' -and $_.New -eq '0.5' }).Count -eq 1)
     Check 'только бинды — 1 отличие' ((Compare-Prefs $a $b -BindsOnly).Count -eq 1)
-    Set-Bind $b 'Ping' 1 $null
 
-    Write-Host 'код для обмена'
-    $code = New-ExportCode
-    $imp = Read-ImportCode $code
-    Check 'весь эталон: код читается обратно' ((ConvertTo-Json $imp.profile -Depth 32 -Compress) -eq (ConvertTo-Json (Read-Profile) -Depth 32 -Compress))
-    Check 'графика в коде без изменений' ([IO.File]::ReadAllText($GfxIni) -eq $imp.gfxIniT)
-    $ok = $true
-    foreach ($n in 0..40) { $bytes = [byte[]](1..$n | ForEach-Object { Get-Random -Maximum 256 }); if ($n -eq 0) { $bytes = [byte[]]@() }
-        if ([Convert]::ToBase64String((ConvertFrom-Cjk (ConvertTo-Cjk $bytes))) -ne [Convert]::ToBase64String($bytes)) { $ok = $false } }
-    Check '14 бит в символ: туда и обратно, длины 0–40' $ok
-    Check 'старый код VALSET1 читается' ((Read-ImportCode ('VALSET1:' + (Compress-Pref '{"v":1,"kind":"binds","profile":{"actionMappings":[]}}'))).kind -eq 'binds')
-    Check 'пробелы и переносы в коде не мешают' ((Read-ImportCode ($code.Insert(20, " `r`n "))).kind -eq 'full')
-    $bc = New-ExportCode -BindsOnly
-    Check 'код биндов короче' ($bc.Length -lt $code.Length) "$($bc.Length) / $($code.Length)"
-    Check 'код биндов — только бинды' (@((Read-ImportCode $bc).profile.PSObject.Properties.Name | Where-Object { $_ -notin $BindKeys }).Count -eq 0)
-    $bad = $false; try { $null = Read-ImportCode ($code.Substring(0, 60)) } catch { $bad = $true }
-    Check 'обрезанный код — понятная ошибка' $bad
-
-    Write-Host 'несколько эталонов'
-    Save-ProfileAs 'A'; Save-ProfileAs 'B'
-    Check 'активный — B' ((Get-ActiveName) -eq 'B')
-    Set-Bind (Read-Profile) 'Ping' 1 'K'
-    Use-Profile 'A'
-    Check 'переключение на A' ((Get-ActiveName) -eq 'A' -and $null -eq (Get-Binding (Read-Profile) 'Ping' 1))
-    Check 'правка B сохранилась в его копии' ((Format-Key (Get-Binding (Get-Content "$env:VALSET_ROOT\profiles\B\profile.json" -Raw -Encoding UTF8 | ConvertFrom-Json) 'Ping' 1)) -eq 'K')
-    Use-Profile 'B'
-    Check 'обратно на B — с правкой' ((Format-Key (Get-Binding (Read-Profile) 'Ping' 1)) -eq 'K')
-    Check 'графика ездит вместе с эталоном' (Test-Path "$env:VALSET_ROOT\profiles\A\graphics\GameUserSettings.ini")
 
     Write-Host 'прицелы'
     $mk = { param([string[]]$names, [int]$cur, [string]$tag = '')
@@ -201,10 +140,6 @@ try {
     Check 'на время: только твои прицелы' ((Join-Crosshairs $t1 $t2 $true) -eq 0 -and @((Get-Crosshairs $t2).profiles).Count -eq 1)
     Check 'насовсем: прицелы аккаунта сохранены' ((Join-Crosshairs $t1 (& $mk @('Z') 0) $false) -eq 3)
     Check 'лимит 15: дописано 2 из 4' ((Merge-Crosshairs $acc $ref) -eq 2 -and $script:CrosshairDropped -eq 2 -and @((Get-Crosshairs $ref).profiles).Count -eq 15)
-    $one = & $mk @('A', 'B', 'C') 1
-    Select-ActiveCrosshair $one
-    $o = Get-Crosshairs $one
-    Check 'один прицел: остался активный B' (@($o.profiles).Count -eq 1 -and $o.profiles[0].profileName -eq 'B' -and $o.currentProfile -eq 0)
     $d = Compare-Prefs (& $mk @('A') 0) (& $mk @('A', 'B') 1)
     Check 'предпросмотр: «Прицелы 1 шт. → 2 шт.»' (@($d | Where-Object { $_.What -eq 'Прицелы' -and $_.Old -like '1 шт.*' -and $_.New -like '2 шт.*«B»' }).Count -eq 1)
 
@@ -219,7 +154,7 @@ try {
     $sens = { (@((Read-Profile).floatSettings) | Where-Object settingEnum -like '*MouseSensitivity').value }
     $before = & $sens
     New-HistoryPoint 'тест'
-    $script:ProfileBackedUp = $true; Set-SettingValue ($SettingDefs | Where-Object Label -eq 'Чувствительность') 0.777
+    $pp = Read-Profile; (@($pp.floatSettings) | Where-Object settingEnum -like '*MouseSensitivity').value = 0.777; Save-Profile $pp
     $v = (Get-HistoryPoints)[0]
     Copy-ProfileFiles $v.Dir $Root
     Check 'версия из истории возвращается' ([Math]::Abs((& $sens) - $before) -lt 0.0001) "сейчас $(& $sens), ждали $before"
@@ -244,19 +179,20 @@ try {
 
     Write-Host 'шкала качества'
     Check 'знакомые значения — без предупреждения' (-not (Get-QualityOddities))
-    Set-GfxRiot 'EAresIntSettingName::TextureQuality' '2'
+    $gr = [IO.File]::ReadAllText($GfxRiot)
+    [IO.File]::WriteAllText($GfxRiot, $gr.TrimEnd() + "`r`nEAresIntSettingName::TextureQuality=2`r`n", (New-Object Text.UTF8Encoding $true))
     Check 'незнакомое значение замечено' ((Get-QualityOddities) -contains 'TextureQuality=2')
-    Set-GfxRiot 'EAresIntSettingName::TextureQuality' $null
+    [IO.File]::WriteAllText($GfxRiot, $gr, (New-Object Text.UTF8Encoding $true))
 
     Write-Host 'сборка'
     $b = powershell -NoProfile -ExecutionPolicy Bypass -File "$proj\build.ps1" 2>&1
     Check 'build.ps1 без ошибок' ($LASTEXITCODE -eq 0) "$b"
     $out = cmd /c "`"$proj\dist\valset.cmd`" status" 2>&1 | Out-String
-    Check 'dist\valset.cmd запускается' ($out -match 'Автоперенос') ($out.Substring(0, [Math]::Min(300, $out.Length)))
+    Check 'dist\valset.cmd запускается' ($out -match 'Аккаунт') ($out.Substring(0, [Math]::Min(300, $out.Length)))
     $env:VALSET_LANG = 'en'
     $outEn = cmd /c "`"$proj\dist\valset.cmd`" status" 2>&1 | Out-String
     $env:VALSET_LANG = 'ru'
-    Check 'английский интерфейс: status' ($outEn -match 'Helper' -and $outEn -notmatch 'Помощник') ($outEn.Substring(0, [Math]::Min(300, $outEn.Length)))
+    Check 'английский интерфейс: status' ($outEn -match 'Account' -and $outEn -notmatch 'Аккаунт') ($outEn.Substring(0, [Math]::Min(300, $outEn.Length)))
     Check 'собранный файл без BOM' (((Get-Content "$proj\dist\valset.cmd" -Encoding Byte -TotalCount 3) -join ',') -ne '239,187,191')
 } finally {
     Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue

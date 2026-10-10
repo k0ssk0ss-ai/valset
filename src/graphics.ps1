@@ -173,23 +173,3 @@ function Read-GraphicsValues {
     $v
 }
 
-# Меняет значения в GameUserSettings.ini эталона (все пары сразу).
-function Set-GfxIni([hashtable]$pairs) {
-    Protect-Profile (L 'до правки в «Изменить»' 'before editing in “Edit”')
-    $lines = [Collections.Generic.List[string]](Get-Content $GfxIni -Encoding UTF8)
-    foreach ($k in $pairs.Keys) {
-        $i = -1
-        for ($n = 0; $n -lt $lines.Count; $n++) { if ($lines[$n].StartsWith("$k=")) { $i = $n; break } }
-        if ($i -ge 0) { $lines[$i] = "$k=$($pairs[$k])" } else { $lines.Insert(1, "$k=$($pairs[$k])") }
-    }
-    [IO.File]::WriteAllLines($GfxIni, [string[]]$lines, (New-Object Text.UTF8Encoding $false))
-}
-
-# Меняет графический ключ RiotUserSettings эталона; $value = $null — убрать (стандарт игры).
-function Set-GfxRiot([string]$enum, $value) {
-    Protect-Profile (L 'до правки в «Изменить»' 'before editing in “Edit”')
-    $name = $enum -replace '^.*::', ''
-    $lines = @(Get-Content $GfxRiot -Encoding UTF8 | Where-Object { $_ -and $_ -notmatch "::$name=" })
-    if ($null -ne $value) { $lines += "$enum=$value" }
-    [IO.File]::WriteAllLines($GfxRiot, [string[]]$lines, (New-Object Text.UTF8Encoding $false))
-}

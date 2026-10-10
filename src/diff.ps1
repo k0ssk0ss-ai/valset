@@ -2,7 +2,7 @@
 # Понятным списком показываются бинды общего набора и настройки по settingEnum;
 # остальное (агентские бинды, оси, профили прицела) сравнивается целиком в Test-PrefsEqual.
 
-function Get-PrefDef([string]$enum) { $SettingDefs | Where-Object { $_.Kind -eq 'cloud' -and $_.Enum -eq $enum } | Select-Object -First 1 }
+function Get-PrefDef([string]$enum) { $SettingDefs | Where-Object { $_.Enum -eq $enum } | Select-Object -First 1 }
 
 function Format-PrefValue([string]$enum, $v) {
     if ($null -eq $v) { return (L 'стандарт' 'default') }
@@ -10,6 +10,7 @@ function Format-PrefValue([string]$enum, $v) {
     if ($d) {
         foreach ($o in $d.Opts) { if (Test-SameValue $o.V $v) { return $o.L } }
         if ($d.Format -eq 'pct') { return ('{0:0}%' -f ([double]$v * 100)) }
+        if ($d.Format -eq 'pct100') { return "$v%" }
     }
     if ($v -is [bool]) { return $(if ($v) { L 'вкл' 'on' } else { L 'выкл' 'off' }) }
     if ($v -is [double] -or $v -is [decimal]) { return ([double]$v).ToString('0.####', $Inv) }

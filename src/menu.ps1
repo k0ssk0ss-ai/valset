@@ -41,7 +41,7 @@ function Write-State($st) {
         if (-not $st.Have)  { Write-StateLine (L 'Настройки' 'Settings') (L 'твои настройки ещё не запомнены' 'your settings are not saved yet') 'Yellow' (L '→ «Запомнить как мои»' '→ “Save as mine”') }
         elseif ($st.Error)  { Write-StateLine (L 'Настройки' 'Settings') (L 'не удалось проверить' 'could not check') 'Red' $st.Error }
         elseif ($st.Same)   { Write-StateLine (L 'Настройки' 'Settings') (L '√ совпадают с твоими' '√ match yours') 'Green' }
-        elseif ($st.IsMain) { Write-StateLine (L 'Настройки' 'Settings') "‼ $(L 'поменялись в игре' 'changed in game') ($($st.Diff))" 'Yellow' (L '→ «Запомнить как мои» или «Перенести» обратно' '→ “Save as mine”, or “Apply” to revert') }
+        elseif ($st.IsMain) { Write-StateLine (L 'Настройки' 'Settings') "‼ $(L 'поменялись в игре' 'changed in game') ($($st.Diff))" 'Yellow' (L '→ «Запомнить как мои» (вернуть прежние — «Ещё» → «Перенести мои»)' '→ “Save as mine” (to revert — “More” → “Apply mine”)') }
         else                { Write-StateLine (L 'Настройки' 'Settings') "‼ $(L 'не твои: отличий' 'not yours: differences') $($st.Diff)" 'Yellow' (L '→ «Перенести мои настройки»' '→ “Apply my settings”') }
     }
     if ($st.Session -and (Test-Temp $st.Session.Puuid)) {
@@ -49,10 +49,13 @@ function Write-State($st) {
         Write-StateLine (L 'На время' 'Temporary') (L 'твои настройки, исходные сохранены' 'your settings, originals kept') 'Cyan' $how
     }
     if ($st.Game) { Write-StateLine (L 'Игра' 'Game') (L 'запущена' 'running') 'Yellow' (L 'перенос подействует после перезапуска игры' 'applying takes effect after a game restart') }
+    # Помощник — строка только когда он включён (выключен — это норма, не о чем сообщать; настраивается в «Ещё»).
     $c = $st.Cfg
-    $text = "$(L 'уведомления' 'notifications') $(if ($c.notify) { L 'вкл' 'on' } else { L 'выкл' 'off' }) · $(L 'автоперенос' 'auto-apply') $(if ($c.autoApply) { L 'вкл' 'on' } else { L 'выкл' 'off' })"
-    $hint = if (($c.notify -or $c.autoApply) -and -not $st.Agent) { L 'не запущен — включи заново ниже' 'not running — turn it on again below' } elseif ($c.autoApply) { L 'переносит сам на любой аккаунт, кроме основного' 'applies by itself to any account except main' } elseif ($c.notify) { L 'подскажет, если настройки разошлись' 'tells you when settings differ' } else { L 'по желанию — ниже; без него всё вручную' 'optional — below; without it everything is manual' }
-    Write-StateLine (L 'Помощник' 'Helper') $text $(if ($c.notify -or $c.autoApply) { 'Green' } else { 'DarkGray' }) $hint
+    if ($c.notify -or $c.autoApply) {
+        $text = "$(L 'уведомления' 'notifications') $(if ($c.notify) { L 'вкл' 'on' } else { L 'выкл' 'off' }) · $(L 'автоперенос' 'auto-apply') $(if ($c.autoApply) { L 'вкл' 'on' } else { L 'выкл' 'off' })"
+        $hint = if (-not $st.Agent) { L 'не запущен — включи заново в «Ещё»' 'not running — turn it on again in “More”' } elseif ($c.autoApply) { L 'переносит сам на любой аккаунт, кроме основного' 'applies by itself to any account except main' } else { L 'подскажет, если настройки разошлись' 'tells you when settings differ' }
+        Write-StateLine (L 'Помощник' 'Helper') $text $(if ($st.Agent) { 'Green' } else { 'Yellow' }) $hint
+    }
     if ($st.GfxWait) { Write-StateLine (L 'Графика' 'Graphics') (L 'ждёт выхода из игры' 'waiting for game exit') 'Yellow' (L 'запишется сама' 'will be written automatically') }
 }
 
@@ -63,41 +66,102 @@ function Get-Suggested($st, $items) {
     -1
 }
 
+# Строки «Перенести мои» / «Запомнить как мои» — одни и те же на главном экране и в «Ещё».
+function New-ApplyEntry($st) {
+    $temp = $st.Session -and (Test-TempDefault $st.Session.Puuid)
+    New-MenuEntry (L 'Перенести мои' 'Apply mine') '' '' @(
+        New-MenuOpt (L 'всё' 'all') 'apply' $(if ($temp) { L 'на время: после игры вернутся исходные' 'for now: the originals come back after the game' } else { L 'бинды, мышь, прицел, графика' 'binds, mouse, crosshair, graphics' })
+        New-MenuOpt (L 'бинды' 'binds') 'binds' (L 'только клавиши' 'keys only')
+        New-MenuOpt (L 'насовсем' 'permanently') 'applyperm' (L 'без возврата исходных' 'originals are not restored'))
+}
+function New-SaveEntry {
+    New-MenuEntry (L 'Запомнить как мои' 'Save as mine') '' '' @(
+        New-MenuOpt (L 'всё' 'all') 'save' (L 'с этого аккаунта' 'from this account')
+        New-MenuOpt (L 'бинды' 'binds') 'savebinds' (L 'только клавиши' 'keys only')
+        New-MenuOpt (L 'графику' 'graphics') 'gfxsave' (L 'можно прямо в игре' 'works even in game'))
+}
+
+# Главный экран — только то, что нужно этому аккаунту сейчас; всё остальное — в «Ещё» (more.ps1).
 function Get-MenuItems($st) {
-    $h = Read-Accounts
-    $acc = @($h.Keys | ForEach-Object { "$(Get-AccountLabel $_) $(switch ("$($h[$_].state)") { 'same' { '√' } 'diff' { '‼' } default { '·' } })" }) -join '  '
-    @(
-        New-MenuSep (L 'ЭТОТ АККАУНТ' 'THIS ACCOUNT')
-        if ($st.Session -and (Test-Temp $st.Session.Puuid)) { New-MenuEntry (L 'Вернуть исходные' 'Restore originals') (L 'настройки аккаунта до твоего переноса' 'the account''s settings before your apply') 'untemp' }
+    $ok = $st.Session -and -not $st.Error
+    $now = @(
         if (-not $st.Session -and -not $st.Client) { New-MenuEntry (L 'Открыть клиент Riot' 'Open Riot Client') (L 'и войти в аккаунт' 'and log in') 'client' }
-        if ($st.Have) {
-            New-MenuEntry (L 'Перенести мои' 'Apply mine') '' '' @(
-                New-MenuOpt (L 'всё' 'all') 'apply' $(if ($st.Session -and (Test-TempDefault $st.Session.Puuid)) { L 'на время: после игры вернутся исходные' 'for now: the originals come back after the game' } else { L 'бинды, мышь, прицел, графика' 'binds, mouse, crosshair, graphics' })
-                New-MenuOpt (L 'бинды' 'binds') 'binds' (L 'только клавиши' 'keys only')
-                New-MenuOpt (L 'насовсем' 'permanently') 'applyperm' (L 'без возврата исходных' 'originals are not restored'))
-        }
-        New-MenuEntry (L 'Запомнить как мои' 'Save as mine') '' '' @(
-            New-MenuOpt (L 'всё' 'all') 'save' (L 'с этого аккаунта' 'from this account')
-            New-MenuOpt (L 'бинды' 'binds') 'savebinds' (L 'только клавиши' 'keys only')
-            New-MenuOpt (L 'графику' 'graphics') 'gfxsave' (L 'можно прямо в игре' 'works even in game'))
+        if ($st.Session -and (Test-Temp $st.Session.Puuid)) { New-MenuEntry (L 'Вернуть исходные' 'Restore originals') (L 'настройки аккаунта до твоего переноса' 'the account''s settings before your apply') 'untemp' }
+        if ($ok -and (-not $st.Have -or ($st.IsMain -and -not $st.Same))) { New-SaveEntry }
+        if ($ok -and $st.Have -and -not $st.IsMain -and -not $st.Same) { New-ApplyEntry $st }
         if ($st.Diff -and $st.DiffList.Count) { New-MenuEntry (L 'Что отличается' 'What differs') "$($st.DiffList.Count) $(L 'настр.: на аккаунте → твои' 'settings: on account → yours')" 'diff' }
-        New-MenuSep (L 'МОИ НАСТРОЙКИ' 'MY SETTINGS')
-        if ($st.Have) { New-MenuEntry (L 'Изменить' 'Edit') (L 'бинды, мышь, интерфейс, графика' 'binds, mouse, interface, graphics') 'edit' }
-        New-MenuEntry (L 'Аккаунты' 'Accounts') $(if ($acc) { $acc } else { L 'пока пусто' 'empty so far' }) 'accounts'
-        $c = $st.Cfg
-        New-MenuEntry (L 'Уведомления' 'Notifications') '' '' @(
-            New-MenuOpt $(if ($c.notify) { '• ' + (L 'вкл' 'on') } else { L 'вкл' 'on' }) 'notify-on' (L 'подскажет, если настройки разошлись' 'tells you when settings differ')
-            New-MenuOpt $(if ($c.notify) { L 'выкл' 'off' } else { '• ' + (L 'выкл' 'off') }) 'notify-off' (L 'без уведомлений' 'no notifications'))
-        New-MenuEntry (L 'Автоперенос' 'Auto-apply') '' '' @(
-            New-MenuOpt $(if ($c.autoApply) { '• ' + (L 'вкл' 'on') } else { L 'вкл' 'on' }) 'auto-on' (L 'сам при входе, кроме основного' 'on login, except the main account')
-            New-MenuOpt $(if ($c.autoApply) { L 'выкл' 'off' } else { '• ' + (L 'выкл' 'off') }) 'auto-off' (L 'переносить вручную' 'apply manually'))
-        New-MenuSep (L 'ЕЩЁ' 'MORE')
-        New-MenuEntry (L 'Наборы и код для друга' 'Sets & share code') (L 'несколько наборов, обмен' 'several sets, sharing') 'profiles'
-        New-MenuEntry (L 'История моих настроек' 'My settings history') (L 'вернуть свои как были' 'restore yours as they were') 'history'
-        New-MenuEntry (L 'Откат аккаунта' 'Account rollback') (L 'вернуть аккаунт как был' 'restore the account as it was') 'restore'
-        New-MenuEntry (L 'Справка' 'Help') (L 'как это работает · язык · клавиша ?' 'how it works · language · key ?') 'help'
+    )
+    # всё в порядке — действий нет, статус сверху это уже сказал: только «Ещё» и «Выход»
+    @(
+        if ($now) { New-MenuSep (L 'СЕЙЧАС' 'NOW'); $now; New-MenuSep '' }
+        New-MenuEntry (L 'Ещё' 'More') (L 'вручную, аккаунты, помощник, бэкапы, справка' 'manual, accounts, helper, backups, help') 'more'
         New-MenuEntry (L 'Выход' 'Exit') '' 'exit'
     )
+}
+
+# Действие пункта меню (главного или «Ещё»). Возвращает $true, если после него ждать клавишу.
+function Invoke-MenuAction([string]$id, $st) {
+    switch ($id) {
+        'client'    { Open-RiotClient; return $false }
+        'apply'     { Write-Screen (L 'ПЕРЕНОС МОИХ НАСТРОЕК' 'APPLY MY SETTINGS'); Invoke-Apply }
+        'binds'     { Write-Screen (L 'ПЕРЕНОС: ТОЛЬКО БИНДЫ' 'APPLY: BINDS ONLY'); Invoke-Apply -BindsOnly }
+        'applyperm' { Write-Screen (L 'ПЕРЕНОС НАСОВСЕМ' 'APPLY PERMANENTLY'); Invoke-Apply -Permanent }
+        'untemp'    { Write-Screen (L 'ВЕРНУТЬ ИСХОДНЫЕ' 'RESTORE ORIGINALS'); $null = Invoke-RestoreTemp $st.Session }
+        'save'      { Write-Screen (L 'ЗАПОМНИТЬ КАК МОИ' 'SAVE AS MINE'); Invoke-Save }
+        'savebinds' { Write-Screen (L 'ЗАПОМНИТЬ: ТОЛЬКО БИНДЫ' 'SAVE: BINDS ONLY'); Invoke-SaveBinds }
+        'gfxsave'   { Write-Screen (L 'ЗАПОМНИТЬ: ТОЛЬКО ГРАФИКУ' 'SAVE: GRAPHICS ONLY'); Invoke-SaveGraphics }
+        'diff'      { Show-DiffList $st.DiffList "$(L 'ЧТО ОТЛИЧАЕТСЯ' 'WHAT DIFFERS') · $($st.Name)"; return $false }
+        'more'      { return (Show-More $st) }
+        'accounts'  { Show-Accounts; return $false }
+        'restore'   { Show-Restore; return $false }
+        'history'   { Show-History; return $false }
+        'help'      { Show-Help; return $false }
+        'auto-on'   {
+            Write-Screen (L 'АВТОПЕРЕНОС' 'AUTO-APPLY')
+            Set-Config 'autoApply' $true
+            Write-Ok (L 'Включён. Запускай Valorant как обычно — при входе в аккаунт настройки перенесутся сами' 'On. Launch VALORANT as usual — your settings are applied when you log in')
+            Write-Note (L 'основной аккаунт не трогается; помощник стартует вместе с Windows (~5 МБ памяти)' 'the main account is never touched; the helper starts with Windows (~5 MB of memory)')
+        }
+        'auto-off'  { Write-Screen (L 'АВТОПЕРЕНОС' 'AUTO-APPLY'); Set-Config 'autoApply' $false; Write-Ok (L 'Выключен. Переносить — вручную из этого меню' 'Off. Apply manually from this menu') }
+        'notify-on' {
+            Write-Screen (L 'УВЕДОМЛЕНИЯ' 'NOTIFICATIONS')
+            Set-Config 'notify' $true
+            Send-Toast 'VALSET' (L 'Уведомления включены — так они будут выглядеть.' 'Notifications are on — this is how they look.')
+            Write-Ok (L 'Включены: подскажу, если на аккаунте не твои настройки или на основном они поменялись' 'On: I will tell you when an account has different settings, or yours changed on main')
+        }
+        'notify-off' { Write-Screen (L 'УВЕДОМЛЕНИЯ' 'NOTIFICATIONS'); Set-Config 'notify' $false; Write-Ok (L 'Выключены' 'Off') }
+        default     { return $false }
+    }
+    $true
+}
+
+function Show-Menu {
+    if (-not (Enter-SingleMenu)) { Write-Fail (L 'Не удалось закрыть старое окно valset.' 'Could not close the old VALSET window.'); return }
+    $Host.UI.RawUI.WindowTitle = 'VALSET'
+    $script:InMenu = $true
+    if (-not (Test-Path $ProfilePath) -and -not (Get-HistoryPoints)) { Show-Welcome }
+    $lastId = ''
+    while ($true) {
+        Clear-Host; Write-Host ''; Write-Host (L '    проверяю аккаунт…' '    checking the account…') -ForegroundColor DarkGray
+        $st = Get-MenuState
+        $items = Get-MenuItems $st
+        $sel = Get-Suggested $st $items
+        if ($sel -lt 0) { $sel = [Math]::Max(0, [array]::FindIndex([object[]]$items, [Predicate[object]] { param($x) $x.Id -eq $lastId })) }
+        $i = Select-Item -Items $items -Start $sel -Header { Write-Banner; Write-State $st } `
+            -Footer (L '↑↓ пункт · Enter — выполнить · цифра — сразу · ? — справка · Esc — выход' '↑↓ item · Enter — run · digit — jump · ? — help · Esc — exit')
+        if ($i -lt 0) { return }
+        $id = Get-EntryId $items[$i]
+        if ($id -eq 'exit') { return }
+        $lastId = $items[$i].Id
+        $pause = $false
+        try { $r = @(Invoke-MenuAction $id $st); $pause = [bool]$r[-1] }   # последнее — признак паузы, до него — вывод действия
+        catch {
+            Log "ошибка: $($_.Exception.Message)"
+            Write-Fail $_.Exception.Message
+            $pause = $true
+        }
+        if ($pause) { Wait-AnyKey (L 'любая клавиша — назад в меню' 'any key — back to menu') }
+    }
 }
 
 function Show-Help {
@@ -129,8 +193,8 @@ function Show-Help {
         'Ctrl+Alt+V во время игры ничего не открывает — чтобы случайно не свернуть её.'
         'Графика хранится на этом ПК, а не в облаке: после «Запомнить» она сама уходит во все'
         'аккаунты этого ПК (если игра запущена — сразу после выхода из неё).'
-        'Перед каждой записью — бэкап аккаунта (последние 30): «Откат аккаунта».'
-        'Перед каждым изменением твоих настроек — версия (последние 10): «История моих настроек».'
+        'Перед каждой записью — бэкап аккаунта (последние 30): «Ещё» → «Бэкапы».'
+        'Перед каждым изменением твоих настроек — версия (последние 10): «Ещё» → «Бэкапы».'
         'Прицелы: на время — на аккаунте только твои (его вернутся вместе с исходными);'
         'насовсем — прицелы аккаунта не стираются, твой добавляется и становится активным (до 15).'
     )
@@ -161,8 +225,8 @@ function Show-Help {
         'Ctrl+Alt+V does nothing while the game is in focus — so you never minimize it by accident.'
         'Graphics live on this PC, not in the cloud: after “Save” they go to all accounts'
         'on this PC (if the game is running — right after you exit it).'
-        'Before every write — an account backup (last 30): “Account rollback”.'
-        'Before every change to your settings — a version (last 10): “My settings history”.'
+        'Before every write — an account backup (last 30): “More” → “Backups”.'
+        'Before every change to your settings — a version (last 10): “More” → “Backups”.'
         'Crosshairs: for now — only yours on the account (its own come back with the originals);'
         'permanently — the account''s crosshairs are kept, yours is added and made active (up to 15).'
     )
@@ -227,63 +291,6 @@ function Show-Welcome {
         $script:Lang = if ($script:Lang -eq 'en') { 'ru' } else { 'en' }
         Set-Config 'lang' $script:Lang
         Show-Welcome
-    }
-}
-function Show-Menu {
-    if (-not (Enter-SingleMenu)) { Write-Fail (L 'Не удалось закрыть старое окно valset.' 'Could not close the old VALSET window.'); return }
-    $Host.UI.RawUI.WindowTitle = 'VALSET'
-    $script:InMenu = $true
-    if (-not (Test-Path $ProfilePath) -and -not (Get-HistoryPoints)) { Show-Welcome }
-    $last = $null
-    while ($true) {
-        Clear-Host; Write-Host ''; Write-Host (L '    проверяю аккаунт…' '    checking the account…') -ForegroundColor DarkGray
-        $st = Get-MenuState
-        $items = Get-MenuItems $st
-        $sel = Get-Suggested $st $items
-        if ($sel -lt 0) { $sel = if ($last) { [Math]::Min($last, $items.Count - 1) } else { 1 } }
-        $i = Select-Item -Items $items -Start $sel -Header { Write-Banner; Write-State $st } `
-            -Footer (L '↑↓ пункт · Enter — выполнить · цифра — сразу · ? — справка · Esc — выход' '↑↓ item · Enter — run · digit — jump · ? — help · Esc — exit')
-        if ($i -lt 0) { return }
-        $last = $i
-        $pause = $true
-        try {
-            switch (Get-EntryId $items[$i]) {
-                'client'    { Open-RiotClient; $pause = $false }
-                'apply'     { Write-Screen (L 'ПЕРЕНОС МОИХ НАСТРОЕК' 'APPLY MY SETTINGS'); Invoke-Apply }
-                'binds'     { Write-Screen (L 'ПЕРЕНОС: ТОЛЬКО БИНДЫ' 'APPLY: BINDS ONLY'); Invoke-Apply -BindsOnly }
-                'applyperm' { Write-Screen (L 'ПЕРЕНОС НАСОВСЕМ' 'APPLY PERMANENTLY'); Invoke-Apply -Permanent }
-                'untemp'    { Write-Screen (L 'ВЕРНУТЬ ИСХОДНЫЕ' 'RESTORE ORIGINALS'); $null = Invoke-RestoreTemp $st.Session }
-                'save'      { Write-Screen (L 'ЗАПОМНИТЬ КАК МОИ' 'SAVE AS MINE'); Invoke-Save }
-                'savebinds' { Write-Screen (L 'ЗАПОМНИТЬ: ТОЛЬКО БИНДЫ' 'SAVE: BINDS ONLY'); Invoke-SaveBinds }
-                'gfxsave'   { Write-Screen (L 'ЗАПОМНИТЬ: ТОЛЬКО ГРАФИКУ' 'SAVE: GRAPHICS ONLY'); Invoke-SaveGraphics }
-                'edit'      { Show-Editor; $pause = $false }
-                'accounts'  { Show-Accounts; $pause = $false }
-                'diff'      { Show-DiffList $st.DiffList "$(L 'ЧТО ОТЛИЧАЕТСЯ' 'WHAT DIFFERS') · $($st.Name)"; $pause = $false }
-                'auto-on'   {
-                    Write-Screen (L 'АВТОПЕРЕНОС' 'AUTO-APPLY')
-                    Set-Config 'autoApply' $true
-                    Write-Ok (L 'Включён. Запускай Valorant как обычно — при входе в аккаунт настройки перенесутся сами' 'On. Launch VALORANT as usual — your settings are applied when you log in')
-                    Write-Note (L 'основной аккаунт не трогается; помощник стартует вместе с Windows (~5 МБ памяти)' 'the main account is never touched; the helper starts with Windows (~5 MB of memory)')
-                }
-                'auto-off'  { Write-Screen (L 'АВТОПЕРЕНОС' 'AUTO-APPLY'); Set-Config 'autoApply' $false; Write-Ok (L 'Выключен. Переносить — вручную из этого меню' 'Off. Apply manually from this menu') }
-                'notify-on' {
-                    Write-Screen (L 'УВЕДОМЛЕНИЯ' 'NOTIFICATIONS')
-                    Set-Config 'notify' $true
-                    Send-Toast 'VALSET' (L 'Уведомления включены — так они будут выглядеть.' 'Notifications are on — this is how they look.')
-                    Write-Ok (L 'Включены: подскажу, если на аккаунте не твои настройки или на основном они поменялись' 'On: I will tell you when an account has different settings, or yours changed on main')
-                }
-                'notify-off' { Write-Screen (L 'УВЕДОМЛЕНИЯ' 'NOTIFICATIONS'); Set-Config 'notify' $false; Write-Ok (L 'Выключены' 'Off') }
-                'profiles'  { Show-Profiles; $pause = $false }
-                'restore'   { Show-Restore; $pause = $false }
-                'history'   { Show-History; $pause = $false }
-                'help'      { Show-Help; $pause = $false }
-                'exit'      { return }
-            }
-        } catch {
-            Log "ошибка: $($_.Exception.Message)"
-            Write-Fail $_.Exception.Message
-        }
-        if ($pause) { Wait-AnyKey (L 'любая клавиша — назад в меню' 'any key — back to menu') }
     }
 }
 

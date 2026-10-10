@@ -69,15 +69,15 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'ui.ps1')
 . (Join-Path $PSScriptRoot 'keys.ps1')
 . (Join-Path $PSScriptRoot 'graphics.ps1')
-. (Join-Path $PSScriptRoot 'editor.ps1')
+. (Join-Path $PSScriptRoot 'schema.ps1')
 . (Join-Path $PSScriptRoot 'crosshair.ps1')
 . (Join-Path $PSScriptRoot 'diff.ps1')
-. (Join-Path $PSScriptRoot 'profiles.ps1')
-. (Join-Path $PSScriptRoot 'history.ps1')
+. (Join-Path $PSScriptRoot 'backups.ps1')
 . (Join-Path $PSScriptRoot 'guest.ps1')
 . (Join-Path $PSScriptRoot 'accounts.ps1')
 . (Join-Path $PSScriptRoot 'agent.ps1')
 . (Join-Path $PSScriptRoot 'menu.ps1')
+. (Join-Path $PSScriptRoot 'more.ps1')
 . (Join-Path $PSScriptRoot 'install.ps1')
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -322,7 +322,7 @@ function Invoke-SaveBinds($s) {
         if (-not $diff.Count) { Write-Note (L 'отличия только в агентских биндах или осях' 'differences only in agent binds or axes') }
         if (-not (Confirm-Key (L "Запомнить бинды аккаунта $(Get-AccountLabel $s.Puuid) как мои?" "Save the binds of $(Get-AccountLabel $s.Puuid) as mine?"))) { Write-Note (L 'отменено' 'cancelled'); return }
     }
-    $script:ProfileBackedUp = $false; Protect-Profile (L 'до «Запомнить → бинды»' 'before “Save → binds”')
+    New-HistoryPoint (L 'до «Запомнить → бинды»' 'before “Save → binds”')
     Save-Profile $new
     Log "бинды запомнены с аккаунта $(Get-AccountLabel $s.Puuid) ($($diff.Count) изм.)"
     if ($script:Fancy) { Write-Ok (L "Бинды запомнены с аккаунта $(Get-AccountLabel $s.Puuid), остальное не тронуто" "Binds saved from $(Get-AccountLabel $s.Puuid), everything else untouched") }

@@ -64,17 +64,6 @@ function Merge-Crosshairs($cur, $new) {
     else { Set-CrosshairValue $new (ConvertTo-CrosshairJson $b) }
     $all.Count - $added.Count
 }
-# Оставляет только активный прицел (для короткого кода).
-function Select-ActiveCrosshair($prof) {
-    $d = Get-Crosshairs $prof
-    if (-not $d) { return }
-    $ps = @($d.profiles)
-    if (-not $ps.Count) { return }
-    $i = [int]$d.currentProfile
-    if ($i -lt 0 -or $i -ge $ps.Count) { $i = 0 }
-    $d.profiles = @($ps[$i]); $d.currentProfile = 0
-    Set-CrosshairValue $prof (ConvertTo-CrosshairJson $d)
-}
 
 function Format-Crosshairs([string]$value) {
     if (-not $value) { return (L 'стандарт' 'default') }

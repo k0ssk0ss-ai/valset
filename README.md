@@ -32,8 +32,8 @@ press **Y** when asked to install. Windows may say “Windows protected your PC�
 3. Log into another account → **Ctrl+Alt+V → “Apply mine”** (before launching the game).
    VALSET shows exactly what will change and asks first. After the game the account gets its own settings back.
 
-The top of the menu always says which account you are on and whether it has your settings — the cursor already
-sits on the right action. Press **?** for help.
+The main screen says which account you are on and whether it has your settings, and shows only what makes sense
+right now (apply, save, restore originals) — usually 1–3 items. Everything else is under **More**. Press **?** for help.
 
 ### What else it does
 
@@ -41,16 +41,12 @@ sits on the right action. Press **?** for help.
 - **For now — by default**: applying to any account except your main one is temporary — the account's original
   settings are kept and come back ~3 s after you close the game (with the helper; otherwise “Restore originals”
   before you log out). Mark your own accounts “mine” once, or pick “permanently”, to skip the restore.
-- **Edit** your settings without the game: binds, mouse, interface, on-screen stats, graphics.
 - **What differs** — the full list “on account → yours”.
 - **Crosshairs**: for now — only yours on the account, no mix-ups (its own come back with the originals);
   permanently — the account's crosshairs are kept, yours is added and made active (the game allows 15).
 - **Graphics** are per PC: after “Save” they go to every account on this PC (asks once if the PC is shared).
 - **Accounts** by Riot ID: where settings match, where they don't, which one is main.
-- **Share code**: put your settings into a short code (~175 characters for binds, ~1,400–1,900 for everything)
-  that someone can import into **their own** VALSET — like a crosshair code, but for everything.
-- **Backups**: “Account rollback” restores an account to how it was before an apply;
-  “My settings history” restores your own settings to an earlier version.
+- **Backups** (More → Backups): an account as it was before an apply; your own settings at an earlier version.
 - **Background helper — optional** (off by default): notifications “this account has different settings” and
   auto-apply on login. It polls nothing — it waits for Riot Client events. ~5 MB of memory.
 - **Ctrl+Alt+V does nothing while the game is in focus** — so you never minimize it by accident.
@@ -89,14 +85,14 @@ wary of unsigned executables. Don't need the helper — don't turn it on.
 ```
 src\valset.ps1     entry point: Riot API, save/apply, commands, language
 src\ui.ps1         screens, arrow-key lists (inline options), progress bars
-src\menu.ps1       main screen: plain-language status, menu, first run, help, single window
-src\keys.ps1       binds: action catalogue, key names, editor
-src\editor.ps1     “Edit”: settings schema and pickers
+src\menu.ps1       main screen: plain-language status, only what's needed now, first run, help, single window
+src\more.ps1       “More” screen: manual apply/save, accounts, helper, backups
+src\keys.ps1       binds: action catalogue, key names
+src\schema.ps1     my settings file + human-readable labels for the preview
 src\graphics.ps1   graphics: per-account local files on this PC, deferred writes
 src\diff.ps1       preview: what will change
-src\crosshair.ps1  crosshair profiles: merging, single crosshair for codes
-src\profiles.ps1   sets, share codes, account rollback
-src\history.ps1    my settings history
+src\crosshair.ps1  crosshair profiles: “for now” — only yours, “permanently” — merged
+src\backups.ps1    account rollback and my settings history
 src\accounts.ps1   accounts by Riot ID, main account, status
 src\agent.ps1      background helper: watcher (C#, Riot Client events) + check
 src\install.ps1    install, uninstall, Ctrl+Alt+V in-game guard
