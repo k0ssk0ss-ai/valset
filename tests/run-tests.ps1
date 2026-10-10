@@ -196,8 +196,8 @@ try {
     Check 'про наложен: одна чувствительность, его' ($sv.Count -eq 1 -and $sv[0].value -eq 0.4)
     Check 'остальное — как было' (@($pn.floatSettings).Count -eq (@($cur.floatSettings | Where-Object { $_.settingEnum -ne $SensEnum }).Count + 1) -and (Get-JsonPart $pn 'actionMappings') -eq (Get-JsonPart $cur 'actionMappings'))
     Check 'текущие не тронуты' ((Get-JsonPart $cur 'floatSettings') -eq (Get-JsonPart (Read-Profile) 'floatSettings'))
-    Check 'pros.json в репозитории разбирается' ($null -ne (Get-Content "$proj\pros.json" -Raw | ConvertFrom-Json).pros)
-    $all = @((Get-Content "$proj\pros.json" -Raw -Encoding UTF8 | ConvertFrom-Json).pros)
+    Check 'pros.json в репозитории разбирается' ($null -ne (Get-Content "$proj\pros\pros-v2.json" -Raw | ConvertFrom-Json).pros)
+    $all = @((Get-Content "$proj\pros\pros-v2.json" -Raw -Encoding UTF8 | ConvertFrom-Json).pros)
     $bad = @(foreach ($p in $all) {
         try {
             $n = Join-ProPrefs $cur $p.prefs

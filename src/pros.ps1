@@ -1,10 +1,10 @@
 ﻿# pros.ps1 — «Настройки про»: примерить на себя настройки про-игрока. Только на время — «Вернуть исходные» вернёт как было.
 # Список — pros.json в репозитории; пока он пуст, пункта в «Ещё» нет. Запись: nick, team, source (откуда взято),
 # updated, dpi (на котором его чувствительность), crosshair (код игры 0;P;…), prefs — известная часть облачных
-# настроек в формате profile.json. Собирается tools\build-pros.ps1 из pros-raw\.
+# настроек в формате profile.json. Лежит в pros\pros-v2.json, собирается tools\build-pros.ps1 из pros-raw\.
 
-$ProsUrl   = if ($env:VALSET_PROS) { $env:VALSET_PROS } else { 'https://raw.githubusercontent.com/k0ssk0ss-ai/valset/main/pros.json' }   # VALSET_PROS — для тестов
-$ProsCache = Join-Path $Root 'pros.json'
+$ProsUrl   = if ($env:VALSET_PROS) { $env:VALSET_PROS } else { 'https://raw.githubusercontent.com/k0ssk0ss-ai/valset/main/pros/pros-v2.json' }   # VALSET_PROS — для тестов; v2 — с прицелом, pros.json в корне пуст для 1.1.0
+$ProsCache = Join-Path $Root 'pros-v2.json'
 $SensEnum  = 'EAresFloatSettingName::MouseSensitivity'
 
 # Список про — один раз за запуск; без сети — последний скачанный.

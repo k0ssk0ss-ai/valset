@@ -48,5 +48,5 @@ $pros = foreach ($f in Get-ChildItem $raw -Filter 'part*.json' | Sort-Object Nam
 }
 $pros = @($pros | Sort-Object { -[int]$_.active }, { $_.nick })
 $json = ConvertTo-Json -InputObject ([ordered]@{ version = 1; pros = $pros }) -Depth 8
-[IO.File]::WriteAllText((Join-Path $repo 'pros.json'), $json, (New-Object Text.UTF8Encoding $false))
-"pros.json: $($pros.Count) про, с прицелом $(@($pros | Where-Object { $_.crosshair }).Count)"
+[IO.File]::WriteAllText((Join-Path $repo 'pros\pros-v2.json'), $json, (New-Object Text.UTF8Encoding $false))
+"pros\pros-v2.json: $($pros.Count) про, с прицелом $(@($pros | Where-Object { $_.crosshair }).Count)"
