@@ -1,22 +1,24 @@
 ﻿# agent.ps1 — помощник в фоне: уведомления и (по желанию) автоперенос. По умолчанию выключен.
 #
 # Как устроено — без опроса, только ожидание событий:
-#   сторож   — крошечная программа (valset-agent-5.exe), стартует со входом в Windows (HKCU\...\Run).
+#   сторож   — крошечная программа (valset-agent-6.exe), стартует со входом в Windows (HKCU\...\Run).
 #              Клиент Riot закрыт → спит, пока Windows не сообщит о появлении его lockfile (FileSystemWatcher).
 #              Клиент открыт → слушает локальный канал событий клиента (WebSocket, WAMP) и ждёт:
 #                Create /entitlements/v1/token                    — вход в аккаунт → `valset watch`
 #                Delete /product-session/v1/external-sessions/…   — игра закрыта → через 3 с `valset watch -AfterGame`
 #              (события проверены на живом клиенте 2026-10-06). Процесс игры сторож не трогает.
-#              Пока идёт игра, держит в памяти её токен (раз в 5 мин обновляет) и отдаёт его `watch -AfterGame`
+#              Пока идёт игра, держит в памяти её токен и отдаёт его `watch -AfterGame`
 #              через переменную окружения: выйдешь из аккаунта прямо из игры — клиент токен удалит, а сервер его ещё
 #              принимает (замер 2026-10-10, NOTES), и исходные вернутся всё равно. На диск токен не пишется.
+#              Токен живёт 60 мин; клиент обновляет его за ~30 с до конца и шлёт Update /entitlements/v1/token —
+#              по этому событию и берём новый. Раз в час — на случай, если событие потерялось.
 #   проверка — `valset watch` (скрыто, одна проверка и выход): чужой аккаунт — автоперенос или уведомление «не твои»;
 #              основной — уведомление, если его настройки разошлись с моими (после игры — тоже).
 # Основной аккаунт автоперенос не трогает: его настройки меняешь ты сам и потом «Запоминаешь».
 # config.json: { autoApply, notify } — по умолчанию оба выкл: фоновую программу человек включает сам.
 # Сторож работает, только если включено хоть что-то.
 
-$AgentExe      = Join-Path $Root 'valset-agent-5.exe'
+$AgentExe      = Join-Path $Root 'valset-agent-6.exe'
 $AgentMutex    = 'Local\valset-agent'
 $AgentStopName = 'Local\valset-agent-stop'
 $RunKey        = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
@@ -75,10 +77,10 @@ static class ValsetAgent {
             while (ws.State == WebSocketState.Open) {
                 var t = ws.ReceiveAsync(new ArraySegment<byte>(buf), CancellationToken.None);
                 var wh = new WaitHandle[] { Stop, ((IAsyncResult)t).AsyncWaitHandle };
-                int w = WaitHandle.WaitAny(wh, GameSeen ? 300000 : dirty ? 30000 : Timeout.Infinite);
+                int w = WaitHandle.WaitAny(wh, dirty ? 30000 : GameSeen ? 3600000 : Timeout.Infinite);
                 while (w == WaitHandle.WaitTimeout) {
-                    if (GameSeen) { HoldToken(); Trim(); w = WaitHandle.WaitAny(wh, 300000); }   // в игре — раз в 5 мин свежий токен
-                    else { Trim(); dirty = false; w = WaitHandle.WaitAny(wh); }                    // 30 с тишины — отдать память
+                    if (!dirty && GameSeen) HoldToken();                                   // час без событий в игре — на всякий случай
+                    Trim(); dirty = false; w = WaitHandle.WaitAny(wh, GameSeen ? 3600000 : Timeout.Infinite);   // тишина — отдать память
                 }
                 if (w == 0) return false;
                 WebSocketReceiveResult res;
@@ -87,7 +89,8 @@ static class ValsetAgent {
                 sb.Append(Encoding.UTF8.GetString(buf, 0, res.Count));
                 if (!res.EndOfMessage) continue;
                 string m = sb.ToString(); sb.Clear();
-                if (m.Contains("\"uri\":\"/entitlements/v1/token\"") && m.Contains("\"eventType\":\"Create\"")) {
+                if (GameSeen && m.Contains("\"uri\":\"/entitlements/v1/token\"") && m.Contains("\"eventType\":\"Update\"")) HoldToken();   // клиент обновил токен
+                else if (m.Contains("\"uri\":\"/entitlements/v1/token\"") && m.Contains("\"eventType\":\"Create\"")) {
                     if ((DateTime.Now - LastLogin).TotalSeconds < 15) continue;   // клиент выдаёт несколько токенов подряд
                     LastLogin = DateTime.Now;
                     if (Stop.WaitOne(2000)) return false;
