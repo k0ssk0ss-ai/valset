@@ -233,7 +233,12 @@ function Invoke-Watch([switch]$AfterGame) {
         if (-not (Test-Path $ProfilePath)) { return }
         $s = $null
         for ($n = 0; $n -lt 5 -and -not $s; $n++) { $s = Get-Session; if (-not $s) { Start-Sleep 1 } }   # токен мог ещё не выдаться
-        if (-not $s) { return }
+        if (-not $s) {
+            # вышел из аккаунта прямо из игры: клиент удаляет токен раньше, чем закрывается игра, — вернуть уже нечем
+            $t = if ($AfterGame) { Get-ChildItem $TempDir -Filter '*.json' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime | Select-Object -Last 1 }
+            if ($t) { Send-Toast "VALSET · $(Get-AccountLabel $t.BaseName)" (L 'Не успел вернуть исходные: ты вышел из аккаунта. Зайди в него и открой VALSET — «Вернуть исходные».' 'Could not restore the originals: you logged out. Log in to it and open VALSET — “Restore originals”.') }
+            return
+        }
         $key = "$($s.ClientPid):$($s.Puuid)"
         $isMain = $s.Puuid -eq (Get-MainPuuid)
         # Игра закрыта на аккаунте, где твои настройки стоят на время, — вернуть его исходные, пока ты в нём.
