@@ -1,7 +1,7 @@
 ﻿# pros.ps1 — «Настройки про»: примерить на себя настройки про-игрока. Только на время — «Вернуть исходные» вернёт как было.
 # Список — pros.json в репозитории; пока он пуст, пункта в «Ещё» нет. Запись: nick, team, source (откуда взято),
-# updated, dpi (на котором его чувствительность), prefs — известная часть облачных настроек в формате profile.json.
-# Прицел из кода игры (0;P;…) пока не поддержан: нужен перевод в формат облака.
+# updated, dpi (на котором его чувствительность), crosshair (код игры 0;P;…), prefs — известная часть облачных
+# настроек в формате profile.json. Собирается tools\build-pros.ps1 из pros-raw\.
 
 $ProsUrl   = if ($env:VALSET_PROS) { $env:VALSET_PROS } else { 'https://raw.githubusercontent.com/k0ssk0ss-ai/valset/main/pros.json' }   # VALSET_PROS — для тестов
 $ProsCache = Join-Path $Root 'pros.json'
@@ -41,6 +41,15 @@ function Convert-ProSens($prefs, [int]$proDpi, [int]$myDpi) {
     if ($s -and $proDpi -gt 0 -and $myDpi -gt 0) { $s.value = [Math]::Round([double]$s.value * $proDpi / $myDpi, 4) }
 }
 
+# Прицел про — первым в списке и активным; его одноимённый убираем, лишние сверх 15 (лимит игры) — с конца.
+function Add-ProCrosshair($prof, $pro) {
+    $p = ConvertFrom-CrosshairCode $pro.crosshair $pro.nick
+    $d = Get-Crosshairs $prof
+    $rest = if ($d) { @(@($d.profiles) | Where-Object { $_.profileName -ne $pro.nick }) } else { @() }
+    $all = @(@($p) + $rest | Select-Object -First 15)
+    Set-CrosshairValue $prof (ConvertTo-CrosshairJson ([ordered]@{ currentProfile = 0; profiles = $all }))
+}
+
 # DPI мыши спрашиваем один раз.
 function Get-MyDpi {
     $dpi = (Get-Config).dpi
@@ -62,6 +71,7 @@ function Invoke-ApplyPro($pro) {
         if ([int]$pro.dpi -ne $my) { Write-Note (L "чувствительность пересчитана с его $($pro.dpi) DPI на твои $my" "sensitivity converted from their $($pro.dpi) DPI to your $my") }
     }
     $new = Join-ProPrefs $cur $prefs
+    if ($pro.crosshair) { Add-ProCrosshair $new $pro }
     if (Test-PrefsEqual $cur $new) { Write-Ok (L "Уже как у $($pro.nick)" "Already like $($pro.nick)"); return }
     Show-Diff (Compare-Prefs $cur $new)
     Write-Note (L 'на время: «Вернуть исходные» вернёт аккаунт как был' 'for now: “Restore originals” brings the account back')
@@ -84,7 +94,7 @@ function Show-Pros {
         if ($q) { $list = @($list | Where-Object { $_.nick -like "*$q*" }) }
         if (-not $list.Count) { Write-Note (L "не нашёл «$q»" "`“$q`” not found"); return $true }
     }
-    $items = @($list | ForEach-Object { New-MenuEntry $_.nick ((@($_.team, $_.updated) | Where-Object { $_ }) -join ' · ') }) + (New-MenuEntry (L 'Назад' 'Back') '' 'back')
+    $items = @($list | ForEach-Object { New-MenuEntry $_.nick ((@($_.team, $(if ($_.PSObject.Properties['active'] -and -not $_.active) { L 'не играет' 'retired' }), $_.updated) | Where-Object { $_ }) -join ' · ') }) + (New-MenuEntry (L 'Назад' 'Back') '' 'back')
     $i = Select-Item (L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS') $items
     if ($i -lt 0 -or $i -ge $list.Count) { return $false }
     $pro = $list[$i]

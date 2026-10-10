@@ -1,0 +1,17 @@
+{
+  "_why": "Правки к part1-4 по правилу свежести (NOTES п. 3б): команда бота старше года — берём prosettings; бот свежее — бот.",
+  "tenz":      { "dpi": 1600, "sens": 0.08, "why": "Nightbot !sens изменён 2026-10-06" },
+  "kingg":     { "dpi": 1600, "sens": 0.1,  "why": "бот !sens 2024-12" },
+  "meteor":    { "dpi": 800, "sens": 0.35, "scopedSens": 1.25, "why": "бот !sens 2020" },
+  "kyedae":    { "crosshair": "0;s;1;P;u;0000FFFF;o;1;d;1;f;0;0l;2;0v;4;0o;0;0a;1;0f;0;1b;0;S;b;1;c;8;t;000000FF;s;0.713;o;1", "why": "бот !crosshair 2024-07" },
+  "zellsis":   { "crosshair": "0;P;c;5;h;0;0t;5;0l;1;0o;2;0a;1;0f;0;1b;0", "why": "бот 2024-01" },
+  "primmie":   { "crosshair": "0;s;1;P;o;1;d;1;f;0;0b;0;1b;0;S;o;1", "why": "бот 2023-06" },
+  "johnqt":    { "crosshair": "0;p;0;s;1;P;c;5;h;0;0l;4;0o;1;0a;1;0f;0;1b;0;A;o;1;d;1;0b;0;1b;0", "why": "бот 2023-12" },
+  "t3xture":   { "crosshair": "0;s;1;P;o;0;f;0;0l;3;0o;2;0a;1;0f;0;1b;0;S;o;0", "why": "бот 2022-12" },
+  "starxo":    { "crosshair": "0;P;h;0;0l;4;0o;0;0a;1;0f;0;1b;0", "why": "бот 2025-01" },
+  "keiko":     { "crosshair": "0;s;1;P;o;1;d;1;z;1;0b;0;1l;0;1a;0;1m;0;1f;0", "why": "бот 2023-08" },
+  "rb":        { "crosshair": "0;s;1;P;d;1;0b;0;1b;0;S;o;1", "why": "бот 2024-01" },
+  "vora":      { "crosshair": "0;P;c;8;u;000000FF;h;0;b;1;0l;3;0o;0;0a;1;0f;0;1b;0", "why": "бот 2024-10" },
+  "oxy":       { "crosshair": "0;s;1;P;c;5;o;1;d;1;0b;0;1b;0;S;o;1", "why": "бот 2025-06" },
+  "koalanoob": { "crosshair": "0;s;1;P;c;8;u;AD3150FF;h;0;b;1;0l;5;0o;1;0a;1;0f;0;1b;0;S;c;1", "why": "бот 2025-08" }
+}

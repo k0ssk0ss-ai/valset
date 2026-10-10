@@ -185,6 +185,26 @@
    reduxx Sato Skuba. Нет страницы: erde, Akame, Xiesta, kamyk, eggsterr (kamo — только Fortnite).
    Код прицела TenZ (его Google Doc из !settings): 0;s;1;P;c;5;u;2AFF00FF;o;0;f;0;0l;2;0v;2;0g;1;0o;1;0a;1;0f;0;1b;0
    (+ ещё 2 на первой странице, остальные на второй).
+   Сбор 2026-10-11: субагенты (Sonnet) → pros-raw\part1-4.json (сырые данные: prosettings + vlr.gg + ответы ботов).
+   Свежесть: у prosettings есть дата обновления страницы; у Nightbot и StreamElements API отдаёт updatedAt каждой
+   команды (pros-raw\botdates.json, собирает скрипт по каналам). Правило сборки: для каждого поля — источник с
+   самой поздней датой; бот старше страницы — не брать. Пример: TenZ !sens (0.08@1600) изменён 2026-10-05 —
+   свежее сайта (0.14); его же StreamElements !sens — 2024. Из 204 команд ботов 70 менялись в 2026, 54 — до 2024.
+   Имена в облаке (замер 2026-10-11, из лога игры — она пишет весь JSON после «Roaming Settings Key: Ares.PlayerSettings»;
+   значения по умолчанию игра не пишет вовсе): scoped — Float MouseSensitivityZoomed, ADS — Float MouseSensitivityADS,
+   миникарта — Bool MinimapRotates (false = фикс.), Bool MinimapFixedRotation, Bool MinimapTranslates (держать в центре;
+   false было явно = Выкл), Float MinimapSize, Float MinimapZoom, Int MegamapCalloutVisibility (0 = «Никогда»; прочие
+   значения не замерены). Прочее: Bool EnableMinimapVisionCones, LeftHanded, MouseInverted, Int ColorBlindMode.
+   Сбой: при выходе из игры все 16 PUT savePreference игры получили 403 с HTML-страницей (не JSON) — изменения не
+   сохранились; наш PUT той же минутой прошёл. Было и 2026-10-10 22:44 (1 раз). Причина неизвестна.
+   Следующий запуск (00:34): уже GET игры получил 403 — страница «Attention Required! | Cloudflare — Sorry, you have
+   been blocked»; игра взяла настройки из локального кеша (с несохранёнными правками) и отказалась сохранять («Tried to
+   save roaming settings before we loaded them»). Наши GET/PUT с того же ПК в это время проходят. Следить: если
+   блок повторяется — проверить, не провоцируют ли его наши запросы (частота, заголовки) с тем же токеном/IP.
+   Через ~20 мин блок прошёл сам: игра загрузила облако, всё на месте.
+   pros.json собран (tools\build-pros.ps1 + pros-raw\overrides.json): 87 про, 80 с прицелом. Даты prosettings
+   ненадёжны (у многих страниц одна дата — 2026-10-05, видимо массовое обновление), поэтому правило на деле: команда
+   бота младше года — бот, старше — prosettings (14 правок в overrides). Push pros.json = публикация пункта всем.
 4. Видео 20–30 с, сообщение модераторам r/VALORANT, пост (черновик — dist\reddit-post.md; подача «на время» — решить).
    Следующая сессия (2026-10-10): (1) собрать первую партию про в pros.json (список и источники — п. 3б);
    (2) пост. Риск подачи: «для общих аккаунтов и смурфов» — передача аккаунта нарушает правила Riot, а смурфов

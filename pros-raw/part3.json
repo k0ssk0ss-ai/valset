@@ -1,0 +1,1403 @@
+[
+ {
+  "nick": "Sayonara",
+  "team": "Team Vitality",
+  "active": true,
+  "twitch": "sayonaravl",
+  "updated": "Oct 5, 2026",
+  "sources": [
+   "https://prosettings.net/players/sayonara/",
+   "https://www.vlr.gg/player/33902"
+  ],
+  "mouse": {
+   "dpi": 1600,
+   "sens": 0.1,
+   "scopedSens": 1,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;s;1;P;u;000000FF;h;0;d;1;z;1;0l;3;0v;3;0o;0;0a;1;0f;0;1b;0;S;c;0;s;0.46",
+   "from": "nightbot"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "On",
+   "size": 0.8,
+   "zoom": 0.63,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "None",
+   "anisotropic": "1x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": null
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar",
+   "Use Object": "T",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "C",
+   "Use/Equip Ability: 2": "Q",
+   "Use/Equip Ability: 3": "E",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Crosshair taken from Nightbot !crosshair (fresher); prosettings code differs: 0;s;1;P;o;1;d;1;0b;0;1b;0;S;c;0;s;0.457 (white). Bot sens/res match prosettings. Polling rate bot says 1k, prosettings 1000."
+ },
+ {
+  "nick": "lukxo",
+  "team": "LOUD",
+  "active": true,
+  "twitch": "luk_xoxo",
+  "updated": "Oct 5, 2026",
+  "sources": [
+   "https://prosettings.net/players/lukxo/",
+   "https://www.vlr.gg/player/28716"
+  ],
+  "mouse": {
+   "dpi": 1600,
+   "sens": 0.1,
+   "scopedSens": 0.85,
+   "hz": 4000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": null,
+   "from": null
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "Off",
+   "size": 1,
+   "zoom": 0.9,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1280x960",
+   "aspectRatio": "16:10",
+   "aspectMethod": "Letterbox",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "MSAA 2x",
+   "anisotropic": "4x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "On",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": null
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar",
+   "Use Object": "F",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "C",
+   "Use/Equip Ability: 2": "Q",
+   "Use/Equip Ability: 3": "E",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "prosettings crosshair Code field is literally \"0\" (placeholder), no real code; bot has no code command. Bot !sens \"0,1 | 1600 dpi\" matches prosettings. StreamElements also has !senskovaaks 0,075 1600dpi (Kovaak-s, not Valorant)."
+ },
+ {
+  "nick": "keiko",
+  "team": "NRG",
+  "active": true,
+  "twitch": "keikofps",
+  "updated": "Oct 5, 2026",
+  "sources": [
+   "https://prosettings.net/players/keiko/",
+   "https://www.vlr.gg/player/11494"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.25,
+   "scopedSens": 1,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;s;1;P;o;1;d;1;z;1;0b;0;1b;0;S;c;0;s;0.922;o;1",
+   "from": "nightbot"
+  },
+  "minimap": {
+   "rotate": "Fixed",
+   "keepCentered": "Off",
+   "size": 1.2,
+   "zoom": 0.9,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1280x882",
+   "aspectRatio": "4:3",
+   "aspectMethod": "Letterbox",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "None",
+   "anisotropic": "1x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Alt",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar / Mouse Wheel Down",
+   "Use Object": "1",
+   "Equip Primary Weapon": "2",
+   "Equip Secondary Weapon": "3",
+   "Equip Melee Weapon": "4",
+   "Equip Spike": "F",
+   "Use/Equip Ability: 1": "Mouse Button 4",
+   "Use/Equip Ability: 2": "Q",
+   "Use/Equip Ability: 3": "E",
+   "Use/Equip Ability: Ultimate": "Mouse Button 5"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Crosshair from Nightbot !crosshair; prosettings code differs. Bot !res says 1280x960 (regular stretch) vs prosettings 1280x882. Bot sens matches (800dpi .25, scope 1, ads .908, rawinputbuffer on, !edpi 200)."
+ },
+ {
+  "nick": "mada",
+  "team": "NRG",
+  "active": true,
+  "twitch": "madaa",
+  "updated": "Sep 28, 2026",
+  "sources": [
+   "https://prosettings.net/players/mada/",
+   "https://www.vlr.gg/player/5132"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.37,
+   "scopedSens": 1,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;s;1;P;o;1;d;1;f;0;m;1;0l;2;0o;0;0a;1;0f;0;1b;0;S;b;1;c;8;t;00FF66FF;o;1",
+   "from": "https://prosettings.net/players/mada/"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "Off",
+   "size": 1.2,
+   "zoom": 0.9,
+   "showRegionNames": "Only in Buy Phase"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Letterbox",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "MSAA 4x",
+   "anisotropic": "4x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar / Mouse Wheel Down",
+   "Use Object": "F",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "C",
+   "Use/Equip Ability: 2": "Q",
+   "Use/Equip Ability: 3": "E",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Bot !crosshair is only \"white dot\" (no code); prosettings code kept. Bot sens 0.37 800dpi matches."
+ },
+ {
+  "nick": "s0pp",
+  "team": "FUT Esports",
+  "active": true,
+  "twitch": "s0pp1337",
+  "updated": "Oct 5, 2026",
+  "sources": [
+   "https://prosettings.net/players/s0pp/",
+   "https://www.vlr.gg/player/39357"
+  ],
+  "mouse": {
+   "dpi": 1600,
+   "sens": 0.175,
+   "scopedSens": 1,
+   "hz": 2000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": null,
+   "from": null
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "Off",
+   "size": 0.8,
+   "zoom": 0.95,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "None",
+   "anisotropic": "1x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar / Mouse Wheel Down",
+   "Use Object": "Middle Mouse Button",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "5",
+   "Use/Equip Ability: 1": "4",
+   "Use/Equip Ability: 2": "Mouse Button 5",
+   "Use/Equip Ability: 3": "E",
+   "Use/Equip Ability: Ultimate": "F"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "prosettings crosshair Code field is literally \"0\" (placeholder). Bot !sens: \"1600 dpi 0.1 or .175\" (ambiguous; prosettings 0.175); bot !crosshair \"1 2 2 1 or dot\"."
+ },
+ {
+  "nick": "Kr1stal",
+  "team": "Global Esports",
+  "active": true,
+  "twitch": "kr1stalru",
+  "updated": "Sep 28, 2026",
+  "sources": [
+   "https://prosettings.net/players/kr1stal/",
+   "https://www.vlr.gg/player/5796"
+  ],
+  "mouse": {
+   "dpi": 1600,
+   "sens": 0.21,
+   "scopedSens": 0.9,
+   "hz": 4000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;s;1;P;o;1;d;1;0l;2;0o;0;0a;1;0f;0;1t;0;1l;0;1o;0;1a;0;1m;0;1f;0;S;s;0.6;o;1",
+   "from": "https://prosettings.net/players/kr1stal/"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "On",
+   "size": 0.968,
+   "zoom": 0.58,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "None",
+   "anisotropic": "4x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Protanopia)"
+  },
+  "keybinds": {
+   "Walk": null,
+   "Crouch": null,
+   "Jump": null,
+   "Use Object": null,
+   "Equip Primary Weapon": null,
+   "Equip Secondary Weapon": null,
+   "Equip Melee Weapon": null,
+   "Equip Spike": null,
+   "Use/Equip Ability: 1": null,
+   "Use/Equip Ability: 2": null,
+   "Use/Equip Ability: 3": null,
+   "Use/Equip Ability: Ultimate": null
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "No bot found on twitch.tv/kr1stalru (Nightbot/StreamElements/Fossabot all empty)."
+ },
+ {
+  "nick": "trexx",
+  "team": "Team Liquid",
+  "active": true,
+  "twitch": "trexxfpss",
+  "updated": "Jul 27, 2026",
+  "sources": [
+   "https://prosettings.net/players/trexx/",
+   "https://www.vlr.gg/player/2168"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.226,
+   "scopedSens": 1,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;P;h;0;0l;5;0o;0;0a;1;0f;0;1b;0",
+   "from": "https://prosettings.net/players/trexx/"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "On",
+   "size": 1.2,
+   "zoom": 0.9,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Letterbox",
+   "materialQuality": null,
+   "textureQuality": null,
+   "detailQuality": null,
+   "uiQuality": null,
+   "vignette": null,
+   "vsync": null,
+   "antiAliasing": null,
+   "anisotropic": null,
+   "improveClarity": null,
+   "experimentalSharpening": null,
+   "bloom": null,
+   "distortion": null,
+   "castShadows": null,
+   "enemyHighlightColor": null
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar",
+   "Use Object": "F",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "C",
+   "Use/Equip Ability: 2": "Q",
+   "Use/Equip Ability: 3": "E",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Bot !sens \"0,226 1 in zoom|800 dpi\" matches; bot !crosshair only \"circle dot\". vlr: rejoined Team Liquid June 2026."
+ },
+ {
+  "nick": "Kicks",
+  "team": "Team Liquid",
+  "active": true,
+  "twitch": "kicksval",
+  "updated": "Jul 14, 2026",
+  "sources": [
+   "https://prosettings.net/players/kicks/",
+   "https://www.vlr.gg/player/11134"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.27,
+   "scopedSens": null,
+   "hz": 1000,
+   "windowsSens": null
+  },
+  "crosshair": {
+   "code": "0;P;o;1;0l;3;0o;2;0a;1;0f;0;1b;0",
+   "from": "https://prosettings.net/players/kicks/"
+  },
+  "minimap": {
+   "rotate": null,
+   "keepCentered": null,
+   "size": null,
+   "zoom": null,
+   "showRegionNames": null
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": null,
+   "textureQuality": null,
+   "detailQuality": null,
+   "uiQuality": null,
+   "vignette": null,
+   "vsync": null,
+   "antiAliasing": null,
+   "anisotropic": null,
+   "improveClarity": null,
+   "experimentalSharpening": null,
+   "bloom": null,
+   "distortion": null,
+   "castShadows": null,
+   "enemyHighlightColor": null
+  },
+  "keybinds": {
+   "Walk": null,
+   "Crouch": null,
+   "Jump": null,
+   "Use Object": null,
+   "Equip Primary Weapon": null,
+   "Equip Secondary Weapon": null,
+   "Equip Melee Weapon": null,
+   "Equip Spike": null,
+   "Use/Equip Ability: 1": null,
+   "Use/Equip Ability: 2": null,
+   "Use/Equip Ability: 3": null,
+   "Use/Equip Ability: Ultimate": null
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "No bot data on twitch.tv/kicksval."
+ },
+ {
+  "nick": "brawk",
+  "team": "NRG",
+  "active": true,
+  "twitch": "brawk",
+  "updated": "Aug 10, 2026",
+  "sources": [
+   "https://prosettings.net/players/brawk/",
+   "https://www.vlr.gg/player/2172"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.2,
+   "scopedSens": null,
+   "hz": 1000,
+   "windowsSens": null
+  },
+  "crosshair": {
+   "code": "0;s;1;P;c;1;o;1;0l;5;0v;5;0a;1;0f;0;1b;0;S;s;1.002",
+   "from": "nightbot"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "Off",
+   "size": 1.2,
+   "zoom": 0.808,
+   "showRegionNames": "Only in Buy Phase"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1440x1080",
+   "aspectRatio": "4:3",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "MSAA 4x",
+   "anisotropic": "4x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": null
+  },
+  "keybinds": {
+   "Walk": null,
+   "Crouch": null,
+   "Jump": null,
+   "Use Object": null,
+   "Equip Primary Weapon": null,
+   "Equip Secondary Weapon": null,
+   "Equip Melee Weapon": null,
+   "Equip Spike": null,
+   "Use/Equip Ability: 1": null,
+   "Use/Equip Ability: 2": null,
+   "Use/Equip Ability: 3": null,
+   "Use/Equip Ability: Ultimate": null
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Crosshair from Nightbot !crosshair; prosettings code differs (0o;0 vs 0v;5 inner offset). Bot sens 0.2 @800 and res 1440x1080 match."
+ },
+ {
+  "nick": "N4RRATE",
+  "team": "Karmine Corp",
+  "active": true,
+  "twitch": "n4rrate",
+  "updated": "May 11, 2026",
+  "sources": [
+   "https://prosettings.net/players/n4rrate/",
+   "https://www.vlr.gg/player/36245"
+  ],
+  "mouse": {
+   "dpi": 1600,
+   "sens": 0.16,
+   "scopedSens": 0.825,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;P;c;8;u;00000000;h;0;b;1;0l;4;0o;0;0a;1;0f;0;1b;0",
+   "from": "https://prosettings.net/players/n4rrate/"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "On",
+   "size": 1.2,
+   "zoom": 0.7,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Letterbox",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "MSAA 4x",
+   "anisotropic": "4x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "On",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Purple (Tritanopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar",
+   "Use Object": "E",
+   "Equip Primary Weapon": "X",
+   "Equip Secondary Weapon": "Mouse 4",
+   "Equip Melee Weapon": "Mouse 5",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "C",
+   "Use/Equip Ability: 2": "Q",
+   "Use/Equip Ability: 3": "F",
+   "Use/Equip Ability: Ultimate": "Z"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "StreamElements: !sens \".16 @ 1600DPI (.9 scoped)\", !crosshair \"1420 black\" (no code), !settings \"all low\". prosettings page mentions Sentinels clip in sources only as twitch clip; vlr says now Karmine Corp."
+ },
+ {
+  "nick": "Avez",
+  "team": "Karmine Corp",
+  "active": true,
+  "twitch": "avezvlr",
+  "updated": "Oct 5, 2026",
+  "sources": [
+   "https://prosettings.net/players/avez/",
+   "https://www.vlr.gg/player/5654"
+  ],
+  "mouse": {
+   "dpi": 1600,
+   "sens": 0.1,
+   "scopedSens": 1,
+   "hz": 1000,
+   "windowsSens": 4
+  },
+  "crosshair": {
+   "code": "0;s;1;P;o;1;d;1;0b;0;1b;0",
+   "from": "https://prosettings.net/players/avez/"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "On",
+   "size": 0.83,
+   "zoom": 0.89,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1280x1024",
+   "aspectRatio": "5:4",
+   "aspectMethod": "Letterbox",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "MSAA 4x",
+   "anisotropic": "8x",
+   "improveClarity": null,
+   "experimentalSharpening": "Off",
+   "bloom": "On",
+   "distortion": "Off",
+   "castShadows": "On",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar / Mouse Wheel Down",
+   "Use Object": "E",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "Q",
+   "Use/Equip Ability: 2": "C",
+   "Use/Equip Ability: 3": "E",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Bot code and sens match prosettings. Bot !settings -> https://konect.gg/avez"
+ },
+ {
+  "nick": "Xross",
+  "team": "Nongshim RedForce",
+  "active": true,
+  "twitch": null,
+  "updated": "Aug 31, 2026",
+  "sources": [
+   "https://prosettings.net/players/xross/",
+   "https://www.vlr.gg/player/42772"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.27,
+   "scopedSens": 1,
+   "hz": 4000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;s;1;P;o;1;d;1;z;1;f;0;0b;0;1b;0;S;c;0;s;1.007;o;1",
+   "from": "https://prosettings.net/players/xross/"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "On",
+   "size": 1.2,
+   "zoom": 0.854,
+   "showRegionNames": "Never"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "None",
+   "anisotropic": "1x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar",
+   "Use Object": null,
+   "Equip Primary Weapon": null,
+   "Equip Secondary Weapon": null,
+   "Equip Melee Weapon": null,
+   "Equip Spike": null,
+   "Use/Equip Ability: 1": "Q",
+   "Use/Equip Ability: 2": "C",
+   "Use/Equip Ability: 3": "E",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "No Twitch channel found (not on prosettings, not on vlr.gg). A fossabot/nightbot channel named \"xross\" exists but is unverified as him, not used."
+ },
+ {
+  "nick": "Francis",
+  "team": "Nongshim RedForce",
+  "active": true,
+  "twitch": null,
+  "updated": "Aug 31, 2026",
+  "sources": [
+   "https://prosettings.net/players/francis/",
+   "https://www.vlr.gg/player/31828"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.27,
+   "scopedSens": 0.85,
+   "hz": 2000,
+   "windowsSens": null
+  },
+  "crosshair": {
+   "code": "0;P;c;1;o;1;d;1;0b;0;1b;0",
+   "from": "https://prosettings.net/players/francis/"
+  },
+  "minimap": {
+   "rotate": "Fixed",
+   "keepCentered": "Off",
+   "size": 1.1,
+   "zoom": 0.9,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": null,
+   "textureQuality": null,
+   "detailQuality": null,
+   "uiQuality": null,
+   "vignette": null,
+   "vsync": null,
+   "antiAliasing": null,
+   "anisotropic": null,
+   "improveClarity": null,
+   "experimentalSharpening": null,
+   "bloom": null,
+   "distortion": null,
+   "castShadows": null,
+   "enemyHighlightColor": "Red (Default)"
+  },
+  "keybinds": {
+   "Walk": null,
+   "Crouch": null,
+   "Jump": null,
+   "Use Object": null,
+   "Equip Primary Weapon": null,
+   "Equip Secondary Weapon": null,
+   "Equip Melee Weapon": null,
+   "Equip Spike": null,
+   "Use/Equip Ability: 1": null,
+   "Use/Equip Ability: 2": null,
+   "Use/Equip Ability: 3": null,
+   "Use/Equip Ability: Ultimate": null
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "No Twitch channel found (not on prosettings, not on vlr.gg)."
+ },
+ {
+  "nick": "Rb",
+  "team": "Nongshim RedForce",
+  "active": true,
+  "twitch": "rb0f",
+  "updated": "Aug 31, 2026",
+  "sources": [
+   "https://prosettings.net/players/rb/",
+   "https://www.vlr.gg/player/488"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.35,
+   "scopedSens": 1,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;s;1;P;o;1;d;1;f;0;0b;0;1b;0;S;o;1",
+   "from": "nightbot"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "On",
+   "size": 1.1,
+   "zoom": 0.9,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "None",
+   "anisotropic": "1x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar",
+   "Use Object": "F",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "E",
+   "Use/Equip Ability: 2": "Q",
+   "Use/Equip Ability: 3": "C",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Bot !sens \"DPI 800 0.35 zoom 1.0\" (eDPI 280 same as prosettings 1600/0.175) used; crosshair from Nightbot, prosettings code differs: 0;s;1;P;d;1;0b;0;1b;0;S;o;1. Bot !res \"16:9 1920x1080 Letter Box\"."
+ },
+ {
+  "nick": "iZu",
+  "team": "T1",
+  "active": true,
+  "twitch": "izuvlrt",
+  "updated": "Oct 5, 2026",
+  "sources": [
+   "https://prosettings.net/players/izu/",
+   "https://www.vlr.gg/player/29833"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.22,
+   "scopedSens": null,
+   "hz": 4000,
+   "windowsSens": null
+  },
+  "crosshair": {
+   "code": null,
+   "from": null
+  },
+  "minimap": {
+   "rotate": null,
+   "keepCentered": null,
+   "size": null,
+   "zoom": null,
+   "showRegionNames": null
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "MSAA 4x",
+   "anisotropic": "4x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "On",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": null,
+   "Crouch": null,
+   "Jump": null,
+   "Use Object": null,
+   "Equip Primary Weapon": null,
+   "Equip Secondary Weapon": null,
+   "Equip Melee Weapon": null,
+   "Equip Spike": null,
+   "Use/Equip Ability: 1": null,
+   "Use/Equip Ability: 2": null,
+   "Use/Equip Ability: 3": null,
+   "Use/Equip Ability: Ultimate": null
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "prosettings Code field is literally \"0\" (placeholder); bot !crosshair \"1212 outline\" no code. Bot !sens \"800 0.22 4000hz\" is fresher than prosettings (800 / 0.326) so used; bot !res 1280x960 (4:3) vs prosettings 1920x1080."
+ },
+ {
+  "nick": "BABYBAY",
+  "team": "G2 Esports",
+  "active": true,
+  "twitch": "babybay",
+  "updated": "Sep 28, 2026",
+  "sources": [
+   "https://prosettings.net/players/babybay/",
+   "https://www.vlr.gg/player/2170",
+   "https://api.fossabot.com/v2/cached/channels/by-slug/babybay"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.175,
+   "scopedSens": 1,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;c;1;s;1;P;c;4;u;000000FF;h;0;f;0;m;1;0l;3;0v;3;0o;0;0a;1;0f;0;1b;0;S;t;89CFF0FF;o;1",
+   "from": "fossabot"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "Off",
+   "size": 1.1,
+   "zoom": 0.8,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1280x1024",
+   "aspectRatio": "4:3",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "None",
+   "anisotropic": "1x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Mouse Wheel Down",
+   "Use Object": "F",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "C",
+   "Use/Equip Ability: 2": "E",
+   "Use/Equip Ability: 3": "Q",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": "0.175 800dpi",
+   "crosshair": "0;c;1;s;1;P;c;4;u;000000FF;h;0;f;0;m;1;0l;3;0v;3;0o;0;0a;1;0f;0;1b;0;S;t;89CFF0FF;o;1",
+   "settings": "https://www.twitch.tv/babybay/clip/CuteFastBatHotPokket-7zDagnq-wrNyu1Oa",
+   "bot": "fossabot"
+  },
+  "notes": "Fossabot !sens \"0.175 800dpi\" used (prosettings 1600 / 0.11) but bot also has !dpi 1600 (conflict), res bot 1280x1024 matches. Crosshair from Fossabot; prosettings code differs. Note: Nightbot channel a_babybay (listed on prosettings) is a different person, not used."
+ },
+ {
+  "nick": "Asuna",
+  "team": "100 Thieves",
+  "active": true,
+  "twitch": "AsunaWEEB",
+  "updated": "Aug 24, 2026",
+  "sources": [
+   "https://prosettings.net/players/asuna/",
+   "https://www.vlr.gg/player/601"
+  ],
+  "mouse": {
+   "dpi": 1400,
+   "sens": 0.26,
+   "scopedSens": 0.7,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;P;o;1;m;1;0t;1;0l;2;0o;2;0a;1;0f;0;1t;1;1o;3;1a;1;1m;0;1f;0",
+   "from": "https://prosettings.net/players/asuna/"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "Off",
+   "size": 1.092,
+   "zoom": 0.9,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "On",
+   "vsync": "Off",
+   "antiAliasing": "None",
+   "anisotropic": "1x",
+   "improveClarity": "On",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar / Mouse Wheel Down",
+   "Use Object": "F",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "E",
+   "Use/Equip Ability: 2": "C",
+   "Use/Equip Ability: 3": "Q",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Bot !sens \"0.26 @1400 dpi 0.9 scoped\" matches; bot !crosshair describes 1-2-1-3 white, code via !cc (not in public commands). Bot text is partly 2023-2024 vintage."
+ },
+ {
+  "nick": "bang",
+  "team": "100 Thieves",
+  "active": true,
+  "twitch": "bangzerra",
+  "updated": "Sep 8, 2026",
+  "sources": [
+   "https://prosettings.net/players/bang/",
+   "https://www.vlr.gg/player/3880"
+  ],
+  "mouse": {
+   "dpi": 800,
+   "sens": 0.32,
+   "scopedSens": 1,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;s;1;P;o;1;d;1;f;0;0b;0;1b;0;S;o;1",
+   "from": "https://prosettings.net/players/bang/"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "Off",
+   "size": 1.1,
+   "zoom": 0.902,
+   "showRegionNames": "Always"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Letterbox",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "MSAA 4x",
+   "anisotropic": "16x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "On",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar",
+   "Use Object": "E",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "Q",
+   "Use/Equip Ability: 2": "V",
+   "Use/Equip Ability: 3": "C",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Bot !sens \"0.32 @800 dpi\" matches; bot !crosshair \"always changing, current one is 1420\" (no code)."
+ },
+ {
+  "nick": "timotino",
+  "team": "100 Thieves",
+  "active": true,
+  "twitch": "Timotino07",
+  "updated": "Sep 28, 2026",
+  "sources": [
+   "https://prosettings.net/players/timotino/",
+   "https://www.vlr.gg/player/29893"
+  ],
+  "mouse": {
+   "dpi": 1600,
+   "sens": 0.141,
+   "scopedSens": 1,
+   "hz": 1000,
+   "windowsSens": 6
+  },
+  "crosshair": {
+   "code": "0;c;1;s;1;P;o;0.622;d;1;0t;0;0l;0;0o;0;0a;0;1t;0;1l;0;1o;0;S;s;0.75",
+   "from": "nightbot"
+  },
+  "minimap": {
+   "rotate": "Rotate",
+   "keepCentered": "Off",
+   "size": 1.2,
+   "zoom": 0.92,
+   "showRegionNames": "Only in Buy Phase"
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "None",
+   "anisotropic": "1x",
+   "improveClarity": "Off",
+   "experimentalSharpening": "Off",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": null
+  },
+  "keybinds": {
+   "Walk": "L-Shift",
+   "Crouch": "L-Ctrl",
+   "Jump": "Space Bar / Mouse Wheel Down",
+   "Use Object": "F",
+   "Equip Primary Weapon": "1",
+   "Equip Secondary Weapon": "2",
+   "Equip Melee Weapon": "3",
+   "Equip Spike": "4",
+   "Use/Equip Ability: 1": "C",
+   "Use/Equip Ability: 2": "Q",
+   "Use/Equip Ability: 3": "Thumb Mouse Button 2",
+   "Use/Equip Ability: Ultimate": "X"
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "Nightbot !crosshair code identical to prosettings. Bot sens 0.141 at 1600 matches."
+ },
+ {
+  "nick": "vora",
+  "team": "100 Thieves",
+  "active": true,
+  "twitch": "v0ra",
+  "updated": "Sep 28, 2026",
+  "sources": [
+   "https://prosettings.net/players/vora/",
+   "https://www.vlr.gg/player/20140"
+  ],
+  "mouse": {
+   "dpi": 1600,
+   "sens": 0.12,
+   "scopedSens": 1,
+   "hz": null,
+   "windowsSens": null
+  },
+  "crosshair": {
+   "code": "0;P;c;8;u;000000FF;h;0;b;1;0l;3;0v;4;0o;0;0a;1;0f;0;1b;0",
+   "from": "streamelements"
+  },
+  "minimap": {
+   "rotate": "Fixed",
+   "keepCentered": "Off",
+   "size": 1.138,
+   "zoom": null,
+   "showRegionNames": null
+  },
+  "graphics": {
+   "displayMode": "Fullscreen",
+   "resolution": "1920x1080",
+   "aspectRatio": "16:9",
+   "aspectMethod": "Fill",
+   "materialQuality": "Low",
+   "textureQuality": "Low",
+   "detailQuality": "Low",
+   "uiQuality": "Low",
+   "vignette": "Off",
+   "vsync": "Off",
+   "antiAliasing": "MSAA 4x",
+   "anisotropic": "4x",
+   "improveClarity": "On",
+   "experimentalSharpening": "On",
+   "bloom": "Off",
+   "distortion": "Off",
+   "castShadows": "Off",
+   "enemyHighlightColor": "Yellow (Deuteranopia)"
+  },
+  "keybinds": {
+   "Walk": null,
+   "Crouch": null,
+   "Jump": null,
+   "Use Object": null,
+   "Equip Primary Weapon": null,
+   "Equip Secondary Weapon": null,
+   "Equip Melee Weapon": null,
+   "Equip Spike": null,
+   "Use/Equip Ability: 1": null,
+   "Use/Equip Ability: 2": null,
+   "Use/Equip Ability: 3": null,
+   "Use/Equip Ability: Ultimate": null
+  },
+  "twitchCommands": {
+   "sens": null,
+   "crosshair": null,
+   "settings": null,
+   "bot": null
+  },
+  "notes": "StreamElements !crosshair lists two codes (black cross 1-3-2-0 used, and white dot 0;P;u;000000FF;o;1;d;1;f;0;0b;0;1b;0); prosettings code differs (0o;0 vs 0v;4). Bot sens 0.12 1600dpi matches."
+ }
+]

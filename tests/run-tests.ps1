@@ -197,6 +197,19 @@ try {
     Check 'остальное — как было' (@($pn.floatSettings).Count -eq (@($cur.floatSettings | Where-Object { $_.settingEnum -ne $SensEnum }).Count + 1) -and (Get-JsonPart $pn 'actionMappings') -eq (Get-JsonPart $cur 'actionMappings'))
     Check 'текущие не тронуты' ((Get-JsonPart $cur 'floatSettings') -eq (Get-JsonPart (Read-Profile) 'floatSettings'))
     Check 'pros.json в репозитории разбирается' ($null -ne (Get-Content "$proj\pros.json" -Raw | ConvertFrom-Json).pros)
+    $all = @((Get-Content "$proj\pros.json" -Raw -Encoding UTF8 | ConvertFrom-Json).pros)
+    $bad = @(foreach ($p in $all) {
+        try {
+            $n = Join-ProPrefs $cur $p.prefs
+            if ($p.crosshair) { Add-ProCrosshair $n $p; $x = Get-Crosshairs $n; if ($x.profiles[0].profileName -ne $p.nick -or @($x.profiles).Count -gt 15) { $p.nick } }
+            if (-not $p.dpi) { $p.nick }
+        } catch { $p.nick }
+    })
+    Check "все про из pros.json применяются ($($all.Count))" ($all.Count -gt 0 -and $bad.Count -eq 0)
+    if ($bad) { Write-Host "      не применились: $($bad -join ', ')" }
+    $xp = $all | Where-Object { $_.crosshair } | Select-Object -First 1
+    $n1 = Join-ProPrefs $cur $xp.prefs; Add-ProCrosshair $n1 $xp; Add-ProCrosshair $n1 $xp
+    Check 'прицел про дважды — один, активный' (@((Get-Crosshairs $n1).profiles | Where-Object { $_.profileName -eq $xp.nick }).Count -eq 1 -and (Get-Crosshairs $n1).currentProfile -eq 0)
 
     Write-Host 'токен игры (выход из аккаунта прямо из игры)'
     $env:VALSET_GAME_TOKEN = '{"accessToken":"a","token":"e","subject":"' + $gp + '"}'
