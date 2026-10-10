@@ -273,7 +273,12 @@ function Invoke-Watch([switch]$AfterGame) {
         # Вышел из аккаунта прямо из игры (или уже вошёл в другой): клиент токен удалил, но сторож держал токен игры.
         $g = Get-GameTokenSession
         if ($AfterGame -and $g -and (Test-Temp $g.Puuid) -and (-not $s -or $s.Puuid -ne $g.Puuid)) {
-            $ok = $false; try { $ok = Invoke-RestoreTemp $g } catch { Log "возврат токеном игры не удался: $($_.Exception.Message)" }
+            $ok = $false
+            for ($n = 1; $n -le 3 -and -not $ok; $n++) {   # облако бывает не отвечает сразу после выхода — ещё раз
+                $t0 = Get-Date
+                try { $ok = Invoke-RestoreTemp $g }
+                catch { Log "возврат токеном игры, попытка $n ($([int]((Get-Date) - $t0).TotalSeconds) с, стр. $($_.InvocationInfo.ScriptLineNumber): $($_.InvocationInfo.Line.Trim())): $($_.Exception.Message)"; Start-Sleep 5 }
+            }
             $msg = if ($ok) { L 'Исходные настройки аккаунта возвращены.' 'The account''s original settings are back.' }
                    else { L 'Не успел вернуть исходные: ты вышел из аккаунта. Зайди в него и открой VALSET — «Вернуть исходные».' 'Could not restore the originals: you logged out. Log in to it and open VALSET — `“Restore originals`”.' }
             Send-Toast "VALSET · $(Get-AccountLabel $g.Puuid)" $msg
