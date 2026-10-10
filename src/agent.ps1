@@ -1,19 +1,22 @@
 ﻿# agent.ps1 — помощник в фоне: уведомления и (по желанию) автоперенос. По умолчанию выключен.
 #
 # Как устроено — без опроса, только ожидание событий:
-#   сторож   — крошечная программа (valset-agent-4.exe), стартует со входом в Windows (HKCU\...\Run).
+#   сторож   — крошечная программа (valset-agent-5.exe), стартует со входом в Windows (HKCU\...\Run).
 #              Клиент Riot закрыт → спит, пока Windows не сообщит о появлении его lockfile (FileSystemWatcher).
 #              Клиент открыт → слушает локальный канал событий клиента (WebSocket, WAMP) и ждёт:
 #                Create /entitlements/v1/token                    — вход в аккаунт → `valset watch`
 #                Delete /product-session/v1/external-sessions/…   — игра закрыта → через 3 с `valset watch -AfterGame`
 #              (события проверены на живом клиенте 2026-10-06). Процесс игры сторож не трогает.
+#              Пока идёт игра, держит в памяти её токен (раз в 5 мин обновляет) и отдаёт его `watch -AfterGame`
+#              через переменную окружения: выйдешь из аккаунта прямо из игры — клиент токен удалит, а сервер его ещё
+#              принимает (замер 2026-10-10, NOTES), и исходные вернутся всё равно. На диск токен не пишется.
 #   проверка — `valset watch` (скрыто, одна проверка и выход): чужой аккаунт — автоперенос или уведомление «не твои»;
 #              основной — уведомление, если его настройки разошлись с моими (после игры — тоже).
 # Основной аккаунт автоперенос не трогает: его настройки меняешь ты сам и потом «Запоминаешь».
 # config.json: { autoApply, notify } — по умолчанию оба выкл: фоновую программу человек включает сам.
 # Сторож работает, только если включено хоть что-то.
 
-$AgentExe      = Join-Path $Root 'valset-agent-4.exe'
+$AgentExe      = Join-Path $Root 'valset-agent-5.exe'
 $AgentMutex    = 'Local\valset-agent'
 $AgentStopName = 'Local\valset-agent-stop'
 $RunKey        = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
@@ -25,19 +28,31 @@ $AgentSrc = @"
 using System; using System.IO; using System.Text; using System.Threading; using System.Diagnostics;
 using System.Net; using System.Net.WebSockets;
 static class ValsetAgent {
-    static string Cmd, Lock; static EventWaitHandle Stop; static DateTime LastLogin = DateTime.MinValue; static bool GameSeen;
+    static string Cmd, Lock; static EventWaitHandle Stop; static DateTime LastLogin = DateTime.MinValue; static bool GameSeen; static string GameToken, LockPort, LockAuth;
 
     [System.Runtime.InteropServices.DllImport("psapi.dll")] static extern bool EmptyWorkingSet(IntPtr h);
     static void Trim() { GC.Collect(); try { EmptyWorkingSet(Process.GetCurrentProcess().Handle); } catch { } }   // в ожидании память не нужна
 
-    static void Run(string arg) {
+    static void Run(string arg, string token = null) {
         var si = new ProcessStartInfo("cmd.exe", "/c \"\"" + Cmd + "\" " + arg + "\"");
         si.CreateNoWindow = true; si.UseShellExecute = false; si.WindowStyle = ProcessWindowStyle.Hidden;
+        if (token != null) si.EnvironmentVariables["VALSET_GAME_TOKEN"] = token;
         try { Process.Start(si).Dispose(); } catch { }
     }
 
+    // Токен текущего входа ({accessToken, token, subject}); после выхода из аккаунта клиент его уже не отдаст.
+    static void HoldToken() {
+        try {
+            var wc = new WebClient(); wc.Encoding = Encoding.UTF8;
+            wc.Headers[HttpRequestHeader.Authorization] = LockAuth;
+            string j = wc.DownloadString("https://127.0.0.1:" + LockPort + "/entitlements/v1/token");
+            if (j.Contains("\"accessToken\"") && j.Contains("\"subject\"")) GameToken = j;
+        } catch { }
+    }
+
     static void AfterGame() {   // событие приходит, когда процесс игры уже завершён; 3 с — запас, ждать дольше незачем
-        new Thread(() => { if (!Stop.WaitOne(3000)) Run("watch -AfterGame"); }) { IsBackground = true }.Start();
+        string tok = GameToken; GameToken = null;
+        new Thread(() => { if (!Stop.WaitOne(3000)) Run("watch -AfterGame", tok); }) { IsBackground = true }.Start();
     }
 
     // Слушает события клиента, пока он открыт. false — пришёл сигнал остановки.
@@ -46,6 +61,7 @@ static class ValsetAgent {
         try { using (var fs = new FileStream(Lock, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
               using (var r = new StreamReader(fs)) p = r.ReadToEnd().Split(':'); } catch { return !Stop.WaitOne(3000); }
         if (p.Length < 5) return !Stop.WaitOne(3000);
+        LockPort = p[2]; LockAuth = "Basic " + Convert.ToBase64String(Encoding.ASCII.GetBytes("riot:" + p[3]));
         using (var ws = new ClientWebSocket()) {
             ws.Options.SetRequestHeader("Authorization", "Basic " + Convert.ToBase64String(Encoding.ASCII.GetBytes("riot:" + p[3])));
             ws.Options.AddSubProtocol("wamp");
@@ -59,8 +75,11 @@ static class ValsetAgent {
             while (ws.State == WebSocketState.Open) {
                 var t = ws.ReceiveAsync(new ArraySegment<byte>(buf), CancellationToken.None);
                 var wh = new WaitHandle[] { Stop, ((IAsyncResult)t).AsyncWaitHandle };
-                int w = WaitHandle.WaitAny(wh, dirty ? 30000 : Timeout.Infinite);
-                if (w == WaitHandle.WaitTimeout) { Trim(); dirty = false; w = WaitHandle.WaitAny(wh); }   // 30 с тишины — отдать память
+                int w = WaitHandle.WaitAny(wh, GameSeen ? 300000 : dirty ? 30000 : Timeout.Infinite);
+                while (w == WaitHandle.WaitTimeout) {
+                    if (GameSeen) { HoldToken(); Trim(); w = WaitHandle.WaitAny(wh, 300000); }   // в игре — раз в 5 мин свежий токен
+                    else { Trim(); dirty = false; w = WaitHandle.WaitAny(wh); }                    // 30 с тишины — отдать память
+                }
                 if (w == 0) return false;
                 WebSocketReceiveResult res;
                 try { res = t.Result; } catch { break; }
@@ -74,8 +93,8 @@ static class ValsetAgent {
                     if (Stop.WaitOne(2000)) return false;
                     Run("watch");
                 } else if (m.Contains("\"uri\":\"/product-session/v1/external-sessions/")) {
-                    if (m.Contains("\"eventType\":\"Create\"")) GameSeen = true;                         // игра запущена
-                    else if (m.Contains("\"eventType\":\"Delete\"") && GameSeen) { GameSeen = false; AfterGame(); }   // и закрыта (выход из аккаунта — не в счёт)
+                    if (m.Contains("\"eventType\":\"Create\"")) { GameSeen = true; HoldToken(); }        // игра запущена
+                    else if (m.Contains("\"eventType\":\"Delete\"") && GameSeen) { GameSeen = false; AfterGame(); }   // и закрыта (в т. ч. выходом из аккаунта)
                 }
                 dirty = true;
             }
@@ -222,6 +241,14 @@ function Add-WatchDone([string]$key) {
     Set-Content $WatchDonePath ($all | Select-Object -Last 50) -Encoding ASCII
 }
 
+# Сессия из токена, который сторож держал, пока шла игра (VALSET_GAME_TOKEN). Годится только для облака.
+function Get-GameTokenSession {
+    if (-not $env:VALSET_GAME_TOKEN) { return $null }
+    try { $t = $env:VALSET_GAME_TOKEN | ConvertFrom-Json } catch { return $null }
+    if (-not $t.subject -or -not $t.accessToken) { return $null }
+    [pscustomobject]@{ Puuid = $t.subject; Token = $t.accessToken; Entitlement = $t.token; ClientPid = ''; Port = ''; Auth = '' }
+}
+
 # Одна проверка по событию сторожа: вход в аккаунт (или клиент открылся) / игра закрыта (-AfterGame).
 function Invoke-Watch([switch]$AfterGame) {
     $mutex = New-Object Threading.Mutex($false, $WatchMutexName)
@@ -233,12 +260,15 @@ function Invoke-Watch([switch]$AfterGame) {
         if (-not (Test-Path $ProfilePath)) { return }
         $s = $null
         for ($n = 0; $n -lt 5 -and -not $s; $n++) { $s = Get-Session; if (-not $s) { Start-Sleep 1 } }   # токен мог ещё не выдаться
-        if (-not $s) {
-            # вышел из аккаунта прямо из игры: клиент удаляет токен раньше, чем закрывается игра, — вернуть уже нечем
-            $t = if ($AfterGame) { Get-ChildItem $TempDir -Filter '*.json' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime | Select-Object -Last 1 }
-            if ($t) { Send-Toast "VALSET · $(Get-AccountLabel $t.BaseName)" (L 'Не успел вернуть исходные: ты вышел из аккаунта. Зайди в него и открой VALSET — «Вернуть исходные».' 'Could not restore the originals: you logged out. Log in to it and open VALSET — “Restore originals”.') }
-            return
+        # Вышел из аккаунта прямо из игры (или уже вошёл в другой): клиент токен удалил, но сторож держал токен игры.
+        $g = Get-GameTokenSession
+        if ($AfterGame -and $g -and (Test-Temp $g.Puuid) -and (-not $s -or $s.Puuid -ne $g.Puuid)) {
+            $ok = $false; try { $ok = Invoke-RestoreTemp $g } catch { Log "возврат токеном игры не удался: $($_.Exception.Message)" }
+            $msg = if ($ok) { L 'Исходные настройки аккаунта возвращены.' 'The account''s original settings are back.' }
+                   else { L 'Не успел вернуть исходные: ты вышел из аккаунта. Зайди в него и открой VALSET — «Вернуть исходные».' 'Could not restore the originals: you logged out. Log in to it and open VALSET — `“Restore originals`”.' }
+            Send-Toast "VALSET · $(Get-AccountLabel $g.Puuid)" $msg
         }
+        if (-not $s) { return }
         $key = "$($s.ClientPid):$($s.Puuid)"
         $isMain = $s.Puuid -eq (Get-MainPuuid)
         # Игра закрыта на аккаунте, где твои настройки стоят на время, — вернуть его исходные, пока ты в нём.

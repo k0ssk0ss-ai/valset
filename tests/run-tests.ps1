@@ -198,6 +198,16 @@ try {
     Check 'текущие не тронуты' ((Get-JsonPart $cur 'floatSettings') -eq (Get-JsonPart (Read-Profile) 'floatSettings'))
     Check 'pros.json в репозитории разбирается' ($null -ne (Get-Content "$proj\pros.json" -Raw | ConvertFrom-Json).pros)
 
+    Write-Host 'токен игры (выход из аккаунта прямо из игры)'
+    $env:VALSET_GAME_TOKEN = '{"accessToken":"a","token":"e","subject":"' + $gp + '"}'
+    $g = Get-GameTokenSession
+    Check 'сессия из токена сторожа' ($g.Puuid -eq $gp -and $g.Token -eq 'a' -and $g.Entitlement -eq 'e')
+    $env:VALSET_GAME_TOKEN = 'мусор'
+    Check 'битый токен — нет сессии' ($null -eq (Get-GameTokenSession))
+    Remove-Item Env:VALSET_GAME_TOKEN
+    Check 'без токена — нет сессии' ($null -eq (Get-GameTokenSession))
+    Check 'сторож держит токен в игре' ($AgentSrc.Contains('HoldToken();') -and $AgentSrc.Contains('VALSET_GAME_TOKEN'))
+
     Write-Host 'шкала качества'
     Check 'знакомые значения — без предупреждения' (-not (Get-QualityOddities))
     $gr = [IO.File]::ReadAllText($GfxRiot)
