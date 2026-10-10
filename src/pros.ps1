@@ -85,19 +85,36 @@ function Invoke-ApplyPro($pro) {
     Write-TempNote
 }
 
-# Экран выбора: много про — сначала поиск по нику. Возвращает $true, если ждать клавишу.
+# Экран выбора: список по страницам (влезает в окно) + поиск по нику. Возвращает $true, если ждать клавишу.
 function Show-Pros {
-    $list = Get-Pros
-    if ($list.Count -gt 12) {
-        Write-Screen (L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS')
-        $q = Read-Host (L '    Ник (Enter — все)' '    Nick (Enter — all)')
-        if ($q) { $list = @($list | Where-Object { $_.nick -like "*$q*" }) }
-        if (-not $list.Count) { Write-Note (L "не нашёл «$q»" "`“$q`” not found"); return $true }
+    $all = Get-Pros; $list = $all; $q = ''; $pg = 0
+    $size = 15; try { $size = [Math]::Max(5, [Math]::Min(20, [Console]::WindowHeight - 14)) } catch {}
+    while ($true) {
+        $pages = [Math]::Max(1, [Math]::Ceiling($list.Count / $size)); $pg = [Math]::Min($pg, $pages - 1)
+        $shown = @($list | Select-Object -Skip ($pg * $size) -First $size)
+        $items = @(New-MenuEntry (L 'Поиск по нику' 'Search by nick') $(if ($q) { "«$q» · $(L 'Enter без ника — все' 'empty — all')" }) 'search')
+        $items += @($shown | ForEach-Object { New-MenuEntry $_.nick ((@($_.team, $(if ($_.PSObject.Properties['active'] -and -not $_.active) { L 'не играет' 'retired' }), $_.updated) | Where-Object { $_ }) -join ' · ') 'pro' })
+        if ($pg + 1 -lt $pages) { $items += New-MenuEntry (L 'Дальше →' 'Next →') "$($pg + 2)/$pages" 'next' }
+        if ($pg -gt 0) { $items += New-MenuEntry (L '← Раньше' '← Previous') "$pg/$pages" 'prev' }
+        $items += New-MenuEntry (L 'Назад' 'Back') '' 'back'
+        $title = "$(L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS')$(if ($pages -gt 1) { " · $($pg + 1)/$pages" })"
+        $i = Select-Item $title $items
+        if ($i -lt 0) { return $false }
+        switch ($items[$i].Id) {
+            'next'   { $pg++; continue }
+            'prev'   { $pg--; continue }
+            'back'   { return $false }
+            'search' {
+                Write-Screen (L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS')
+                $q = (Read-Host (L '    Ник (Enter — все)' '    Nick (Enter — all)')).Trim()
+                $list = if ($q) { @($all | Where-Object { $_.nick -like "*$q*" }) } else { $all }
+                if (-not $list.Count) { Write-Note (L "не нашёл «$q»" "`“$q`” not found"); $q = ''; $list = $all; Start-Sleep 2 }
+                $pg = 0; continue
+            }
+        }
+        if ($items[$i].Id -eq 'pro') { break }
     }
-    $items = @($list | ForEach-Object { New-MenuEntry $_.nick ((@($_.team, $(if ($_.PSObject.Properties['active'] -and -not $_.active) { L 'не играет' 'retired' }), $_.updated) | Where-Object { $_ }) -join ' · ') }) + (New-MenuEntry (L 'Назад' 'Back') '' 'back')
-    $i = Select-Item (L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS') $items
-    if ($i -lt 0 -or $i -ge $list.Count) { return $false }
-    $pro = $list[$i]
+    $pro = $shown[$i - 1]
     Write-Screen "$(L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS') · $($pro.nick)"
     if ($pro.source) { Write-Field (L 'Источник' 'Source') $pro.source }
     Invoke-ApplyPro $pro
