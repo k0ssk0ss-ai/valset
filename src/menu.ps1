@@ -14,7 +14,7 @@ function Get-MenuState {
         try {
             $cur = Get-Settings $s | ConvertFrom-Json
             $new = Read-Profile
-            $null = Merge-Crosshairs $cur $new
+            $null = Join-Crosshairs $cur $new (Test-TempDefault $s.Puuid)
             $st.Same = Test-PrefsEqual $cur $new
             $st.DiffList = if ($st.Same) { @() } else { Compare-Prefs $cur $new }
             $st.Diff = if ($st.Same) { 0 } else { [Math]::Max(1, $st.DiffList.Count) }
@@ -131,7 +131,8 @@ function Show-Help {
         'аккаунты этого ПК (если игра запущена — сразу после выхода из неё).'
         'Перед каждой записью — бэкап аккаунта (последние 30): «Откат аккаунта».'
         'Перед каждым изменением твоих настроек — версия (последние 10): «История моих настроек».'
-        'Прицелы аккаунта не стираются: твой добавляется и становится активным (в игре до 15).'
+        'Прицелы: на время — на аккаунте только твои (его вернутся вместе с исходными);'
+        'насовсем — прицелы аккаунта не стираются, твой добавляется и становится активным (до 15).'
     )
     $en = @(
         '“My settings” is one set for all your accounts: binds, mouse, interface,'
@@ -162,7 +163,8 @@ function Show-Help {
         'on this PC (if the game is running — right after you exit it).'
         'Before every write — an account backup (last 30): “Account rollback”.'
         'Before every change to your settings — a version (last 10): “My settings history”.'
-        'The account''s crosshairs are kept: yours is added and made active (the game allows 15).'
+        'Crosshairs: for now — only yours on the account (its own come back with the originals);'
+        'permanently — the account''s crosshairs are kept, yours is added and made active (up to 15).'
     )
     $(if ($script:Lang -eq 'en') { $en } else { $ru }) | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
     Write-Host ''

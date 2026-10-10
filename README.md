@@ -43,7 +43,8 @@ sits on the right action. Press **?** for help.
   before you log out). Mark your own accounts “mine” once, or pick “permanently”, to skip the restore.
 - **Edit** your settings without the game: binds, mouse, interface, on-screen stats, graphics.
 - **What differs** — the full list “on account → yours”.
-- **Crosshairs are kept**: yours is added and made active, the account's own stay (the game allows 15).
+- **Crosshairs**: for now — only yours on the account, no mix-ups (its own come back with the originals);
+  permanently — the account's crosshairs are kept, yours is added and made active (the game allows 15).
 - **Graphics** are per PC: after “Save” they go to every account on this PC (asks once if the PC is shared).
 - **Accounts** by Riot ID: where settings match, where they don't, which one is main.
 - **Share code**: put your settings into a short code (~175 characters for binds, ~1,400–1,900 for everything)

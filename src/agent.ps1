@@ -195,7 +195,7 @@ function Send-Toast([string]$title, [string]$text) {
 function Get-AccountDrift($s) {
     $cur = Get-Settings $s | ConvertFrom-Json
     $new = Read-Profile
-    $null = Merge-Crosshairs $cur $new
+    $null = Join-Crosshairs $cur $new (Test-TempDefault $s.Puuid)
     if (Test-PrefsEqual $cur $new) { return @{ Same = $true; Count = 0; Sig = '' } }
     $d = Compare-Prefs $cur $new
     $sig = (@($d | ForEach-Object { "$($_.What)=$($_.Old)" }) -join ';')

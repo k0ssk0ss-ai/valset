@@ -197,6 +197,9 @@ try {
     $null = Merge-Crosshairs $acc $ref
     Check 'одноимённый чужой — с пометкой (акк)' ((@((Get-Crosshairs $ref).profiles | ForEach-Object profileName) -join ',') -eq 'A,B,B (акк)')
     $ref = & $mk @(1..13 | ForEach-Object { "r$_" }) 0; $acc = & $mk @('x1', 'x2', 'x3', 'x4') 0
+    $t1 = & $mk @('A', 'B', 'C') 0; $t2 = & $mk @('Z') 0
+    Check 'на время: только твои прицелы' ((Join-Crosshairs $t1 $t2 $true) -eq 0 -and @((Get-Crosshairs $t2).profiles).Count -eq 1)
+    Check 'насовсем: прицелы аккаунта сохранены' ((Join-Crosshairs $t1 (& $mk @('Z') 0) $false) -eq 3)
     Check 'лимит 15: дописано 2 из 4' ((Merge-Crosshairs $acc $ref) -eq 2 -and $script:CrosshairDropped -eq 2 -and @((Get-Crosshairs $ref).profiles).Count -eq 15)
     $one = & $mk @('A', 'B', 'C') 1
     Select-ActiveCrosshair $one

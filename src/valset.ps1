@@ -224,10 +224,10 @@ function Invoke-Apply($s, [switch]$BindsOnly, [switch]$Permanent) {
         }
     }
 
-    # Прицелы аккаунта, которых нет в эталоне, не стираем — дописываем после эталонных.
-    $kept = if ($BindsOnly) { 0 } else { Merge-Crosshairs $cur $new }
     # Стандарт — на время: исходные сохраним и вернём после игры (guest.ps1). Основной и «мои» — насовсем.
     $temp = -not $Permanent -and (Test-TempDefault $s.Puuid)
+    # Прицелы: на время — только твои; насовсем — прицелы аккаунта не стираем, дописываем твой.
+    $kept = if ($BindsOnly) { 0 } else { Join-Crosshairs $cur $new $temp }
 
     # Предпросмотр: что поменяется. В меню — с подтверждением; автоматика пишет без вопросов.
     $same = Test-PrefsEqual $cur $new

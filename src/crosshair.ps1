@@ -26,6 +26,15 @@ function ConvertTo-CrosshairJson($data) { ConvertTo-Json -InputObject $data -Dep
 # (одноимённый, но другой прицел аккаунта получает пометку «(акк)»); активным становится активный прицел эталона.
 # Больше 15 — срезаются прицелы аккаунта с конца. Итог совпал с аккаунтом — кладём его строку как есть (нет лишней записи).
 # Возвращает, сколько прицелов аккаунта сохранено.
+# Прицелы при переносе. На время — на аккаунте только твои (чужие путали бы; исходные, с его прицелами, вернутся после
+# игры). Насовсем — Merge-Crosshairs. Возвращает, сколько прицелов аккаунта сохранено.
+function Join-Crosshairs($cur, $new, [bool]$temp) {
+    $script:CrosshairDropped = 0
+    $b = Get-Crosshairs $new
+    if ($temp -and $b -and @($b.profiles).Count) { return 0 }
+    Merge-Crosshairs $cur $new
+}
+
 function Merge-Crosshairs($cur, $new) {
     $script:CrosshairDropped = 0
     $a = Get-Crosshairs $cur
