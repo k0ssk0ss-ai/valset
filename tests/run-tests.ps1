@@ -177,6 +177,27 @@ try {
     Check 'помеченный «мой» — насовсем' (-not (Test-TempDefault $gp))
     Check 'основной — насовсем' (-not (Test-TempDefault (Get-MainPuuid)) -or -not (Get-MainPuuid))
 
+    Write-Host 'настройки про'
+    $pj = Join-Path $tmp 'pros.json'
+    $ProsUrl = $pj
+    Set-Content $pj '{"version":1,"pros":[]}' -Encoding UTF8
+    $script:Pros = $null
+    Check 'пустой список → пункта нет' ((Get-Pros).Count -eq 0)
+    Set-Content $pj '{"version":1,"pros":[{"nick":"Pro1","dpi":1600,"prefs":{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.2}]}},{"nick":"Bad"}]}' -Encoding UTF8
+    $script:Pros = $null
+    $pl = Get-Pros
+    Check 'запись без настроек отброшена' ($pl.Count -eq 1 -and $pl[0].nick -eq 'Pro1')
+    $pp = (ConvertTo-Json -InputObject $pl[0].prefs -Depth 32) | ConvertFrom-Json
+    Convert-ProSens $pp 1600 800
+    Check 'eDPI: 1600×0.2 → 800×0.4' ($pp.floatSettings[0].value -eq 0.4)
+    $cur = Read-Profile
+    $pn = Join-ProPrefs $cur $pp
+    $sv = @($pn.floatSettings | Where-Object { $_.settingEnum -eq $SensEnum })
+    Check 'про наложен: одна чувствительность, его' ($sv.Count -eq 1 -and $sv[0].value -eq 0.4)
+    Check 'остальное — как было' (@($pn.floatSettings).Count -eq (@($cur.floatSettings | Where-Object { $_.settingEnum -ne $SensEnum }).Count + 1) -and (Get-JsonPart $pn 'actionMappings') -eq (Get-JsonPart $cur 'actionMappings'))
+    Check 'текущие не тронуты' ((Get-JsonPart $cur 'floatSettings') -eq (Get-JsonPart (Read-Profile) 'floatSettings'))
+    Check 'pros.json в репозитории разбирается' ($null -ne (Get-Content "$proj\pros.json" -Raw | ConvertFrom-Json).pros)
+
     Write-Host 'шкала качества'
     Check 'знакомые значения — без предупреждения' (-not (Get-QualityOddities))
     $gr = [IO.File]::ReadAllText($GfxRiot)

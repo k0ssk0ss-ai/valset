@@ -77,6 +77,7 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'accounts.ps1')
 . (Join-Path $PSScriptRoot 'agent.ps1')
 . (Join-Path $PSScriptRoot 'menu.ps1')
+. (Join-Path $PSScriptRoot 'pros.ps1')
 . (Join-Path $PSScriptRoot 'more.ps1')
 . (Join-Path $PSScriptRoot 'install.ps1')
 

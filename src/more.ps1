@@ -11,6 +11,7 @@ function Get-MoreItems($st) {
         if ($st.Have) { New-ApplyEntry $st }
         New-SaveEntry
         if ($st.Session -and (Test-Temp $st.Session.Puuid)) { New-MenuEntry (L 'Вернуть исходные' 'Restore originals') (L 'настройки аккаунта до твоего переноса' 'the account''s settings before your apply') 'untemp' }
+        if ($st.Session -and (Get-Pros).Count) { New-MenuEntry (L 'Настройки про' 'Pro settings') (L 'примерить на время' 'try on for now') 'pros' }
         New-MenuSep (L 'VALSET' 'VALSET')
         New-MenuEntry (L 'Аккаунты' 'Accounts') $(if ($acc) { $acc } else { L 'пока пусто' 'empty so far' }) 'accounts'
         New-MenuEntry (L 'Уведомления' 'Notifications') '' '' @(

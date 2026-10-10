@@ -93,6 +93,7 @@ src\graphics.ps1   graphics: per-account local files on this PC, deferred writes
 src\diff.ps1       preview: what will change
 src\crosshair.ps1  crosshair profiles: “for now” — only yours, “permanently” — merged
 src\backups.ps1    account rollback and my settings history
+src\pros.ps1       “Pro settings”: try a pro's settings for now (list — pros.json in this repo)
 src\accounts.ps1   accounts by Riot ID, main account, status
 src\agent.ps1      background helper: watcher (C#, Riot Client events) + check
 src\install.ps1    install, uninstall, Ctrl+Alt+V in-game guard

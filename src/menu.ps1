@@ -87,7 +87,8 @@ function Get-MenuItems($st) {
     $now = @(
         if (-not $st.Session -and -not $st.Client) { New-MenuEntry (L 'Открыть клиент Riot' 'Open Riot Client') (L 'и войти в аккаунт' 'and log in') 'client' }
         if ($st.Session -and (Test-Temp $st.Session.Puuid)) { New-MenuEntry (L 'Вернуть исходные' 'Restore originals') (L 'настройки аккаунта до твоего переноса' 'the account''s settings before your apply') 'untemp' }
-        if ($ok -and (-not $st.Have -or ($st.IsMain -and -not $st.Same))) { New-SaveEntry }
+        # на основном примеряешь чужое (про) — не предлагать запомнить его как твоё
+        if ($ok -and (-not $st.Have -or ($st.IsMain -and -not $st.Same -and -not (Test-Temp $st.Session.Puuid)))) { New-SaveEntry }
         if ($ok -and $st.Have -and -not $st.IsMain -and -not $st.Same) { New-ApplyEntry $st }
         if ($st.Diff -and $st.DiffList.Count) { New-MenuEntry (L 'Что отличается' 'What differs') "$($st.DiffList.Count) $(L 'настр.: на аккаунте → твои' 'settings: on account → yours')" 'diff' }
     )
@@ -112,6 +113,7 @@ function Invoke-MenuAction([string]$id, $st) {
         'gfxsave'   { Write-Screen (L 'ЗАПОМНИТЬ: ТОЛЬКО ГРАФИКУ' 'SAVE: GRAPHICS ONLY'); Invoke-SaveGraphics }
         'diff'      { Show-DiffList $st.DiffList "$(L 'ЧТО ОТЛИЧАЕТСЯ' 'WHAT DIFFERS') · $($st.Name)"; return $false }
         'more'      { return (Show-More $st) }
+        'pros'      { return (Show-Pros) }
         'accounts'  { Show-Accounts; return $false }
         'restore'   { Show-Restore; return $false }
         'history'   { Show-History; return $false }
