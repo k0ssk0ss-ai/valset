@@ -60,6 +60,18 @@ static class PagesLists {
     public static void Pros(StackPanel b) {
         var l = Load("pros", b); if (l == null) return;
         if (l.Count == 0) { b.Children.Add(Ui.Note(L.T("Список пуст", "The list is empty"))); return; }
+        // чувствительность про пересчитывается под твой DPI — без него ядро откажет
+        if (l.Exists(x => Json.Bool(x, "needsDpi"))) {
+            b.Children.Add(Ui.Note(L.T("Сначала выбери DPI своей мыши:", "First pick your mouse DPI:")));
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 8) };
+            foreach (var dpi in new[] { "400", "800", "1600", "3200" }) {
+                string v = dpi;
+                var btn = Ui.Btn(v, 13, 0xFFFFFF, 0x2D2D2D, 0x3A3A3A, true, () => Ctl.DoAction("set:dpi=" + v, false), 30, 6);
+                btn.Width = 64; btn.Margin = new Thickness(0, 0, 6, 0);
+                row.Children.Add(btn);
+            }
+            b.Children.Add(row);
+        }
         foreach (var d in l) {
             string nick = Json.Str(d, "nick"), label = Json.Str(d, "label"), team = Json.Str(d, "team"), hint = Json.Str(d, "hint");
             string title = label.Length > 0 ? label : (team.Length > 0 ? nick + " · " + team : nick);
