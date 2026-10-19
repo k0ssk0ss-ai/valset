@@ -10,7 +10,10 @@ function Read-Accounts {
     if (Test-Path $AccountsPath) {
         try {
             $o = Get-Content $AccountsPath -Raw -Encoding UTF8 | ConvertFrom-Json
-            foreach ($p in $o.PSObject.Properties) { $h[$p.Name] = $p.Value }
+            foreach ($p in $o.PSObject.Properties) {
+                if ($p.Value.name) { $p.Value.name = Repair-Utf8 $p.Value.name }
+                $h[$p.Name] = $p.Value
+            }
         } catch {}
     }
     $h
@@ -31,10 +34,19 @@ function Set-AccountState([string]$puuid, [hashtable]$fields) {
     Save-Accounts $h
 }
 
+# Имена, сохранённые до 1.3.0, PowerShell 5.1 прочитал как Latin-1 («Ð Ð°Ð´Ð¸» вместо «Ради»): байты целы — переводим обратно.
+function Repair-Utf8([string]$t) {
+    if ($t -notmatch '[Â-ô][\u0080-¿]') { return $t }
+    $fixed = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($t))
+    if ($fixed.Contains([char]0xFFFD)) { $t } else { $fixed }
+}
+
 # Riot ID из локального клиента (без сети). $null — клиент не ответил.
+# Ответ без charset: Invoke-RestMethod в PowerShell 5.1 читал его как Latin-1 и портил кириллицу — декодируем UTF-8 сами.
 function Get-RiotId($s) {
     try {
-        $r = Invoke-RestMethod "https://127.0.0.1:$($s.Port)/player-account/aliases/v1/active" -Headers @{ Authorization = $s.Auth } -TimeoutSec 3
+        $w = Invoke-WebRequest "https://127.0.0.1:$($s.Port)/player-account/aliases/v1/active" -Headers @{ Authorization = $s.Auth } -TimeoutSec 3 -UseBasicParsing
+        $r = [Text.Encoding]::UTF8.GetString($w.RawContentStream.ToArray()) | ConvertFrom-Json
         if ($r.game_name) { return "$($r.game_name)#$($r.tag_line)" }
     } catch {}
     $null

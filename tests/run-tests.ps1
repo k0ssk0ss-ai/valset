@@ -177,6 +177,13 @@ try {
     Check 'помеченный «мой» — насовсем' (-not (Test-TempDefault $gp))
     Check 'основной — насовсем' (-not (Test-TempDefault (Get-MainPuuid)) -or -not (Get-MainPuuid))
 
+    Write-Host 'имена аккаунтов'
+    $bad = [Text.Encoding]::GetEncoding(28591).GetString([Text.Encoding]::UTF8.GetBytes('Ради Саши пиво#p1vo'))
+    Check 'испорченная кириллица чинится' ((Repair-Utf8 $bad) -eq 'Ради Саши пиво#p1vo') (Repair-Utf8 $bad)
+    Check 'нормальные имена не трогаются' ((Repair-Utf8 'Ради#ru') -eq 'Ради#ru' -and (Repair-Utf8 'Café#fr') -eq 'Café#fr' -and (Repair-Utf8 'K0SS#WHO') -eq 'K0SS#WHO')
+    Set-AccountState $gp @{ name = $bad }
+    Check 'старое имя в accounts.json читается исправленным' ((Read-Accounts)[$gp].name -eq 'Ради Саши пиво#p1vo')
+
     Write-Host 'настройки про'
     $pj = Join-Path $tmp 'pros.json'
     $ProsUrl = $pj
