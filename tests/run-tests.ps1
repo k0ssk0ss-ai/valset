@@ -337,6 +337,95 @@ try {
     Check 'незнакомое значение замечено' ((Get-QualityOddities) -contains 'TextureQuality=2')
     [IO.File]::WriteAllText($GfxRiot, $gr, (New-Object Text.UTF8Encoding $true))
 
+    Write-Host 'уведомления с кнопками'
+    $tx = [xml](New-ToastXml 'A <b>' 'x & y' @(@{ label = 'Применить'; arg = 'apply' }, @{ label = 'Отменить'; arg = 'undo' }))
+    $ac = @($tx.toast.actions.action)
+    Check 'тост: кнопки — протокол valset:' ($ac.Count -eq 2 -and $ac[0].activationType -eq 'protocol' -and $ac[0].arguments -eq 'valset:apply' -and $ac[1].arguments -eq 'valset:undo' -and $ac[0].content -eq 'Применить')
+    Check 'тост: текст экранируется' ($tx.toast.visual.binding.text[0] -eq 'A <b>' -and $tx.toast.visual.binding.text[1] -eq 'x & y')
+    Check 'тост без кнопок — без <actions>' (-not ((New-ToastXml 'a' 'b') -match 'actions'))
+
+    Write-Host 'приложение: state и do'
+    Set-Content $ConfigPath '{"badge":false}' -Encoding UTF8
+    Check 'config: app и badge (app по умолчанию вкл)' ((Get-Config).app -and -not (Get-Config).badge)
+    Set-Content $ConfigPath '{}' -Encoding UTF8
+    $script:Quiet = $true
+    $GameProc = 'valset-test-no-such-process'
+    function Invoke-ApplyGraphics { 0 }; function Save-Graphics { $false }; function Sync-Graphics {}; function Update-Agent {}
+    $tp = 'bbbbbbbb-1111-2222-3333-444444444444'
+    $script:sess = [pscustomobject]@{ Puuid = $tp; Token = 't'; Entitlement = 'e'; ClientPid = '1'; Port = '1'; Auth = '' }
+    $script:cloud = '{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.9}]}'
+    $cloud0 = $script:cloud
+    function Get-Session { $script:sess }
+    function Get-Settings($s) { $script:cloud }
+    function Set-Settings($s, [string]$json) { $script:cloud = $json }
+    function Get-RiotId($s) { 'Тест#EU' }
+    Write-FileSafe $SourcePath 'mainmainmain'
+    $prof0 = Get-Content $ProfilePath -Raw -Encoding UTF8
+    $stJ = Get-StateJson
+    $stO = $stJ | ConvertFrom-Json
+    $want = 'client game account puuid isMain have same diff diffList temp pending synced suggested autoApply notify badge lang error' -split ' '
+    Check 'state: одна строка JSON с полями контракта' ($stJ -notmatch "[\r\n]" -and (($stO.PSObject.Properties.Name | Sort-Object) -join ' ') -eq (($want | Sort-Object) -join ' ')) $stJ.Substring(0, [Math]::Min(200, $stJ.Length))
+    Check 'state: чужой аккаунт — предлагает apply' ($stO.puuid -eq $tp -and $stO.account -eq 'Тест#EU' -and -not $stO.isMain -and $stO.have -and $stO.same -eq $false -and $stO.diff -ge 1 -and $stO.diffList.Count -ge 1 -and $stO.suggested -eq 'apply' -and $stO.lang -eq 'ru' -and $stO.badge -and $stO.error -eq '')
+    $script:sess = [pscustomobject]@{ Puuid = 'mainmainmain'; Token = 't'; Entitlement = 'e'; ClientPid = '1'; Port = '1'; Auth = '' }
+    $mO = Get-StateJson | ConvertFrom-Json
+    Check 'state: основной с расхождением — предлагает save' ($mO.isMain -and $mO.same -eq $false -and $mO.suggested -eq 'save')
+    $script:sess = $null
+    $nO = Get-StateJson | ConvertFrom-Json
+    Check 'state: клиент закрыт — пустой аккаунт, same null' ($nO.puuid -eq '' -and $null -eq $nO.same -and $nO.account -eq '' -and ($nO.suggested -eq 'client' -or $nO.client))
+    $script:sess = [pscustomobject]@{ Puuid = $tp; Token = 't'; Entitlement = 'e'; ClientPid = '1'; Port = '1'; Auth = '' }
+
+    $r = Invoke-Do 'apply'
+    $la = Get-Content $LastActionPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Check 'do apply: ok, можно отменить, сообщение' ($r.ok -and $r.undo -and -not $r.queued -and $r.message -like 'Применено*') ($r | ConvertTo-Json -Compress)
+    Check 'do apply: last-action.json — что было до' ($la.action -eq 'apply' -and $la.kind -eq 'account' -and $la.puuid -eq $tp -and $la.json -ceq $cloud0)
+    Check 'do apply: облако изменилось, исходные на время сохранены' ($script:cloud -cne $cloud0 -and (Test-Temp $tp))
+    $aO = Get-StateJson | ConvertFrom-Json
+    Check 'state: после apply — совпадает, на время, предлагает untemp' ($aO.same -eq $true -and $aO.temp -and $aO.suggested -eq 'untemp')
+    $applied = $script:cloud
+    $r = Invoke-Do 'untemp'
+    Check 'do untemp: исходные возвращены, отмена доступна' ($r.ok -and $r.undo -and $script:cloud -ceq $cloud0 -and -not (Test-Temp $tp)) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после untemp: твои настройки и исходные на месте' ($r.ok -and -not $r.undo -and $script:cloud -ceq $applied -and (Test-Temp $tp) -and -not (Test-Path $LastActionPath)) ($r | ConvertTo-Json -Compress)
+    $r1 = Invoke-Do 'untemp'; $r2 = Invoke-Do 'apply'; $r = Invoke-Do 'undo'
+    Check 'do undo после apply: облако как было, исходных нет' ($r.ok -and $script:cloud -ceq $cloud0 -and -not (Test-Temp $tp) -and -not (Get-SessionBase $tp) -and -not (Test-Path $LastActionPath)) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo без действия — ошибка в JSON, не исключение' (-not $r.ok -and $r.message -like 'Нечего*')
+    $r = Invoke-Do 'apply'
+    $script:sess = [pscustomobject]@{ Puuid = 'dddddddd-0000'; Token = 't'; Entitlement = 'e'; ClientPid = '1'; Port = '1'; Auth = '' }
+    $r = Invoke-Do 'undo'
+    Check 'do undo: в другом аккаунте отказ, запись цела' (-not $r.ok -and (Test-Path $LastActionPath) -and $script:cloud -cne $cloud0)
+    $script:sess = [pscustomobject]@{ Puuid = $tp; Token = 't'; Entitlement = 'e'; ClientPid = '1'; Port = '1'; Auth = '' }
+    $null = Invoke-Do 'undo'
+
+    $script:cloud = '{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.123}]}'
+    $GameProc = 'powershell'   # «игра запущена»
+    $r = Invoke-Do 'apply'
+    Check 'do apply при запущенной игре: в очереди, без отмены, облако не тронуто' ($r.ok -and $r.queued -and -not $r.undo -and $r.message -like 'Ждёт*' -and (Test-Path $CloudQueue) -and $script:cloud -like '*0.123*') ($r | ConvertTo-Json -Compress)
+    Remove-Item $CloudQueue -ErrorAction SilentlyContinue
+    $GameProc = 'valset-test-no-such-process'
+
+    $r = Invoke-Do 'save'
+    Check 'do save: эталон = облако аккаунта' ($r.ok -and $r.undo -and $r.message -like 'Сохранено*' -and (Get-Content $ProfilePath -Raw -Encoding UTF8) -ceq $script:cloud) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после save: прежний эталон и источник' ($r.ok -and (Get-Content $ProfilePath -Raw -Encoding UTF8) -ceq $prof0 -and (Get-Source) -eq 'mainmainmain' -and -not (Test-Path $LastActionPath)) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'savebinds'
+    Check 'do savebinds + undo: эталон вернулся' ($r.ok -and ($r.undo -or $r.message -like '*совпадают*'))
+    if ($r.undo) { $null = Invoke-Do 'undo' }
+    Check 'после do эталон прежний' ((Get-Content $ProfilePath -Raw -Encoding UTF8) -ceq $prof0)
+    $r = Invoke-Do 'взрыв'
+    Check 'do: неизвестное действие — ok false' (-not $r.ok)
+    $script:Fancy = $false; $script:Quiet = $true
+    $cap = @(& { Write-DoJson 'save'; $null = Invoke-Do 'undo' } *>&1)
+    Check 'do: в stdout ровно одна строка JSON, без шума' ($cap.Count -eq 1 -and $cap[0] -is [string] -and (($cap[0] | ConvertFrom-Json).ok)) ($cap -join ' | ')
+    Write-FileSafe $ProfilePath $prof0; Remove-LastAction
+    $script:Quiet = $false
+
+    # сборка приложения из вшитых исходников (WPF + WinForms + System.Net.Http должны находиться)
+    $AppSources = @{ 'T.cs' = 'using System; class P { [STAThread] static void Main() { var w = new System.Windows.Window(); var n = new System.Windows.Forms.NotifyIcon(); } }' }
+    $AppExe = Join-Path $tmp 'app-test.exe'; $AppSrcDir = Join-Path $tmp 'app-src-test'; $AppHashPath = Join-Path $AppSrcDir 'hash.txt'
+    try { Build-App; $okb = (Test-Path $AppExe) -and (Test-Path "$AppSrcDir\T.cs") -and (Test-Path $AppHashPath) } catch { $okb = $false; $eb = $_.Exception.Message }
+    Check 'Build-App: исходники → exe со ссылками на WPF/WinForms' $okb "$eb"
+
     Write-Host 'сборка'
     $b = powershell -NoProfile -ExecutionPolicy Bypass -File "$proj\build.ps1" 2>&1
     Check 'build.ps1 без ошибок' ($LASTEXITCODE -eq 0) "$b"

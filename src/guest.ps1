@@ -106,6 +106,6 @@ function Write-TempNote {
         try { Update-Agent } catch { Write-Note "$(L 'помощник не запустился' 'helper did not start'): $($_.Exception.Message)" }
         Write-Note (L 'на время: исходные вернутся сами через ~3 с после закрытия игры' 'for now: the originals come back ~3 s after you close the game')
     } else {
-        Write-Note (L 'на время: перед выходом из аккаунта — Ctrl+Alt+V → «Вернуть исходные»' 'for now: before logging out — Ctrl+Alt+V → “Restore originals”')
+        Write-Note (L 'на время: перед выходом из аккаунта — меню VALSET → «Вернуть исходные»' 'for now: before logging out — VALSET menu → “Restore originals”')
     }
 }

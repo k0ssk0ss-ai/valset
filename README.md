@@ -18,8 +18,8 @@ powershell -c "[Net.ServicePointManager]::SecurityProtocol=3072;irm https://raw.
 ```
 
 It downloads the [latest release](../../releases/latest), checks it against the published SHA-256, installs it and
-opens the menu. Afterwards the menu opens with **Ctrl+Alt+V** (or the “VALSET” Start-menu shortcut, or the `valset`
-command). What the command does is in [install.ps1](install.ps1) — about 40 lines, worth a read.
+opens the menu. Afterwards VALSET lives as an icon near the clock (tray); the console menu is the “VALSET” Start-menu
+shortcut or the `valset` command. What the command does is in [install.ps1](install.ps1) — about 40 lines, worth a read.
 
 **Or manually:** download `VALSET-<version>.zip` from [Releases](../../releases/latest), unzip, run `valset.cmd` and
 press **Y** when asked to install. Windows may say “Windows protected your PC” (downloaded, unsigned file) —
@@ -28,8 +28,8 @@ press **Y** when asked to install. Windows may say “Windows protected your PC�
 ## How to use
 
 1. Open the Riot Client and log into your **main** account.
-2. **Ctrl+Alt+V → “Save”** — VALSET takes your settings from it. Once is enough.
-3. Log into another account → **Ctrl+Alt+V → “Apply mine”** (before launching the game).
+2. **Tray icon / menu → “Save”** — VALSET takes your settings from it. Once is enough.
+3. Log into another account → **“Apply mine”** (before launching the game).
    VALSET shows exactly what will change and asks first. After the game the account gets its own settings back.
 4. From then on, changes you make in game on accounts that have your settings are picked up automatically
    (pro try-ons are not). Each update is a history point: **More → History** to roll back.
@@ -49,9 +49,8 @@ right now (apply, save, restore originals) — usually 1–3 items. Everything e
 - **Graphics** are per PC: after “Save” they go to every account on this PC (asks once if the PC is shared).
 - **Accounts** by Riot ID: where settings match, where they don't, which one is main.
 - **Backups** (More → Backups): an account as it was before an apply; your own settings at an earlier version.
-- **Background helper — optional** (off by default): notifications “this account has different settings” and
-  auto-apply on login. It polls nothing — it waits for Riot Client events. ~5 MB of memory.
-- **Ctrl+Alt+V does nothing while the game is in focus** — so you never minimize it by accident.
+- **Tray app** (on by default, starts with Windows, can be turned off in its settings): shows the account status,
+  notifications with buttons, auto-apply on login. It polls nothing — it waits for Riot Client events.
 
 ## Safety — honestly
 
@@ -76,9 +75,8 @@ running, the settings take effect after a restart; graphics are written automati
 **How do I uninstall?** Run `valset uninstall` — removes the shortcut, the command and the helper from startup.
 Delete `%USERPROFILE%\valset` manually if you no longer need your saved settings.
 
-**My antivirus complains about valset-agent / valset-open.exe.** These are tiny programs VALSET compiles on your PC
-from its open source (the optional background helper and the Ctrl+Alt+V in-game guard). Some antivirus products are
-wary of unsigned executables. Don't need the helper — don't turn it on.
+**My antivirus complains about valset-app.exe.** It is a small program VALSET compiles on your PC from its open
+source (src\app). Some antivirus products are wary of unsigned executables. Don't need it — turn it off in its settings.
 
 ---
 
@@ -97,8 +95,10 @@ src\crosshair.ps1  crosshair profiles: “for now” — only yours, “permanen
 src\backups.ps1    account rollback and my settings history
 src\pros.ps1       “Pro settings”: try a pro's settings for now (list — pros.json in this repo)
 src\accounts.ps1   accounts by Riot ID, main account, status
-src\agent.ps1      background helper: watcher (C#, Riot Client events) + check
-src\install.ps1    install, uninstall, Ctrl+Alt+V in-game guard
+src\agent.ps1      config, toasts, login check (`valset watch`)
+src\app.ps1, src\app\*.cs   tray app (C#, built on your PC)
+src\do.ps1         `valset state` / `valset do` — JSON interface for the app
+src\install.ps1    install, uninstall
 install.ps1        one-command installer (no BOM: it runs via irm | iex)
 build.ps1          bundles everything into dist\valset.cmd + the release zip
 tests\run-tests.ps1  checks on fixture data (never writes to the cloud)

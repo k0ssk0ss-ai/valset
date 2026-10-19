@@ -14,6 +14,20 @@ $body = foreach ($line in [IO.File]::ReadAllLines((Join-Path $src 'valset.ps1'),
     }
 }
 
+# Исходники приложения (src\app\*.cs) — строками в $AppSources (app.ps1): на ПК пользователя из них собирается exe.
+# Папка пуста или её нет — маркер остаётся комментарием, сборка работает.
+$appDir = Join-Path $src 'app'
+$appLines = @(if (Test-Path $appDir) {
+    foreach ($f in Get-ChildItem $appDir -Filter '*.cs' | Sort-Object Name) {
+        $cs = [IO.File]::ReadAllText($f.FullName, [Text.Encoding]::UTF8).TrimStart([char]0xFEFF).TrimEnd() -replace "`r`n", "`n"
+        if ($cs -match "(?m)^'@") { throw "В $($f.Name) есть строка, начинающаяся с '@ — она оборвёт here-string в сборке." }
+        "`$AppSources['$($f.Name)'] = @'"
+        $cs -split "`n"
+        "'@"
+    }
+})
+$body = @(foreach ($line in $body) { if ($line -eq '# @@APP-SOURCES@@' -or $line -like '# @@APP-SOURCES@@ *') { $line; $appLines } else { $line } })
+
 # Для cmd это строки до exit /b; для PowerShell — блочный комментарий <# ... #>.
 $header = @(
     '<# :'
@@ -49,7 +63,8 @@ VALSET $ver — твои настройки VALORANT на всех твоих а
    Если Windows предупредит «Система Windows защитила ваш компьютер» —
    «Подробнее» → «Выполнить в любом случае» (файл скачан и не подписан;
    это обычный текстовый скрипт — можно открыть в Блокноте и прочитать).
-2. VALSET предложит установиться — нажми Y. Дальше меню: Ctrl+Alt+V.
+2. VALSET предложит установиться — нажми Y. Дальше: значок VALSET у часов (трей),
+   консоль — ярлык «VALSET» в меню Пуск или команда valset.
 3. Войди в основной аккаунт → «Сохранить» (один раз).
    В другом аккаунте → «Перенести мои» (до запуска игры).
    Правки в игре на твоих аккаунтах дальше подхватываются сами.
@@ -62,7 +77,8 @@ VALSET $ver — your VALORANT settings on all your accounts
 1. Run valset.cmd (double-click).
    If Windows says "Windows protected your PC" — "More info" → "Run anyway"
    (downloaded, unsigned file; it is a plain-text script you can read in Notepad).
-2. VALSET offers to install — press Y. Then the menu is Ctrl+Alt+V.
+2. VALSET offers to install — press Y. Then: the VALSET icon near the clock (tray);
+   console — the "VALSET" Start-menu shortcut or the valset command.
 3. Log into your main account → "Save" (once).
    On another account of yours → "Apply mine" (before launching the game).
    Changes you make in game on your accounts are then picked up automatically.

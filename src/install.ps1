@@ -1,28 +1,8 @@
-﻿# install.ps1 — установка: папка, команда valset в PATH, ярлык в «Пуске» с Ctrl+Alt+V.
-# Ярлыков на рабочем столе нет: Valorant запускается как обычно, переносом занимается автоперенос (agent.ps1).
-#
-# Ctrl+Alt+V запускает не меню, а крошечную программу без окна (valset-open-1.exe): если на переднем плане игра —
-# она ничего не делает (любое окно отобрало бы фокус и свернуло полноэкранную игру), иначе открывает меню.
+﻿# install.ps1 — установка: папка, команда valset в PATH, ярлык «VALSET» в «Пуске» (консольное меню) и трей-приложение (app.ps1).
+# Ярлыков на рабочем столе нет: Valorant запускается как обычно. Ctrl+Alt+V и valset-open-1.exe убраны в 2.0.0 —
+# вместо них значок у часов; старый exe при установке и удалении удаляется.
 
-$OpenExe = Join-Path $Root 'valset-open-1.exe'
-$OpenSrc = @"
-using System; using System.Diagnostics; using System.Runtime.InteropServices;
-static class ValsetOpen {
-    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
-    static void Main(string[] args) {
-        if (args.Length < 1) return;
-        uint fg; GetWindowThreadProcessId(GetForegroundWindow(), out fg);
-        foreach (var p in Process.GetProcessesByName("VALORANT-Win64-Shipping")) {
-            bool active = p.Id == fg; p.Dispose();
-            if (active) return;   // идёт игра — не мешаем
-        }
-        var si = new ProcessStartInfo(args[0]);
-        si.UseShellExecute = true; si.WorkingDirectory = System.IO.Path.GetDirectoryName(args[0]);
-        try { Process.Start(si); } catch { }
-    }
-}
-"@
+$OpenExe = Join-Path $Root 'valset-open-1.exe'   # только для чистки: 1.x ставили сюда защиту хоткея
 
 function Invoke-Install {
     if ($Self -notlike '*.cmd') { throw (L 'Устанавливается собранный файл: запусти build.ps1, затем dist\valset.cmd install.' 'Install the built file: run build.ps1, then dist\valset.cmd install.') }
@@ -37,30 +17,26 @@ function Invoke-Install {
     # Старые версии ставили ярлык «VALORANT (VALSET)» на рабочий стол — он больше не нужен.
     foreach ($p in $LaunchLnk, $LaunchVbs) { if (Test-Path $p) { Remove-Item -LiteralPath $p } }
 
-    # Ярлык меню в «Пуске» с горячей клавишей (Windows ловит хоткеи только у ярлыков Пуска/рабочего стола).
+    # Ярлык консольного меню в «Пуске» — запасной путь; горячей клавиши у него больше нет (старую снимаем).
     $ws = New-Object -ComObject WScript.Shell
-    $guard = $true
-    try { if (-not (Test-Path $OpenExe)) { Add-Type -TypeDefinition $OpenSrc -OutputAssembly $OpenExe -OutputType WindowsApplication } }
-    catch { $guard = $false; Log "защита Ctrl+Alt+V в игре недоступна: $($_.Exception.Message)" }
     $sc = $ws.CreateShortcut($MenuLnk)
-    if ($guard) { $sc.TargetPath = $OpenExe; $sc.Arguments = "`"$InstalledCmd`"" }
-    else        { $sc.TargetPath = $InstalledCmd }
+    $sc.TargetPath = $InstalledCmd
+    $sc.Arguments = ''
     $sc.WorkingDirectory = $Root
     $sc.IconLocation = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe,0"
-    $sc.Hotkey = 'Ctrl+Alt+V'
+    $sc.Hotkey = ''
     $sc.Save()
+    if (Test-Path $OpenExe) { Remove-Item -LiteralPath $OpenExe -ErrorAction SilentlyContinue }
 
-    # Помощник в фоне — только если человек сам включил его раньше (config.json); по умолчанию выключен.
-    $helper = $true
-    try { Update-Agent } catch { $helper = $false; Log "помощник не запущен: $($_.Exception.Message)" }
+    # Трей-приложение: собирается из исходника на этом ПК, запускается с Windows (выключается в настройках: config.app).
+    $appErr = $null
+    try { Update-Agent } catch { $appErr = $_.Exception.Message; Log "приложение не запущено: $appErr" }
 
-    Log "установлено в $($Root): меню по Ctrl+Alt+V"
+    Log "установлено в $($Root): значок в трее, консоль — ярлык и команда valset"
     Write-Ok "$(L 'Установлено в' 'Installed to') $Root"
-    Write-Note (L 'Меню: Ctrl+Alt+V. Не срабатывает — ярлык «VALSET» в меню Пуск (сочетание иногда' 'Menu: Ctrl+Alt+V. Not working? Use the “VALSET” shortcut in the Start menu (the hotkey')
-    Write-Note (L '      заработает только после перезахода в Windows) или команда valset в новом терминале.' '      sometimes needs a Windows sign-out) or run valset in a new terminal.')
-    $c = Get-Config
-    if ($helper -and ($c.notify -or $c.autoApply)) { Write-Note (L 'Помощник в фоне включён, как ты выбрал раньше (отключается в меню).' 'Background helper is on, as you chose before (turn off in the menu).') }
-    else { Write-Note (L 'Помощник в фоне выключен. По желанию в меню: уведомления и автоперенос.' 'Background helper is off. Optional in the menu: notifications and auto-apply.') }
+    if ($appErr) { Write-Note "$(L 'Значок в трее не запустился' 'The tray icon did not start'): $appErr" }
+    else { Write-Note (L 'Значок VALSET — у часов (трей), запускается с Windows. Выключить: в настройках его окна.' 'The VALSET icon is near the clock (tray) and starts with Windows. Turn it off: in its window settings.') }
+    Write-Note (L 'Консоль: ярлык «VALSET» в меню Пуск или команда valset в новом терминале.' 'Console: the “VALSET” shortcut in the Start menu, or run valset in a new terminal.')
 }
 
 # Версия установленного valset.cmd (строка $Version = '...'), $null — не установлен.
@@ -80,8 +56,8 @@ function Invoke-InstallOffer {
         Write-Host (L "    Установлена версия $have, это — $Version." "    Installed: version $have, this file: $Version.") -ForegroundColor Gray
         $q = L 'Обновить? Твои настройки и бэкапы останутся' 'Update? Your settings and backups stay'
     } else {
-        Write-Host (L '    Установка: папка %USERPROFILE%\valset, команда valset, меню по Ctrl+Alt+V.' '    Installs to %USERPROFILE%\valset, adds the valset command and the Ctrl+Alt+V menu.') -ForegroundColor Gray
-        Write-Host (L '    Ничего не запускается в фоне без твоего выбора.' '    Nothing runs in the background unless you choose so.') -ForegroundColor Gray
+        Write-Host (L '    Установка: папка %USERPROFILE%\valset, команда valset, ярлык в Пуске, значок у часов.' '    Installs to %USERPROFILE%\valset, adds the valset command, a Start-menu shortcut and a tray icon.') -ForegroundColor Gray
+        Write-Host (L '    Значок запускается с Windows (собирается на этом ПК из исходника); выключается в его окне.' '    The icon starts with Windows (built on this PC from source); turn it off in its window.') -ForegroundColor Gray
         $q = L 'Установить VALSET?' 'Install VALSET?'
     }
     Write-Host ''
@@ -90,11 +66,12 @@ function Invoke-InstallOffer {
 
 function Invoke-Uninstall {
     Disable-Agent
+    Remove-App
     foreach ($p in $MenuLnk, $LaunchLnk, $LaunchVbs, $OpenExe) { if (Test-Path $p) { Remove-Item -LiteralPath $p } }
     $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
     [Environment]::SetEnvironmentVariable('Path', (($userPath -split ';' | Where-Object { $_ -and $_ -ne $Root }) -join ';'), 'User')
     Log 'программа удалена (мои настройки и бэкапы оставлены)'
-    Write-Ok (L "Ярлык, команда и автоперенос убраны. Твои настройки и бэкапы остались в $Root" "Shortcut, command and helper removed. Your settings and backups remain in $Root")
+    Write-Ok (L "Ярлык, команда и значок в трее убраны. Твои настройки и бэкапы остались в $Root" "Shortcut, command and tray icon removed. Your settings and backups remain in $Root")
     if ($Self -eq $InstalledCmd) { Write-Note (L 'сам valset.cmd удали вручную, если он больше не нужен' 'delete valset.cmd itself manually if you no longer need it') }
     elseif (Test-Path $InstalledCmd) { Remove-Item -LiteralPath $InstalledCmd }
 }

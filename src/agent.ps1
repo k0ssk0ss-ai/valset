@@ -141,11 +141,12 @@ static class ValsetAgent {
 
 function Get-Config {
     # autoApply/notify — помощник только по личному выбору; gfxAll — писать графику во все аккаунты ПК ($null — ещё не спрашивали)
-    $c = [pscustomobject]@{ autoApply = $false; notify = $false; gfxAll = $null; tempAuto = $null; lang = ''; dpi = 0 }
+    # app — трей-приложение (заменяет сторожа), badge — значок у окна клиента Riot; оба включены по умолчанию
+    $c = [pscustomobject]@{ autoApply = $false; notify = $false; gfxAll = $null; tempAuto = $null; lang = ''; dpi = 0; app = $true; badge = $true }
     if (Test-Path $ConfigPath) {
         try {
             $j = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
-            foreach ($k in 'autoApply', 'notify', 'gfxAll', 'tempAuto') { if ($null -ne $j.$k) { $c.$k = [bool]$j.$k } }
+            foreach ($k in 'autoApply', 'notify', 'gfxAll', 'tempAuto', 'app', 'badge') { if ($null -ne $j.$k) { $c.$k = [bool]$j.$k } }
             if ($j.lang -in 'ru', 'en') { $c.lang = $j.lang }
             if ($j.dpi -as [int]) { $c.dpi = [int]$j.dpi }
         } catch {}
@@ -157,7 +158,7 @@ function Set-Config([string]$key, $value) {
     $c = Get-Config; $c.$key = $value
     New-Item -ItemType Directory -Force $Root | Out-Null
     Set-Content $ConfigPath (ConvertTo-Json $c) -Encoding UTF8
-    if ($key -in 'notify', 'autoApply', 'tempAuto') { Update-Agent }
+    if ($key -in 'notify', 'autoApply', 'tempAuto', 'app') { Update-Agent }
 }
 
 # ── Сторож ───────────────────────────────────────────────────────────────────
@@ -169,7 +170,8 @@ function Test-NamedMutex([string]$name) {
 }
 
 function Test-WatchRunning  { Test-NamedMutex $WatchMutexName }
-function Test-AgentRunning  { Test-NamedMutex $AgentMutex }
+function Test-OldAgentRunning { Test-NamedMutex $AgentMutex }
+function Test-AgentRunning  { (Test-NamedMutex $AgentMutex) -or (Test-NamedMutex $AppMutex) }   # сторож или приложение
 function Test-AgentEnabled  { $null -ne (Get-ItemProperty $RunKey -Name 'VALSET' -ErrorAction SilentlyContinue) }
 
 function Send-Stop([string]$eventName, [scriptblock]$running) {
@@ -180,9 +182,12 @@ function Send-Stop([string]$eventName, [scriptblock]$running) {
 }
 
 
-# Сторож нужен, если включены уведомления или автоперенос.
+# Приложение (app.ps1) заменяет сторожа. Выключено галочкой (config.app = false) — прежний сторож: он нужен,
+# только если включены уведомления или автоперенос.
 function Update-Agent {
     $c = Get-Config
+    if ($c.app) { Enable-App; return }
+    Disable-App
     if ($c.notify -or $c.autoApply -or ($c.tempAuto -and (Test-AnyTemp))) { Enable-Agent } else { Disable-Agent }
 }
 
@@ -195,28 +200,34 @@ function Enable-Agent {
     $was = (Get-ItemProperty $RunKey -Name 'VALSET' -ErrorAction SilentlyContinue).VALSET
     if ($was -ne $want) {
         Set-ItemProperty $RunKey -Name 'VALSET' -Value $want
-        if (Test-AgentRunning) { Send-Stop $AgentStopName { Test-AgentRunning } }   # старая версия сторожа
+        if (Test-OldAgentRunning) { Send-Stop $AgentStopName { Test-OldAgentRunning } }   # старая версия сторожа
         foreach ($old in Get-ChildItem $Root -Filter 'valset-agent-*.exe' | Where-Object FullName -ne $AgentExe) {
             Remove-Item -LiteralPath $old.FullName -ErrorAction SilentlyContinue
         }
     }
-    if (-not (Test-AgentRunning)) { Start-Process $AgentExe -ArgumentList "`"$InstalledCmd`"" }
+    if (-not (Test-OldAgentRunning)) { Start-Process $AgentExe -ArgumentList "`"$InstalledCmd`"" }
 }
 
 function Disable-Agent {
     Remove-ItemProperty $RunKey -Name 'VALSET' -ErrorAction SilentlyContinue
-    if (Test-AgentRunning) { Send-Stop $AgentStopName { Test-AgentRunning } }
+    if (Test-OldAgentRunning) { Send-Stop $AgentStopName { Test-OldAgentRunning } }
 }
 
 # ── Уведомления ──────────────────────────────────────────────────────────────
 
-function Send-Toast([string]$title, [string]$text) {
+# XML уведомления. Кнопки: @(@{ label = 'Применить'; arg = 'apply' }) → протокол valset:apply (его ловит приложение).
+function New-ToastXml([string]$title, [string]$text, [object[]]$actions = @()) {
+    $esc = { param($s) [Security.SecurityElement]::Escape($s) }
+    $btn = if (@($actions).Count) { '<actions>' + ((@($actions) | ForEach-Object { "<action content='$(& $esc $_.label)' arguments='valset:$(& $esc $_.arg)' activationType='protocol'/>" }) -join '') + '</actions>' } else { '' }
+    "<toast><visual><binding template='ToastGeneric'><text>$(& $esc $title)</text><text>$(& $esc $text)</text></binding></visual>$btn</toast>"
+}
+
+function Send-Toast([string]$title, [string]$text, [object[]]$actions = @()) {
     try {
         $null = [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]
         $null = [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime]
-        $esc = { param($s) [Security.SecurityElement]::Escape($s) }
         $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
-        $xml.LoadXml("<toast><visual><binding template='ToastGeneric'><text>$(& $esc $title)</text><text>$(& $esc $text)</text></binding></visual></toast>")
+        $xml.LoadXml((New-ToastXml $title $text $actions))
         [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($ToastAppId).Show([Windows.UI.Notifications.ToastNotification]::new($xml))
     } catch { Log "уведомление не показано: $($_.Exception.Message)" }
 }
@@ -240,7 +251,7 @@ function Test-MainDrift($s, [string]$name) {
     Set-AccountState $s.Puuid @{ state = $(if ($dr.Same) { 'same' } else { 'diff' }); diff = $dr.Count; checked = (Get-Stamp); notified = $dr.Sig }
     if ($dr.Same -or $dr.Sig -eq $prev) { return }
     Log "основной $($name): настройки разошлись с твоими ($($dr.Count))"
-    Send-Toast "VALSET · $name" (L "Настройки изменились ($($dr.Count)). Поменял в игре — Ctrl+Alt+V → «Сохранить»." "Settings changed ($($dr.Count)). Changed them in game? Ctrl+Alt+V → `“Save`”.")
+    Send-Toast "VALSET · $name" (L "Настройки изменились ($($dr.Count)). Поменял в игре — сохрани." "Settings changed ($($dr.Count)). Changed them in game? Save them.") @(@{ label = (L 'Сохранить' 'Save'); arg = 'save' })
 }
 
 # Эталон обновился из игры — сказать, что именно (вернуть — «Ещё» → «Бэкапы» → «моих настроек»).
@@ -309,16 +320,18 @@ function Invoke-Watch([switch]$AfterGame) {
             if ($isMain -and $hasBase) { Send-SyncToast $s (Update-Reference $s) }
             elseif ($isMain) { if ($cfg.notify) { Test-MainDrift $s $name } }
             elseif ($cfg.autoApply) {
-                Invoke-Apply $s
+                Remove-LastAction; $script:UndoAction = 'apply'   # точка отмены для кнопки «Отменить» в уведомлении
+                try { Invoke-Apply $s } finally { $script:UndoAction = $null }
                 $r = $script:LastApply
+                $undoBtn = if (Test-Path $LastActionPath) { @(@{ label = (L 'Отменить' 'Undo'); arg = 'undo' }) } else { @() }
                 if ($cfg.notify -and -not $r.Same) {
-                    if ($r.Temp) { Send-Toast "VALSET · $name" (L "Твои настройки на время: $($r.Count) изм. После игры вернутся исходные." "Your settings for now: $($r.Count) changes. The originals come back after the game.") }
-                    else { Send-Toast "VALSET · $name" (L "Твои настройки перенесены: $($r.Count) изм. Можно играть." "Your settings applied: $($r.Count) changes. Ready to play.") }
+                    if ($r.Temp) { Send-Toast "VALSET · $name" (L "Твои настройки на время: $($r.Count) изм. После игры вернутся исходные." "Your settings for now: $($r.Count) changes. The originals come back after the game.") $undoBtn }
+                    else { Send-Toast "VALSET · $name" (L "Твои настройки перенесены: $($r.Count) изм. Можно играть." "Your settings applied: $($r.Count) changes. Ready to play.") $undoBtn }
                 }
             } elseif ($cfg.notify) {
                 $dr = Get-AccountDrift $s
                 Set-AccountState $s.Puuid @{ state = $(if ($dr.Same) { 'same' } else { 'diff' }); diff = $dr.Count; checked = (Get-Stamp) }
-                if (-not $dr.Same) { Send-Toast "VALSET · $name" (L "Настройки не твои ($($dr.Count)). Ctrl+Alt+V → «Перенести мои» до запуска игры." "Not your settings ($($dr.Count)). Ctrl+Alt+V → `“Apply mine`” before launching the game.") }
+                if (-not $dr.Same) { Send-Toast "VALSET · $name" (L "Настройки не твои ($($dr.Count)). Перенеси свои до запуска игры." "Not your settings ($($dr.Count)). Apply yours before launching the game.") @(@{ label = (L 'Применить мои' 'Apply mine'); arg = 'apply' }) }
             }
             Add-WatchDone $key
         } elseif ($AfterGame -and $hasBase) {

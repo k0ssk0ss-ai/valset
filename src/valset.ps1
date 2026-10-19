@@ -1,7 +1,10 @@
 ﻿<#
   VALSET — твои настройки VALORANT на любом аккаунте.
 
-  valset             меню: стрелки или цифры (ярлык: Ctrl+Alt+V); новое окно заменяет старое
+  valset             меню: стрелки или цифры (ярлык «VALSET» в Пуске); новое окно заменяет старое
+  valset pros / more консольное меню сразу на этом экране
+  valset state       (для приложения) состояние одной строкой JSON
+  valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo — без вопросов, ответ JSON
   valset save        запомнить настройки текущего аккаунта как мои (-BindsOnly — только бинды)
   valset gfxsave     запомнить только графику (можно при запущенной игре)
   valset apply       перенести мои настройки на текущий аккаунт (всё; -BindsOnly — только бинды)
@@ -16,15 +19,18 @@
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('menu', 'save', 'gfxsave', 'apply', 'status', 'watch', 'gfxwait', 'install', 'uninstall')]
+    [ValidateSet('menu', 'save', 'gfxsave', 'apply', 'status', 'watch', 'gfxwait', 'install', 'uninstall', 'state', 'do', 'pros', 'more')]
     [string]$Command = 'menu',
+    [Parameter(Position = 1)]
+    [string]$Action = '',
     [switch]$BindsOnly,
     [switch]$AfterGame,
     [int]$Interval = 3
 )
 $ErrorActionPreference = 'Stop'
-$Version = '1.2.0'
-$script:Fancy = $Command -notin 'watch', 'gfxwait'   # скрытые режимы — без оформления
+$Version = '2.0.0'
+$script:Fancy = $Command -notin 'watch', 'gfxwait', 'state', 'do'   # скрытые режимы — без оформления
+$script:Quiet = $Command -in 'state', 'do'   # stdout этих команд — ровно одна строка JSON: журнал на экран не пишем
 
 # Собранный valset.cmd передаёт свой путь через VALSET_FILE; при запуске из исходников — сам .ps1.
 $Self        = if ($env:VALSET_FILE) { $env:VALSET_FILE } else { $PSCommandPath }
@@ -80,6 +86,8 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'menu.ps1')
 . (Join-Path $PSScriptRoot 'pros.ps1')
 . (Join-Path $PSScriptRoot 'more.ps1')
+. (Join-Path $PSScriptRoot 'do.ps1')
+. (Join-Path $PSScriptRoot 'app.ps1')
 . (Join-Path $PSScriptRoot 'install.ps1')
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -113,7 +121,7 @@ public static class RiotLocalCert {
 
 function Log([string]$msg) {
     $line = '{0:yyyy-MM-dd HH:mm:ss} {1}' -f (Get-Date), $msg
-    if (-not $script:Fancy) { Write-Host $line }
+    if (-not $script:Fancy -and -not $script:Quiet) { Write-Host $line }
     New-Item -ItemType Directory -Force $Root | Out-Null
     Add-Content $LogPath $line -Encoding UTF8
 }
@@ -229,6 +237,7 @@ function Invoke-Save($s) {
     Invoke-Step (L 'Запись на диск' 'Writing to disk') {
         $null = $json | ConvertFrom-Json   # проверка, что это валидный JSON
         New-Item -ItemType Directory -Force $Root | Out-Null
+        Save-UndoPoint 'profile' $s.Puuid
         New-HistoryPoint (L 'до «Сохранить → всё»' 'before “Save → all”')
         Write-FileSafe $ProfilePath $json
         Write-FileSafe $SourcePath $s.Puuid
@@ -236,6 +245,7 @@ function Invoke-Save($s) {
     }
     $gfx = Invoke-Step (L 'Снимок графики с этого ПК' 'Snapshot of this PC''s graphics') { Save-Graphics $s.Puuid }
     Log "мои настройки запомнены с аккаунта $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' (+ графика)' })"
+    $script:LastOp = if ($gfx) { 'gfx' } else { 'done' }
     if ($script:Fancy) {
         Write-Ok (L "Твои настройки запомнены с аккаунта $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' вместе с графикой' })" "Your settings saved from $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' including graphics' })")
         if (-not $gfx) { Write-Note (L 'графику не нашёл: этот аккаунт ещё не запускал игру на этом ПК' 'no graphics found: this account has not run the game on this PC yet') }
@@ -278,11 +288,13 @@ function Invoke-Apply($s, [switch]$BindsOnly, [switch]$Permanent) {
             if (-not (Confirm-Key (L 'Применить?' 'Apply?'))) { Write-Note (L 'отменено, аккаунт не тронут' 'cancelled, account untouched'); return }
         }
         # Игра держит свою копию настроек и при их смене в игре пишет её в облако целиком — поверх нашей. Ждём выхода.
-        if ($script:Fancy -and (Test-GameRunning)) {
+        if (Test-GameRunning) {
+            $script:LastApply = @{ Queued = $true }
             Request-CloudAfterExit $s.Puuid $(if ($BindsOnly) { 'binds' } elseif ($Permanent) { 'perm' } else { 'apply' })
-            Write-Note (L 'игра запущена — применю сам, когда закроешь её (в этом же аккаунте)' 'the game is running — will apply once you close it (on this same account)')
+            if ($script:Fancy) { Write-Note (L 'игра запущена — применю сам, когда закроешь её (в этом же аккаунте)' 'the game is running — will apply once you close it (on this same account)') }
             return
         }
+        Save-UndoPoint 'account' $s.Puuid $curJson
         $bk = Invoke-Step (L 'Резервная копия' 'Backup') { New-Backup $s $curJson }
         if ($temp) { Save-TempOriginal $s.Puuid $curJson }   # до записи: упадёт посередине — исходные всё равно вернутся
         $newJson = ConvertTo-Json -InputObject $new -Depth 32 -Compress
@@ -353,6 +365,7 @@ function Invoke-SaveBinds($s) {
     foreach ($k in $BindKeys) { $new | Add-Member -NotePropertyName $k -NotePropertyValue $acc.$k -Force }
     $diff = Compare-Prefs $p $new -BindsOnly
     if ((Get-JsonPart $p 'actionMappings') -eq (Get-JsonPart $new 'actionMappings') -and (Get-JsonPart $p 'axisMappings') -eq (Get-JsonPart $new 'axisMappings')) {
+        $script:LastOp = 'same'
         if ($script:Fancy) { Write-Ok (L "Твои бинды уже как на аккаунте $(Get-AccountLabel $s.Puuid)" "Your binds already match $(Get-AccountLabel $s.Puuid)") }
         return
     }
@@ -362,6 +375,7 @@ function Invoke-SaveBinds($s) {
         if (-not $diff.Count) { Write-Note (L 'отличия только в агентских биндах или осях' 'differences only in agent binds or axes') }
         if (-not (Confirm-Key (L "Сохранить бинды аккаунта $(Get-AccountLabel $s.Puuid) как мои?" "Save the binds of $(Get-AccountLabel $s.Puuid) as mine?"))) { Write-Note (L 'отменено' 'cancelled'); return }
     }
+    Save-UndoPoint 'profile' $s.Puuid
     New-HistoryPoint (L 'до «Сохранить → бинды»' 'before “Save → binds”')
     Save-Profile $new
     Log "бинды запомнены с аккаунта $(Get-AccountLabel $s.Puuid) ($($diff.Count) изм.)"
@@ -386,6 +400,10 @@ try {
         'gfxwait'   { Invoke-GfxWait }
         'install'   { Invoke-Install }
         'uninstall' { Invoke-Uninstall }
+        'pros'      { Show-OneScreen 'pros' }
+        'more'      { Show-OneScreen 'more' }
+        'state'     { Write-StateJson }
+        'do'        { Write-DoJson $Action; if (-not $script:DoOk) { exit 1 } }
     }
 } catch {
     Log "ошибка: $($_.Exception.Message)"

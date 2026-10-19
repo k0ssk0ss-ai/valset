@@ -153,14 +153,18 @@ function Invoke-CloudQueue {
         $puuid, $action = $line.Split("`t", 2)
         if (-not $s -or $s.Puuid -ne $puuid) { Log "$action ($(Short $puuid)) отменено: вышли из этого аккаунта"; continue }
         try {
+            Remove-LastAction; $script:UndoAction = $(if ($action -notlike 'pro:*') { 'apply' })   # точка отмены для кнопки в уведомлении
             switch -regex ($action) {
                 '^apply$' { Invoke-Apply $s }
                 '^binds$' { Invoke-Apply $s -BindsOnly }
                 '^perm$'  { Invoke-Apply $s -Permanent }
                 '^pro:(.+)$' { $n = $Matches[1]; $pro = Get-Pros | Where-Object { $_.nick -eq $n } | Select-Object -First 1; if ($pro) { Invoke-ApplyPro $pro $s } }
             }
-            try { Send-Toast 'VALSET' $(if ($action -like 'pro:*') { L "Настройки $($action.Substring(4)) применены" "$($action.Substring(4))'s settings applied" } else { L 'Твои настройки применены' 'Your settings applied' }) } catch {}
+            $script:UndoAction = $null
+            $undoBtn = if (Test-Path $LastActionPath) { @(@{ label = (L 'Отменить' 'Undo'); arg = 'undo' }) } else { @() }
+            try { Send-Toast 'VALSET' $(if ($action -like 'pro:*') { L "Настройки $($action.Substring(4)) применены" "$($action.Substring(4))'s settings applied" } else { L 'Твои настройки применены' 'Your settings applied' }) $undoBtn } catch {}
         } catch {
+            $script:UndoAction = $null
             Log "$action ($(Short $puuid)): ошибка: $($_.Exception.Message)"
             try { Send-Toast 'VALSET' (L "Не удалось применить: $($_.Exception.Message)" "Could not apply: $($_.Exception.Message)") } catch {}
         }
