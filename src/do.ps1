@@ -29,8 +29,8 @@ function ConvertTo-StateObject($st) {
         account = "$($st.Name)"; puuid = "$p"; isMain = [bool]$st.IsMain; have = [bool]$st.Have
         same = $(if ($null -ne $st.Same) { [bool]$st.Same } else { $null })
         diff = [int]$st.Diff
-        diffList = @($st.DiffList | Where-Object { $_ } | ForEach-Object { [ordered]@{ what = "$($_.What)"; old = "$($_.Old)"; new = "$($_.New)" } })
-        temp = [bool]($p -and (Test-Temp $p)); pending = $pending
+        diffList = @(ConvertTo-DiffItems $st.DiffList)
+        temp = [bool]($p -and (Test-Temp $p)); own = [bool]($p -and -not (Test-TempDefault $p)); pending = $pending
         synced = @($st.Synced | Where-Object { $_ } | ForEach-Object { "$_" })
         suggested = (Get-SuggestedId $st)
         autoApply = [bool]$c.autoApply; notify = [bool]$c.notify; badge = [bool]$c.badge
@@ -72,7 +72,8 @@ function Save-UndoPoint([string]$kind, [string]$puuid, $json = $null) {
 function Invoke-Undo {
     if (-not (Test-Path $LastActionPath)) { throw (L 'Нечего отменять.' 'Nothing to undo.') }
     $a = Get-Content $LastActionPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($a.kind -eq 'account') {
+    if ($a.kind -in 'history', 'files') { Restore-UndoExtra $a }
+    elseif ($a.kind -eq 'account') {
         $s = Connect-Session
         if ($s.Puuid -ne $a.puuid) { throw (L "Отменить можно только в том аккаунте, где было действие ($(Get-AccountLabel $a.puuid))." "Undo works only on the account where it happened ($(Get-AccountLabel $a.puuid)).") }
         if (Test-GameRunning) { throw (L 'Игра запущена — отмени после её закрытия.' 'The game is running — undo after closing it.') }
@@ -103,8 +104,8 @@ function Invoke-Do([string]$action) {
     $script:LastApply = $null; $script:LastOp = $null; $script:UndoAction = $null
     try {
         $writes = 'apply', 'binds', 'applyperm', 'save', 'savebinds', 'untemp'
-        if ($action -notin ($writes + 'undo')) { throw (L "неизвестное действие: $action" "unknown action: $action") }
-        if ($action -in $writes) { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
+        if ($action -notin ($writes + 'undo') -and -not (Test-ExtraAction $action)) { throw (L "неизвестное действие: $action" "unknown action: $action") }
+        if ($action -ne 'undo') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
         $msg = $null
         switch ($action) {
             { $_ -in 'apply', 'binds', 'applyperm' } {
@@ -137,6 +138,7 @@ function Invoke-Do([string]$action) {
                 }
             }
             'undo' { Invoke-Undo 6>$null; $msg = L 'Отменено' 'Undone' }
+            default { $msg = @(Invoke-DoExtra $action $r)[-1] }
         }
         $r.ok = $true; $r.message = $msg
     } catch {

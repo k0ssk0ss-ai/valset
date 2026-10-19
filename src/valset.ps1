@@ -3,8 +3,9 @@
 
   valset             меню: стрелки или цифры (ярлык «VALSET» в Пуске); новое окно заменяет старое
   valset pros / more консольное меню сразу на этом экране
+  valset list <pros|accounts|backups|history|diff>   списки для панели приложения (одна строка JSON)
   valset state       (для приложения) состояние одной строкой JSON
-  valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo — без вопросов, ответ JSON
+  valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo|gfxsave|pro:НИК|restore:ID|history:ID|set:КЛЮЧ=ЗНАЧЕНИЕ|account:PUUID:ДЕЙСТВИЕ — без вопросов, ответ JSON
   valset save        запомнить настройки текущего аккаунта как мои (-BindsOnly — только бинды)
   valset gfxsave     запомнить только графику (можно при запущенной игре)
   valset apply       перенести мои настройки на текущий аккаунт (всё; -BindsOnly — только бинды)
@@ -19,7 +20,7 @@
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('menu', 'save', 'gfxsave', 'apply', 'status', 'watch', 'gfxwait', 'install', 'uninstall', 'state', 'do', 'pros', 'more')]
+    [ValidateSet('menu', 'save', 'gfxsave', 'apply', 'status', 'watch', 'gfxwait', 'install', 'uninstall', 'state', 'do', 'pros', 'more', 'list')]
     [string]$Command = 'menu',
     [Parameter(Position = 1)]
     [string]$Action = '',
@@ -29,8 +30,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $Version = '2.0.0'
-$script:Fancy = $Command -notin 'watch', 'gfxwait', 'state', 'do'   # скрытые режимы — без оформления
-$script:Quiet = $Command -in 'state', 'do'   # stdout этих команд — ровно одна строка JSON: журнал на экран не пишем
+$script:Fancy = $Command -notin 'watch', 'gfxwait', 'state', 'do', 'list'   # скрытые режимы — без оформления
+$script:Quiet = $Command -in 'state', 'do', 'list'   # stdout этих команд — ровно одна строка JSON: журнал на экран не пишем
 
 # Собранный valset.cmd передаёт свой путь через VALSET_FILE; при запуске из исходников — сам .ps1.
 $Self        = if ($env:VALSET_FILE) { $env:VALSET_FILE } else { $PSCommandPath }
@@ -87,6 +88,8 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'pros.ps1')
 . (Join-Path $PSScriptRoot 'more.ps1')
 . (Join-Path $PSScriptRoot 'do.ps1')
+. (Join-Path $PSScriptRoot 'doextra.ps1')
+. (Join-Path $PSScriptRoot 'lists.ps1')
 . (Join-Path $PSScriptRoot 'app.ps1')
 . (Join-Path $PSScriptRoot 'install.ps1')
 
@@ -403,6 +406,7 @@ try {
         'pros'      { Show-OneScreen 'pros' }
         'more'      { Show-OneScreen 'more' }
         'state'     { Write-StateJson }
+        'list'      { Write-ListJson $Action }
         'do'        { Write-DoJson $Action; if (-not $script:DoOk) { exit 1 } }
     }
 } catch {

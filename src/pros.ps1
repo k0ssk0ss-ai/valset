@@ -72,7 +72,7 @@ function Invoke-ApplyPro($pro, $s) {
     }
     $new = Join-ProPrefs $cur $prefs
     if ($pro.crosshair) { Add-ProCrosshair $new $pro }
-    if (Test-PrefsEqual $cur $new) { Write-Ok (L "Уже как у $($pro.nick)" "Already like $($pro.nick)"); return }
+    if (Test-PrefsEqual $cur $new) { $script:LastOp = 'same'; Write-Ok (L "Уже как у $($pro.nick)" "Already like $($pro.nick)"); return }
     Show-Diff (Compare-Prefs $cur $new)
     Write-Note (L 'на время: «Вернуть исходные» вернёт аккаунт как был' 'for now: “Restore originals” brings the account back')
     if ($script:Fancy) {
@@ -83,6 +83,7 @@ function Invoke-ApplyPro($pro, $s) {
             return
         }
     }
+    Save-UndoPoint 'account' $s.Puuid $curJson
     $null = Invoke-Step (L 'Резервная копия' 'Backup') { New-Backup $s $curJson }
     $null = Update-Reference $s $curJson   # твои правки в игре — в эталон до примерки
     Clear-SessionBase $s.Puuid             # дальше на аккаунте настройки про — в эталон не попадут

@@ -363,12 +363,13 @@ try {
     $prof0 = Get-Content $ProfilePath -Raw -Encoding UTF8
     $stJ = Get-StateJson
     $stO = $stJ | ConvertFrom-Json
-    $want = 'client game account puuid isMain have same diff diffList temp pending synced suggested autoApply notify badge lang error' -split ' '
+    $want = 'client game account puuid isMain have same diff diffList temp own pending synced suggested autoApply notify badge lang error' -split ' '
     Check 'state: одна строка JSON с полями контракта' ($stJ -notmatch "[\r\n]" -and (($stO.PSObject.Properties.Name | Sort-Object) -join ' ') -eq (($want | Sort-Object) -join ' ')) $stJ.Substring(0, [Math]::Min(200, $stJ.Length))
-    Check 'state: чужой аккаунт — предлагает apply' ($stO.puuid -eq $tp -and $stO.account -eq 'Тест#EU' -and -not $stO.isMain -and $stO.have -and $stO.same -eq $false -and $stO.diff -ge 1 -and $stO.diffList.Count -ge 1 -and $stO.suggested -eq 'apply' -and $stO.lang -eq 'ru' -and $stO.badge -and $stO.error -eq '')
+    Check 'state: own = false на чужом, true на основном' ($stO.own -eq $false) $stJ
+Check 'state: чужой аккаунт — предлагает apply' ($stO.puuid -eq $tp -and $stO.account -eq 'Тест#EU' -and -not $stO.isMain -and $stO.have -and $stO.same -eq $false -and $stO.diff -ge 1 -and $stO.diffList.Count -ge 1 -and $stO.suggested -eq 'apply' -and $stO.lang -eq 'ru' -and $stO.badge -and $stO.error -eq '')
     $script:sess = [pscustomobject]@{ Puuid = 'mainmainmain'; Token = 't'; Entitlement = 'e'; ClientPid = '1'; Port = '1'; Auth = '' }
     $mO = Get-StateJson | ConvertFrom-Json
-    Check 'state: основной с расхождением — предлагает save' ($mO.isMain -and $mO.same -eq $false -and $mO.suggested -eq 'save')
+    Check 'state: основной с расхождением — предлагает save' ($mO.isMain -and $mO.own -eq $true -and $mO.same -eq $false -and $mO.suggested -eq 'save')
     $script:sess = $null
     $nO = Get-StateJson | ConvertFrom-Json
     Check 'state: клиент закрыт — пустой аккаунт, same null' ($nO.puuid -eq '' -and $null -eq $nO.same -and $nO.account -eq '' -and ($nO.suggested -eq 'client' -or $nO.client))
@@ -418,6 +419,146 @@ try {
     $cap = @(& { Write-DoJson 'save'; $null = Invoke-Do 'undo' } *>&1)
     Check 'do: в stdout ровно одна строка JSON, без шума' ($cap.Count -eq 1 -and $cap[0] -is [string] -and (($cap[0] | ConvertFrom-Json).ok)) ($cap -join ' | ')
     Write-FileSafe $ProfilePath $prof0; Remove-LastAction
+    $script:Quiet = $false
+
+    Write-Host 'приложение: list и остальные do'
+    $script:Quiet = $true; $script:Fancy = $false
+    $script:Pros = $null
+    Set-Content $pj '{"version":1,"pros":[{"nick":"Pro1","dpi":1600,"prefs":{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.2}]}},{"nick":"Pro2","team":"T","active":false,"prefs":{"intSettings":[]}}]}' -Encoding UTF8
+    $script:Pros = $null
+    function Parse-Arr($j) { ,@(ConvertFrom-Json $j | ForEach-Object { $_ }) }
+    $names = { param($o) (($o.PSObject.Properties.Name | Sort-Object) -join ' ') }
+    $lp = Get-ListJson 'pros'
+    $pl = (Parse-Arr $lp)
+    Check 'list pros: одна строка, поля nick team label hint needsDpi' ($lp -notmatch "[\r\n]" -and $pl.Count -eq 2 -and $pl[1].nick -eq 'Pro2' -and $pl[1].label -eq 'Pro2 · T · не играет' -and (& $names $pl[0]) -eq 'hint label needsDpi nick team') $lp
+    Check 'list pros: подсказка с DPI и eDPI, нужен DPI мыши' ($pl[0].hint -like '*1600 DPI*eDPI 320*' -and $pl[0].needsDpi -and $pl[0].label -eq 'Pro1') $lp
+    Set-AccountState 'mainmainmain' @{ name = 'Главный#EU'; seen = '2026-10-01T10:00:00'; main = $true; state = 'diff'; diff = 3; checked = (Get-Stamp) }
+    Set-AccountState $tp @{ name = 'Тест#EU'; seen = '2026-10-02T10:00:00'; own = $false }
+    $la = Get-ListJson 'accounts'; $al = (Parse-Arr $la)
+    Check 'list accounts: поля и порядок (основной первым)' ($al.Count -ge 2 -and (& $names $al[0]) -eq 'actions checked current main name own puuid state status' -and $al[0].puuid -eq 'mainmainmain' -and $al[0].main) $la
+    $a1 = $al | Where-Object puuid -eq $tp
+    Check 'list accounts: действия основного и обычного' ((@($al[0].actions.id) -join ',') -eq 'forget' -and (@($a1.actions.id) -join ',') -eq 'main,own,forget' -and $a1.current -and $a1.state -eq '' -and $al[0].state -eq 'diff' -and $a1.actions[0].label -eq 'Сделать основным') $la
+    $bk1 = New-Backup $script:sess $cloud0
+    $lb = Get-ListJson 'backups'; $bl = (Parse-Arr $lb)
+    $b1 = $bl | Where-Object id -eq ([IO.Path]::GetFileNameWithoutExtension($bk1))
+    Check 'list backups: id, account, when, why' ($b1 -and (& $names $b1) -eq 'account id mine when why' -and $b1.mine -and $b1.account -eq 'Тест#EU') $lb
+    New-HistoryPoint 'тест-точка'
+    $lh = Get-ListJson 'history'; $hl = (Parse-Arr $lh)
+    $hp = $hl | Where-Object why -eq 'тест-точка'
+    Check 'list history: id, when, why, current' ($hp -and (& $names $hp) -eq 'current id when why' -and $hp.current -eq $true) $lh
+    $ld = Get-ListJson 'diff'; $dl = (Parse-Arr $ld)
+    Check 'list diff: what/old/new' ($dl.Count -ge 1 -and (& $names $dl[0]) -eq 'new old what') $ld
+    $script:sess = $null
+    Check 'list diff: нет входа — пустой массив' ((Get-ListJson 'diff') -eq '[]')
+    $script:sess = [pscustomobject]@{ Puuid = $tp; Token = 't'; Entitlement = 'e'; ClientPid = '1'; Port = '1'; Auth = '' }
+    Check 'list: неизвестный список — ошибка' ($(try { $null = Get-ListJson 'zzz'; $false } catch { $true }))
+
+    # про: DPI -> примерить -> отмена; игра запущена -> очередь
+    $cloudP = $script:cloud = '{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.9}]}'
+    $r = Invoke-Do 'pro:Pro1'
+    Check 'do pro без DPI мыши — понятная ошибка, облако цело' (-not $r.ok -and $r.message -like '*DPI*' -and $script:cloud -ceq $cloudP) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'set:dpi=800'
+    Check 'do set:dpi' ($r.ok -and (Get-Config).dpi -eq 800)
+    Check 'list pros: после DPI needsDpi=false' (-not ((Parse-Arr (Get-ListJson 'pros'))[0].needsDpi))
+    $r = Invoke-Do 'pro:Pro1'
+    Check 'do pro: чувствительность пересчитана, на время, отмена доступна' ($r.ok -and $r.undo -and $script:cloud -like '*"value":0.4*' -and (Test-Temp $tp) -and $r.message -like '*Pro1*') ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после pro: облако и исходные как были' ($r.ok -and $script:cloud -ceq $cloudP -and -not (Test-Temp $tp) -and -not (Test-Path $LastActionPath)) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'pro:Нетакого'
+    Check 'do pro: нет в списке — ошибка' (-not $r.ok)
+    $GameProc = 'powershell'
+    $r = Invoke-Do 'pro:Pro1'
+    Check 'do pro при запущенной игре: в очереди, облако не тронуто' ($r.ok -and $r.queued -and -not $r.undo -and $script:cloud -ceq $cloudP -and ((Get-Content $CloudQueue -Encoding UTF8) -match 'pro:Pro1')) ($r | ConvertTo-Json -Compress)
+    Remove-Item $CloudQueue -ErrorAction SilentlyContinue
+    $r = Invoke-Do "restore:$([IO.Path]::GetFileNameWithoutExtension($bk1))"
+    Check 'do restore при запущенной игре — отказ' (-not $r.ok -and $r.message -like 'Игра запущена*' -and $script:cloud -ceq $cloudP) ($r | ConvertTo-Json -Compress)
+    $GameProc = 'valset-test-no-such-process'
+
+    # откат аккаунта из бэкапа
+    $bk2 = New-Backup $script:sess '{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.31}]}'
+    $id2 = [IO.Path]::GetFileNameWithoutExtension($bk2)
+    $r = Invoke-Do "restore:$id2"
+    Check 'do restore: облако = бэкап, отмена доступна' ($r.ok -and $r.undo -and $script:cloud -like '*0.31*' -and $r.message -like 'Аккаунт возвращён*') ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после restore: облако как было' ($r.ok -and $script:cloud -ceq $cloudP) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do "restore:$id2"; $r = Invoke-Do "restore:$id2"
+    Check 'do restore повторно: уже в этом состоянии, без новой точки' ($r.ok -and -not $r.undo -and $r.message -like '*уже*') ($r | ConvertTo-Json -Compress)
+    $script:cloud = $cloudP
+    $r = Invoke-Do 'restore:cccccccc_20200101-000000'
+    Check 'do restore: нет такого бэкапа — ошибка' (-not $r.ok)
+    $r = Invoke-Do 'restore:..\x'
+    Check 'do restore: путь в идентификаторе отвергнут' (-not $r.ok)
+    Set-Content (Join-Path $BackupDir 'zzzzzzzz_20200101-000000.json') $cloud0 -Encoding UTF8
+    $r = Invoke-Do 'restore:zzzzzzzz_20200101-000000'
+    Check 'do restore: бэкап чужого аккаунта — отказ' (-not $r.ok -and $r.message -like 'Это бэкап аккаунта*' -and $script:cloud -ceq $cloudP)
+
+    # история моих настроек
+    $o = Get-Content $ProfilePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $o.floatSettings[0].value = 0.777
+    $alt = ConvertTo-Json -InputObject $o -Depth 32 -Compress
+    Write-FileSafe $ProfilePath $alt
+    $r = Invoke-Do "history:$($hp.id)"
+    Check 'do history: эталон вернулся к версии, отмена доступна' ($r.ok -and $r.undo -and (Get-Content $ProfilePath -Raw -Encoding UTF8) -ceq $prof0 -and $r.message -like 'Твои настройки возвращены*') ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после history: прежний эталон' ($r.ok -and (Get-Content $ProfilePath -Raw -Encoding UTF8) -ceq $alt -and -not (Test-Path $LastActionPath)) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'history:nope'
+    Check 'do history: нет такой версии — ошибка' (-not $r.ok)
+    Write-FileSafe $ProfilePath $prof0
+
+    # графика
+    $r = Invoke-Do 'gfxsave'
+    Check 'do gfxsave без снимка графики — ошибка в JSON' (-not $r.ok -and $r.message -like 'Графику не нашёл*') ($r | ConvertTo-Json -Compress)
+    function Save-Graphics { $true }
+    $r = Invoke-Do 'gfxsave'
+    Check 'do gfxsave: ok, отмена доступна' ($r.ok -and $r.undo -and $r.message -like 'Графика сохранена*') ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после gfxsave: эталон на месте' ($r.ok -and (Get-Content $ProfilePath -Raw -Encoding UTF8) -ceq $prof0) ($r | ConvertTo-Json -Compress)
+    function Save-Graphics { $false }
+
+    # переключатели
+    $cfg0 = Get-Content $ConfigPath -Raw -Encoding UTF8
+    $r = Invoke-Do 'set:notify=on'
+    Check 'do set notify=on: config и отмена' ($r.ok -and $r.undo -and (Get-Config).notify -and $r.message -like 'Уведомления: вкл*') ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после set: config как был' ($r.ok -and -not (Get-Config).notify -and (Get-Content $ConfigPath -Raw -Encoding UTF8) -ceq $cfg0) ($r | ConvertTo-Json -Compress)
+    $okAll = $true
+    foreach ($k in 'notify', 'autoApply', 'badge', 'app', 'tempAuto', 'gfxAll') {
+        $r1 = Invoke-Do "set:$k=on"; $c1 = (Get-Config).$k; $r2 = Invoke-Do "set:$k=off"; $c2 = (Get-Config).$k
+        if (-not ($r1.ok -and $r2.ok -and $c1 -eq $true -and $c2 -eq $false)) { $okAll = $false; Write-Host "    $k : $($r1.message) / $($r2.message)" }
+    }
+    Check 'do set: все шесть переключателей on/off' $okAll
+    $r = Invoke-Do 'set:notify=off'
+    Check 'do set: то же значение — без изменений, без точки отмены' ($r.ok -and -not $r.undo -and $r.message -like '*без изменений*') ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'set:lang=en'
+    Check 'do set:lang=en: язык и ответ на новом языке' ($r.ok -and (Get-Config).lang -eq 'en' -and $r.message -eq 'Language: English') ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после lang: русский' ($r.ok -and $script:Lang -eq 'ru' -and $r.message -eq 'Отменено') ($r | ConvertTo-Json -Compress)
+    $r1 = Invoke-Do 'set:notify=maybe'; $r2 = Invoke-Do 'set:bogus=on'; $r3 = Invoke-Do 'set:lang=de'
+    Check 'do set: мусор отвергается' (-not $r1.ok -and -not $r2.ok -and -not $r3.ok)
+    Set-Content $ConfigPath '{}' -Encoding UTF8; Remove-LastAction
+
+    # действия с аккаунтами
+    $acc0 = Get-Content $AccountsPath -Raw -Encoding UTF8
+    $r = Invoke-Do "account:${tp}:main"
+    Check 'do account main: основной сменился, отмена доступна' ($r.ok -and $r.undo -and (Get-MainPuuid) -eq $tp -and $r.message -like 'Основной аккаунт*') ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после main: accounts.json как был' ($r.ok -and (Get-MainPuuid) -eq 'mainmainmain' -and (Get-Content $AccountsPath -Raw -Encoding UTF8) -ceq $acc0) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do "account:${tp}:own"
+    Check 'do account own' ($r.ok -and (Read-Accounts)[$tp].own -eq $true) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do "account:${tp}:notown"
+    Check 'do account notown' ($r.ok -and (Read-Accounts)[$tp].own -eq $false) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do "account:${tp}:forget"
+    Check 'do account forget: убран из списка' ($r.ok -and -not (Read-Accounts).ContainsKey($tp)) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'undo'
+    Check 'do undo после forget: аккаунт вернулся' ($r.ok -and (Read-Accounts).ContainsKey($tp)) ($r | ConvertTo-Json -Compress)
+    $r1 = Invoke-Do 'account:mainmainmain:own'; $r2 = Invoke-Do "account:${tp}:dance"; $r3 = Invoke-Do 'account:nobody:main'
+    Check 'do account: основной «мой», неизвестное действие и аккаунт — ошибки' (-not $r1.ok -and -not $r2.ok -and -not $r3.ok)
+    Remove-LastAction
+    $cap = @(& { Write-DoJson 'set:badge=off'; $null = Invoke-Do 'undo' } *>&1)
+    Check 'do set: в stdout ровно одна строка JSON' ($cap.Count -eq 1 -and $cap[0] -is [string] -and (($cap[0] | ConvertFrom-Json).ok)) ($cap -join ' | ')
+    $capL = @(& { Write-ListJson 'pros' } *>&1)
+    Check 'list: в stdout ровно одна строка' ($capL.Count -eq 1 -and $capL[0] -is [string] -and $capL[0].StartsWith('[')) ($capL -join ' | ')
+    Set-Content $ConfigPath '{}' -Encoding UTF8
     $script:Quiet = $false
 
     # сборка приложения из вшитых исходников (WPF + WinForms + System.Net.Http должны находиться)

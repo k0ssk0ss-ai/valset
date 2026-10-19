@@ -153,12 +153,12 @@ function Invoke-CloudQueue {
         $puuid, $action = $line.Split("`t", 2)
         if (-not $s -or $s.Puuid -ne $puuid) { Log "$action ($(Short $puuid)) отменено: вышли из этого аккаунта"; continue }
         try {
-            Remove-LastAction; $script:UndoAction = $(if ($action -notlike 'pro:*') { 'apply' })   # точка отмены для кнопки в уведомлении
+            Remove-LastAction; $script:UndoAction = $(if ($action -like 'pro:*') { 'pro' } else { 'apply' })   # точка отмены для кнопки в уведомлении
             switch -regex ($action) {
                 '^apply$' { Invoke-Apply $s }
                 '^binds$' { Invoke-Apply $s -BindsOnly }
                 '^perm$'  { Invoke-Apply $s -Permanent }
-                '^pro:(.+)$' { $n = $Matches[1]; $pro = Get-Pros | Where-Object { $_.nick -eq $n } | Select-Object -First 1; if ($pro) { Invoke-ApplyPro $pro $s } }
+                '^pro:(.+)$' { $n = $Matches[1]; $allPros = Get-Pros; $pro = $allPros | Where-Object { $_.nick -eq $n } | Select-Object -First 1; if ($pro) { Invoke-ApplyPro $pro $s } }
             }
             $script:UndoAction = $null
             $undoBtn = if (Test-Path $LastActionPath) { @(@{ label = (L 'Отменить' 'Undo'); arg = 'undo' }) } else { @() }

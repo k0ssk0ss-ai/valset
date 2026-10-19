@@ -10,6 +10,7 @@ function New-HistoryPoint([string]$why) {
     if (-not (Test-Path $ProfilePath)) { return }
     $dir = Join-Path $HistoryDir (Get-Date).ToString('yyyyMMdd-HHmmss-fff')
     Copy-ProfileFiles $Root $dir
+    $script:LastHistory = $dir
     $meta = [ordered]@{ when = (Get-Stamp); why = $why; from = (Get-AccountLabel (Get-Source)) }
     Set-Content (Join-Path $dir 'meta.json') (ConvertTo-Json ([pscustomobject]$meta)) -Encoding UTF8
     Get-ChildItem $HistoryDir -Directory | Sort-Object Name -Descending | Select-Object -Skip $HistoryMax |
