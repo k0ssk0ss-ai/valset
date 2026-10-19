@@ -1,0 +1,214 @@
+// App.cs — точка входа: один экземпляр, канал для второго запуска, стоп-событие; Ctl — состояние и связка частей.
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Pipes;
+using System.Net;
+using System.Text;
+using System.Threading;
+using System.Windows;
+using System.Windows.Threading;
+
+static class Program {
+    const string PipeName = "valset-app";
+
+    [STAThread]
+    static int Main(string[] args) {
+        Native.SetProcessDPIAware();
+        if (args.Length < 1) return 1;
+        Core.Cmd = args[0];
+        string arg = args.Length > 1 ? args[1] : "";
+        bool created;
+        var single = new Mutex(true, "Local\\valset-app", out created);
+        if (!created) { SendToFirst(arg.Length > 0 ? arg : "valset:open"); return 0; }
+        // У клиента Riot самоподписанный сертификат; ходим только на 127.0.0.1.
+        ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, e) => { var r = s as HttpWebRequest; return r == null || r.RequestUri.Host == "127.0.0.1"; };
+        var stop = new EventWaitHandle(false, EventResetMode.ManualReset, "Local\\valset-app-stop");
+        var app = new Application();
+        app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        new Thread(PipeLoop) { IsBackground = true, Name = "pipe" }.Start();
+        new Thread(() => { stop.WaitOne(); Ctl.Ui.BeginInvoke(new Action(Ctl.Exit)); }) { IsBackground = true, Name = "stop" }.Start();
+        Ctl.Init(app, arg);
+        app.Run();
+        GC.KeepAlive(single); GC.KeepAlive(stop);
+        return 0;
+    }
+
+    // Второй запуск: передать аргумент первому по именованному каналу.
+    static void SendToFirst(string arg) {
+        try {
+            using (var c = new NamedPipeClientStream(".", PipeName, PipeDirection.Out)) {
+                c.Connect(3000);
+                var b = Encoding.UTF8.GetBytes(arg + "\n");
+                c.Write(b, 0, b.Length); c.Flush();
+            }
+        } catch (Exception e) { Dbg.Log("канал: " + e.Message); }
+    }
+
+    static void PipeLoop() {
+        while (true) {
+            try {
+                using (var s = new NamedPipeServerStream(PipeName, PipeDirection.In, 1, PipeTransmissionMode.Byte)) {
+                    s.WaitForConnection();
+                    using (var r = new StreamReader(s, Encoding.UTF8)) {
+                        string line = r.ReadLine();
+                        if (line != null && Ctl.Ui != null) { string a = line; Ctl.Ui.BeginInvoke(new Action(() => Ctl.Handle(a))); }
+                    }
+                }
+            } catch { Thread.Sleep(500); }
+        }
+    }
+}
+
+class Status { public uint Color; public string Text; }
+
+// Состояние приложения и связка: события клиента -> ядро -> интерфейс (трей, панель, значок).
+static class Ctl {
+    public const uint Green = 0x3BA55C, Amber = 0xE0A100, Blue = 0x3D8BFD, Gray = 0x7A7A7A;
+    static readonly string[] Actions = { "apply", "binds", "applyperm", "save", "savebinds", "untemp", "undo" };
+
+    public static Dispatcher Ui;
+    public static Application App;
+    public static Tray Tray;
+    public static PanelWin Panel;
+    public static BadgeWin Badge;
+    public static RiotEvents Events;
+
+    public static State Cur = new State();
+    public static bool HaveState, Busy, ResultOk, ResultUndo;
+    public static string ResultMsg;
+    public static DateTime StateAt = DateTime.MinValue;
+    public static event Action Changed;
+
+    static readonly Queue<Action> queue = new Queue<Action>();
+    static readonly AutoResetEvent wake = new AutoResetEvent(false);
+    static bool stateQueued;
+
+    public static void Init(Application app, string arg) {
+        App = app; Ui = app.Dispatcher;
+        new Thread(Worker) { IsBackground = true, Name = "core" }.Start();
+        Tray = new Tray(); Panel = new PanelWin(); Badge = new BadgeWin();
+        Changed += () => {
+            try { Tray.Update(); } catch (Exception e) { Dbg.Log("tray: " + e); }
+            try { Panel.Refresh(); } catch (Exception e) { Dbg.Log("panel: " + e); }
+            try { Badge.Update(); } catch (Exception e) { Dbg.Log("badge: " + e); }
+            Mem.TrimSoon();
+        };
+        Events = new RiotEvents();
+        Events.LoggedIn += () => Ui.BeginInvoke(new Action(OnLogin));
+        Events.ClientChanged += up => Ui.BeginInvoke(new Action(() => { RefreshState(); Raise(); }));
+        Events.GameChanged += running => Ui.BeginInvoke(new Action(Raise));
+        Events.GameClosed += tok => Ui.BeginInvoke(new Action(() => OnGameClosed(tok)));
+        Tray.Update();
+        RefreshState();
+        Events.Start();
+        if (arg.Length > 0) Handle(arg);
+    }
+
+    static bool exiting;
+    public static void Raise() { var h = Changed; if (h != null && !exiting) h(); }
+
+    // Игра: пока слушаем клиент — верим событиям, иначе тому, что сказало ядро.
+    public static bool IsGame() { return Events != null && Events.ClientUp ? Events.GameRunning : Cur.Game; }
+
+    // ── очередь вызовов ядра: по одному ──
+    static void Post(Action a) { lock (queue) queue.Enqueue(a); wake.Set(); }
+    static void Worker() {
+        while (true) {
+            Action a = null;
+            lock (queue) if (queue.Count > 0) a = queue.Dequeue();
+            if (a == null) { wake.WaitOne(); continue; }
+            try { a(); } catch (Exception e) { Dbg.Log("задача: " + e.Message); }
+        }
+    }
+
+    public static void RefreshState() {
+        lock (queue) { if (stateQueued) return; stateQueued = true; }
+        Post(() => {
+            lock (queue) stateQueued = false;
+            var d = Json.Parse(Core.Run("state", null, 60000));
+            Ui.BeginInvoke(new Action(() => ApplyState(d)));
+        });
+    }
+
+    static void ApplyState(Dictionary<string, object> d) {
+        if (d != null) { Cur = State.From(d); HaveState = true; if (Cur.Lang == "ru" || Cur.Lang == "en") L.En = Cur.Lang == "en"; }
+        else if (!HaveState) Cur.Error = L.T("Ядро не ответило", "Core did not answer");
+        StateAt = DateTime.Now;
+        Raise();
+    }
+
+    // Вход в аккаунт (или клиент уже был открыт): проверка ядром, потом состояние.
+    static void OnLogin() {
+        Post(() => { Core.Run("watch", null, 120000); });
+        RefreshState();
+    }
+
+    static void OnGameClosed(string token) {
+        Raise();
+        Post(() => { Core.Run("watch -AfterGame", token, 180000); });
+        RefreshState();
+    }
+
+    // Действие из панели/тоста. show — показать панель с результатом.
+    public static void DoAction(string act, bool show) {
+        if (Busy) return;
+        Busy = true; ResultMsg = null;
+        if (show) Panel.ShowPanel();
+        Raise();
+        Post(() => {
+            var d = Json.Parse(Core.Run("do " + act, null, 180000));
+            Ui.BeginInvoke(new Action(() => {
+                Busy = false;
+                if (d == null) { ResultOk = false; ResultUndo = false; ResultMsg = L.T("Ядро не ответило", "Core did not answer"); }
+                else {
+                    ResultOk = Json.Bool(d, "ok"); ResultUndo = Json.Bool(d, "undo");
+                    ResultMsg = Json.Str(d, "message");
+                    if (Json.Bool(d, "queued") && ResultMsg.Length == 0) ResultMsg = L.T("Применится после выхода из игры", "Will apply after the game closes");
+                }
+                Raise();
+                if (show && !Panel.IsVisible) Panel.ShowPanel();
+            }));
+            RefreshState();
+        });
+    }
+
+    // Аргумент второго запуска / кнопки тоста: valset:<действие>.
+    public static void Handle(string arg) {
+        string a = (arg ?? "").Trim();
+        if (a.StartsWith("valset:", StringComparison.OrdinalIgnoreCase)) a = a.Substring(7);
+        int q = a.IndexOf('?'); if (q >= 0) a = a.Substring(0, q);
+        a = a.Trim('/', ' ').ToLowerInvariant();
+        if (Array.IndexOf(Actions, a) >= 0) DoAction(a, true);
+        else Panel.ShowPanel();
+    }
+
+    public static void Exit() {
+        exiting = true;
+        try { if (Events != null) Events.Stop(); } catch { }
+        try { Badge.Dispose(); } catch { }
+        try { Tray.Dispose(); } catch { }
+        App.Shutdown();
+    }
+
+    public static void SetBadge(bool on) {
+        Config.SetBool("badge", on); Cur.Badge = on; Raise(); RefreshState();
+    }
+
+    // ── статус для трея, панели и значка ──
+    public static Status GetStatus() {
+        var s = Cur;
+        Func<uint, string, Status> mk = (c, t) => new Status { Color = c, Text = t };
+        if (!HaveState) return mk(Gray, s.Error.Length > 0 ? s.Error : L.T("Проверяю…", "Checking…"));
+        if (!s.Client) return mk(Gray, L.T("Клиент Riot закрыт", "Riot Client is closed"));
+        if (IsGame()) return mk(Blue, L.T("Идёт игра", "Game in progress"));
+        if (s.Pending) return mk(Blue, L.T("Ждёт выхода из игры", "Waiting for the game to close"));
+        if (s.Account.Length == 0) return mk(Gray, s.Error.Length > 0 ? s.Error : L.T("Нет входа в аккаунт", "Not logged in"));
+        if (s.Suggested == "untemp") return mk(Amber, L.T("Исходные ждут возврата", "Originals are waiting to be restored"));
+        if (s.Same == false) return mk(Amber, L.T("Не твои: ", "Not yours: ") + L.Plural(Math.Max(1, s.Diff), "отличие", "отличия", "отличий", "difference", "differences"));
+        if (s.Suggested == "save") return mk(Amber, L.T("Есть несохранённые правки", "Unsaved changes"));
+        if (s.Suggested == "apply") return mk(Amber, L.T("Настройки не твои", "Not your settings"));
+        if (s.Error.Length > 0) return mk(Gray, s.Error);
+        return mk(Green, s.Temp ? L.T("Твои настройки — на время", "Your settings — for now") : L.T("Настройки твои", "Your settings"));
+    }
+}
