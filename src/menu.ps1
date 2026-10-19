@@ -56,7 +56,8 @@ function Write-State($st) {
         $hint = if (-not $st.Agent) { L 'не запущен — включи заново в «Ещё»' 'not running — turn it on again in “More”' } elseif ($c.autoApply) { L 'переносит сам на любой аккаунт, кроме основного' 'applies by itself to any account except main' } else { L 'подскажет, если настройки разошлись' 'tells you when settings differ' }
         Write-StateLine (L 'Помощник' 'Helper') $text $(if ($st.Agent) { 'Green' } else { 'Yellow' }) $hint
     }
-    if ($st.GfxWait) { Write-StateLine (L 'Графика' 'Graphics') (L 'ждёт выхода из игры' 'waiting for game exit') 'Yellow' (L 'запишется сама' 'will be written automatically') }
+    if ($st.GfxWait -and (Test-Path $CloudQueue)) { Write-StateLine (L 'Перенос' 'Apply') (L 'ждёт выхода из игры' 'waiting for game exit') 'Yellow' (L 'запишется сам' 'will be written automatically') }
+    if ($st.GfxWait -and (Test-Path $GfxQueue)) { Write-StateLine (L 'Графика' 'Graphics') (L 'ждёт выхода из игры' 'waiting for game exit') 'Yellow' (L 'запишется сама' 'will be written automatically') }
 }
 
 # Пункт, с которого стоит начать.

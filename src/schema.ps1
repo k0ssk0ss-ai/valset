@@ -9,7 +9,7 @@ function Read-Profile {
 }
 
 function Save-Profile($prof) {
-    Set-Content $ProfilePath (ConvertTo-Json -InputObject $prof -Depth 32 -Compress) -Encoding UTF8
+    Write-FileSafe $ProfilePath (ConvertTo-Json -InputObject $prof -Depth 32 -Compress)
 }
 
 function O([string]$label, $value) { [pscustomobject]@{ L = $label; V = $value } }

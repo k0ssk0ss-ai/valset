@@ -184,6 +184,22 @@ try {
     Set-AccountState $gp @{ name = $bad }
     Check 'старое имя в accounts.json читается исправленным' ((Read-Accounts)[$gp].name -eq 'Ради Саши пиво#p1vo')
 
+    Write-Host 'надёжность записи'
+    $fp = Join-Path $tmp 'safe\a.json'
+    Write-FileSafe $fp 'один'; Write-FileSafe $fp 'два'
+    Check 'запись через временный файл: новый и замена' ((Get-Content $fp -Raw -Encoding UTF8) -eq 'два' -and -not (Test-Path "$fp.tmp"))
+    $script:n = 0
+    $r = Invoke-Cloud { $script:n++; if ($script:n -lt 2) { throw 'сеть моргнула' }; 'ок' }
+    Check 'сбой сети — один повтор' ($r -eq 'ок' -and $script:n -eq 2)
+    $script:n = 0
+    try { Invoke-Cloud { $script:n++; throw 'лежит' } } catch {}
+    Check 'не больше одного повтора' ($script:n -eq 2)
+    function Start-GfxWait {}   # без фонового процесса
+    Request-CloudAfterExit 'p1aaaaaaaa' 'apply'; Request-CloudAfterExit 'p2aaaaaaaa' 'pro:TenZ'; Request-CloudAfterExit 'p1aaaaaaaa' 'binds'
+    $cq = @(Get-Content $CloudQueue -Encoding UTF8)
+    Check 'очередь после выхода из игры: на аккаунт — последнее действие' ($cq.Count -eq 2 -and ($cq -contains "p1aaaaaaaa`tbinds") -and ($cq -contains "p2aaaaaaaa`tpro:TenZ")) ($cq -join ' | ')
+    Remove-Item $CloudQueue
+
     Write-Host 'настройки про'
     $pj = Join-Path $tmp 'pros.json'
     $ProsUrl = $pj

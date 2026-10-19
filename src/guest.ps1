@@ -23,7 +23,7 @@ function Test-TempDefault([string]$puuid) { $puuid -ne (Get-MainPuuid) -and -not
 function Save-TempOriginal([string]$puuid, [string]$json) {
     New-Item -ItemType Directory -Force $TempDir | Out-Null
     $p = Get-TempPath $puuid
-    if (-not (Test-Path $p)) { Set-Content $p $json -Encoding UTF8 }
+    if (-not (Test-Path $p)) { Write-FileSafe $p $json }
 }
 
 function Clear-Temp([string]$puuid) {
@@ -40,14 +40,8 @@ function Invoke-RestoreTemp($s) {
         return $false
     }
     $json = (Get-Content $p -Raw -Encoding UTF8).Trim()
-    $old = $json | ConvertFrom-Json
     Invoke-Step (L 'Возврат исходных настроек' 'Restoring the original settings') { Set-Settings $s $json }
-    Invoke-Step (L 'Проверка записи' 'Verifying') {
-        $check = Get-Settings $s | ConvertFrom-Json
-        foreach ($k in $BindKeys + 'floatSettings' + 'intSettings') {
-            if ((Get-JsonPart $check $k) -ne (Get-JsonPart $old $k)) { throw "в облаке '$k' не совпадает с исходными" }
-        }
-    }
+    Invoke-Step (L 'Проверка записи' 'Verifying') { Assert-Written $s $json (L 'исходные' 'originals') }
     Clear-Temp $s.Puuid
     Set-AccountState $s.Puuid @{ state = ''; checked = (Get-Stamp) }
     Log "исходные настройки возвращены: $(Get-AccountLabel $s.Puuid)"

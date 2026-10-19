@@ -117,6 +117,15 @@ function Log([string]$msg) {
     Add-Content $LogPath $line -Encoding UTF8
 }
 
+# Запись через временный файл + замена: сбой посередине не оставит битый файл (эталон, аккаунты, исходные).
+function Write-FileSafe([string]$path, [string]$text) {
+    $path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($path)   # .NET не знает текущую папку PowerShell
+    New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
+    $tmp = "$path.tmp"
+    [IO.File]::WriteAllText($tmp, $text, (New-Object Text.UTF8Encoding $true))
+    if (Test-Path -LiteralPath $path) { [IO.File]::Replace($tmp, $path, [NullString]::Value) } else { [IO.File]::Move($tmp, $path) }
+}
+
 function Short([string]$puuid) { if ($puuid) { $puuid.Substring(0, 8) } else { '-' } }
 
 # ── Riot: локальный клиент и облако настроек ─────────────────────────────────
@@ -165,8 +174,31 @@ function Compress-Pref([string]$json) {
 
 function Get-Headers($s) { @{ Authorization = "Bearer $($s.Token)"; 'X-Riot-Entitlements-JWT' = $s.Entitlement } }
 
+# Запрос к облаку: сбой сети или 5xx — ещё раз через 1,5 с (запись — целиком, повтор безопасен).
+# 403 от Cloudflare (страница «you have been blocked», замер 2026-10-11, проходит сама за ~20 мин) — понятной ошибкой.
+function Invoke-Cloud([scriptblock]$call) {
+    for ($i = 0; ; $i++) {
+        try { return (& $call) } catch {
+            $code = 0; try { $code = [int]$_.Exception.Response.StatusCode } catch {}
+            if ($code -eq 403 -and "$($_.ErrorDetails.Message)" -match 'cloudflare|have been blocked') {
+                throw (L 'Riot временно не пускает к облаку настроек (защита Cloudflare). Обычно проходит само за ~20 минут — повтори позже; игра в это время тоже не сохраняет настройки.' 'Riot is temporarily blocking the settings cloud (Cloudflare). It usually clears in ~20 minutes — try again later; the game cannot save settings meanwhile either.')
+            }
+            if ($i -ge 1 -or ($code -ge 400 -and $code -lt 500)) { throw }
+            Start-Sleep -Milliseconds 1500
+        }
+    }
+}
+
+function Test-GameRunning { [bool](Get-Process $GameProc -ErrorAction SilentlyContinue) }
+
+# Записали — прочитать обратно и сверить целиком (все группы, включая прицел и миникарту).
+function Assert-Written($s, [string]$json, [string]$what) {
+    $norm = { param($j) ConvertTo-Json -InputObject ($j | ConvertFrom-Json) -Depth 32 -Compress }
+    if ((& $norm (Get-Settings $s)) -cne (& $norm $json)) { throw (L "в облаке не то, что записали ($what)" "the cloud doesn't match what was written ($what)") }
+}
+
 function Get-Settings($s) {
-    $r = Invoke-RestMethod "$PrefUrl/getPreference/Ares.PlayerSettings" -Headers (Get-Headers $s) -TimeoutSec 15
+    $r = Invoke-Cloud { Invoke-RestMethod "$PrefUrl/getPreference/Ares.PlayerSettings" -Headers (Get-Headers $s) -TimeoutSec 15 }
     if (-not $r.data) { throw (L 'Облако вернуло пустые настройки (аккаунт ни разу не заходил в Valorant?).' 'The cloud returned empty settings (has this account never played VALORANT?).') }
     $json = Expand-Pref $r.data
     Register-Actions $json
@@ -175,8 +207,8 @@ function Get-Settings($s) {
 
 function Set-Settings($s, [string]$json) {
     $body = @{ type = 'Ares.PlayerSettings'; data = (Compress-Pref $json) } | ConvertTo-Json -Compress
-    Invoke-RestMethod "$PrefUrl/savePreference" -Method Put -Headers (Get-Headers $s) `
-        -Body $body -ContentType 'application/json' -TimeoutSec 15 | Out-Null
+    Invoke-Cloud { Invoke-RestMethod "$PrefUrl/savePreference" -Method Put -Headers (Get-Headers $s) `
+        -Body $body -ContentType 'application/json' -TimeoutSec 15 | Out-Null }
 }
 
 function Get-Source { if (Test-Path $SourcePath) { (Get-Content $SourcePath -Raw).Trim() } }
@@ -197,8 +229,8 @@ function Invoke-Save($s) {
         $null = $json | ConvertFrom-Json   # проверка, что это валидный JSON
         New-Item -ItemType Directory -Force $Root | Out-Null
         New-HistoryPoint (L 'до «Запомнить как мои → всё»' 'before “Save as mine → all”')
-        Set-Content $ProfilePath $json -Encoding UTF8
-        Set-Content $SourcePath $s.Puuid -Encoding ASCII
+        Write-FileSafe $ProfilePath $json
+        Write-FileSafe $SourcePath $s.Puuid
     }
     $gfx = Invoke-Step (L 'Снимок графики с этого ПК' 'Snapshot of this PC''s graphics') { Save-Graphics $s.Puuid }
     Log "мои настройки запомнены с аккаунта $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' (+ графика)' })"
@@ -240,19 +272,20 @@ function Invoke-Apply($s, [switch]$BindsOnly, [switch]$Permanent) {
             if ($script:CrosshairDropped) { Write-Note (L "в игре максимум $CrosshairMax прицелов: $($script:CrosshairDropped) прицел(а) аккаунта не влезут и пропадут" "the game allows $CrosshairMax crosshairs max: $($script:CrosshairDropped) of this account's crosshair(s) won't fit and will be lost") }
             if (-not (Confirm-Key (L 'Применить?' 'Apply?'))) { Write-Note (L 'отменено, аккаунт не тронут' 'cancelled, account untouched'); return }
         }
-        $bk = Invoke-Step (L 'Резервная копия' 'Backup') { New-Backup $s $curJson }
-        Invoke-Step (L 'Запись в облако Riot' 'Writing to the Riot cloud') { Set-Settings $s (ConvertTo-Json -InputObject $new -Depth 32 -Compress) }
-        Invoke-Step (L 'Проверка записи' 'Verifying') {
-            $check = Get-Settings $s | ConvertFrom-Json
-            $keys  = if ($BindsOnly) { $BindKeys } else { $BindKeys + 'floatSettings' + 'intSettings' }
-            foreach ($k in $keys) {
-                if ((Get-JsonPart $check $k) -ne (Get-JsonPart $prof $k)) { throw "в облаке '$k' не совпадает с твоими настройками" }
-            }
+        # Игра держит свою копию настроек и при их смене в игре пишет её в облако целиком — поверх нашей. Ждём выхода.
+        if ($script:Fancy -and (Test-GameRunning)) {
+            Request-CloudAfterExit $s.Puuid $(if ($BindsOnly) { 'binds' } elseif ($Permanent) { 'perm' } else { 'apply' })
+            Write-Note (L 'игра запущена — применю сам, когда закроешь её (в этом же аккаунте)' 'the game is running — will apply once you close it (on this same account)')
+            return
         }
-        if ($temp) { Save-TempOriginal $s.Puuid $curJson }
+        $bk = Invoke-Step (L 'Резервная копия' 'Backup') { New-Backup $s $curJson }
+        if ($temp) { Save-TempOriginal $s.Puuid $curJson }   # до записи: упадёт посередине — исходные всё равно вернутся
+        $newJson = ConvertTo-Json -InputObject $new -Depth 32 -Compress
+        Invoke-Step (L 'Запись в облако Riot' 'Writing to the Riot cloud') { Set-Settings $s $newJson }
+        Invoke-Step (L 'Проверка записи' 'Verifying') { Assert-Written $s $newJson (L 'перенос' 'apply') }
     }
 
-    $gameRunning = [bool](Get-Process $GameProc -ErrorAction SilentlyContinue)
+    $gameRunning = Test-GameRunning
     $gfx = 0
     if (-not $BindsOnly -and (Test-GraphicsSaved)) { $gfx = Invoke-ApplyGraphics $s.Puuid }
 

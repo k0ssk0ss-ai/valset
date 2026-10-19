@@ -22,7 +22,7 @@ function Read-Accounts {
 function Save-Accounts([hashtable]$h) {
     New-Item -ItemType Directory -Force $Root | Out-Null
     $o = [ordered]@{}; foreach ($k in $h.Keys) { $o[$k] = $h[$k] }
-    Set-Content $AccountsPath (ConvertTo-Json -InputObject ([pscustomobject]$o) -Depth 5) -Encoding UTF8
+    Write-FileSafe $AccountsPath (ConvertTo-Json -InputObject ([pscustomobject]$o) -Depth 5)
 }
 
 function Set-AccountState([string]$puuid, [hashtable]$fields) {

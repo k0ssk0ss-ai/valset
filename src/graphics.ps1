@@ -91,6 +91,7 @@ function Invoke-ApplyGraphics([string]$puuid) {
 
 $GfxQueue     = Join-Path $Root 'gfx-pending.txt'   # PUUID по строке или * (все аккаунты)
 $GfxWaitMutex = 'Local\valset-gfxwait'
+$CloudQueue   = Join-Path $Root 'cloud-pending.txt'   # отложенная запись облака (Request-CloudAfterExit)
 
 function Test-GfxWaiting {
     $m = $null
@@ -98,13 +99,17 @@ function Test-GfxWaiting {
     $false
 }
 
-function Request-GraphicsAfterExit([string]$puuid) {
-    New-Item -ItemType Directory -Force $Root | Out-Null
-    Add-Content $GfxQueue $(if ($puuid) { $puuid } else { '*' }) -Encoding ASCII
+function Start-GfxWait {
     if (-not (Test-GfxWaiting)) {
         if ($Self -like '*.cmd') { Start-Process $env:ComSpec -ArgumentList '/c', "`"`"$Self`" gfxwait`"" -WindowStyle Hidden }
         else { Start-Process powershell -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$Self`"", 'gfxwait' -WindowStyle Hidden }
     }
+}
+
+function Request-GraphicsAfterExit([string]$puuid) {
+    New-Item -ItemType Directory -Force $Root | Out-Null
+    Add-Content $GfxQueue $(if ($puuid) { $puuid } else { '*' }) -Encoding ASCII
+    Start-GfxWait
     Log "графика ($(if ($puuid) { Short $puuid } else { 'все аккаунты' })) — запишется после выхода из игры"
 }
 
@@ -121,10 +126,44 @@ function Invoke-GfxWait {
         Remove-Item -LiteralPath $GfxQueue -ErrorAction SilentlyContinue
         if ('*' -in $t) { $t = @('') }
         foreach ($p in $t) { $null = Invoke-ApplyGraphics $p }
+        Invoke-CloudQueue
     } catch {
-        Log "отложенная графика: ошибка: $($_.Exception.Message)"
+        Log "отложенная запись: ошибка: $($_.Exception.Message)"
     } finally {
         $mutex.ReleaseMutex(); $mutex.Dispose()
+    }
+}
+
+# Облако при запущенной игре не пишем (она запишет свою копию поверх) — откладываем до её выхода.
+# Строка очереди: PUUID<TAB>действие (apply | binds | perm | pro:<ник>). Выполняется, только если вошли в тот же аккаунт.
+function Request-CloudAfterExit([string]$puuid, [string]$action) {
+    New-Item -ItemType Directory -Force $Root | Out-Null
+    $keep = @(Get-Content $CloudQueue -Encoding UTF8 -ErrorAction SilentlyContinue | Where-Object { $_ -and -not $_.StartsWith("$puuid`t") })
+    Set-Content $CloudQueue (@($keep) + "$puuid`t$action") -Encoding UTF8   # на аккаунт — последнее действие
+    Start-GfxWait
+    Log "$action ($(Short $puuid)) — после выхода из игры"
+}
+
+function Invoke-CloudQueue {
+    $q = @(Get-Content $CloudQueue -Encoding UTF8 -ErrorAction SilentlyContinue | Where-Object { $_ })
+    if (-not $q.Count) { return }
+    Remove-Item -LiteralPath $CloudQueue -ErrorAction SilentlyContinue
+    $s = Get-Session
+    foreach ($line in $q) {
+        $puuid, $action = $line.Split("`t", 2)
+        if (-not $s -or $s.Puuid -ne $puuid) { Log "$action ($(Short $puuid)) отменено: вышли из этого аккаунта"; continue }
+        try {
+            switch -regex ($action) {
+                '^apply$' { Invoke-Apply $s }
+                '^binds$' { Invoke-Apply $s -BindsOnly }
+                '^perm$'  { Invoke-Apply $s -Permanent }
+                '^pro:(.+)$' { $n = $Matches[1]; $pro = Get-Pros | Where-Object { $_.nick -eq $n } | Select-Object -First 1; if ($pro) { Invoke-ApplyPro $pro $s } }
+            }
+            try { Send-Toast 'VALSET' $(if ($action -like 'pro:*') { L "Настройки $($action.Substring(4)) применены" "$($action.Substring(4))'s settings applied" } else { L 'Твои настройки применены' 'Your settings applied' }) } catch {}
+        } catch {
+            Log "$action ($(Short $puuid)): ошибка: $($_.Exception.Message)"
+            try { Send-Toast 'VALSET' (L "Не удалось применить: $($_.Exception.Message)" "Could not apply: $($_.Exception.Message)") } catch {}
+        }
     }
 }
 

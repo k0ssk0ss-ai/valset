@@ -60,8 +60,8 @@ function Get-MyDpi {
     $dpi
 }
 
-function Invoke-ApplyPro($pro) {
-    $s = Connect-Session
+function Invoke-ApplyPro($pro, $s) {
+    if (-not $s) { $s = Connect-Session }
     $curJson = Invoke-Step (L 'Чтение текущих настроек аккаунта' 'Reading the account''s current settings') { Get-Settings $s }
     $cur = $curJson | ConvertFrom-Json
     $prefs = (ConvertTo-Json -InputObject $pro.prefs -Depth 32 -Compress) | ConvertFrom-Json
@@ -75,14 +75,22 @@ function Invoke-ApplyPro($pro) {
     if (Test-PrefsEqual $cur $new) { Write-Ok (L "Уже как у $($pro.nick)" "Already like $($pro.nick)"); return }
     Show-Diff (Compare-Prefs $cur $new)
     Write-Note (L 'на время: «Вернуть исходные» вернёт аккаунт как был' 'for now: “Restore originals” brings the account back')
-    if (-not (Confirm-Key (L 'Примерить?' 'Try on?'))) { Write-Note (L 'отменено, аккаунт не тронут' 'cancelled, account untouched'); return }
+    if ($script:Fancy) {
+        if (-not (Confirm-Key (L 'Примерить?' 'Try on?'))) { Write-Note (L 'отменено, аккаунт не тронут' 'cancelled, account untouched'); return }
+        if (Test-GameRunning) {   # игра записала бы свою копию поверх (valset.ps1, Invoke-Apply)
+            Request-CloudAfterExit $s.Puuid "pro:$($pro.nick)"
+            Write-Note (L 'игра запущена — примерю сам, когда закроешь её (в этом же аккаунте)' 'the game is running — will apply once you close it (on this same account)')
+            return
+        }
+    }
     $null = Invoke-Step (L 'Резервная копия' 'Backup') { New-Backup $s $curJson }
-    Invoke-Step (L 'Запись в облако Riot' 'Writing to the Riot cloud') { Set-Settings $s (ConvertTo-Json -InputObject $new -Depth 32 -Compress) }
-    Save-TempOriginal $s.Puuid $curJson
+    Save-TempOriginal $s.Puuid $curJson   # до записи: упадёт посередине — исходные всё равно вернутся
+    $newJson = ConvertTo-Json -InputObject $new -Depth 32 -Compress
+    Invoke-Step (L 'Запись в облако Riot' 'Writing to the Riot cloud') { Set-Settings $s $newJson }
+    Invoke-Step (L 'Проверка записи' 'Verifying') { Assert-Written $s $newJson $pro.nick }
     Log "настройки $($pro.nick) → $(Get-AccountLabel $s.Puuid) (на время)"
     Write-Ok (L "Настройки $($pro.nick) на аккаунте $(Get-AccountLabel $s.Puuid)" "$($pro.nick)'s settings on $(Get-AccountLabel $s.Puuid)")
-    if (Get-Process $GameProc -ErrorAction SilentlyContinue) { Write-Note (L 'игра запущена — настройки появятся после её перезапуска' 'the game is running — settings take effect after restarting it') }
-    Write-TempNote
+    if ($script:Fancy) { Write-TempNote }
 }
 
 # Экран выбора: список по страницам (влезает в окно) + поиск по нику. Возвращает $true, если ждать клавишу.
