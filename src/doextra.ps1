@@ -4,7 +4,8 @@
 # files — прежнее содержимое файлов (config.json, accounts.json).
 
 $SetBools = [ordered]@{ notify = 'Уведомления|Notifications'; autoApply = 'Автоперенос|Auto-apply'; badge = 'Значок у клиента|Badge at the client'
-                        app = 'Приложение в автозапуске|App at startup'; tempAuto = 'Автовозврат исходных|Auto-restore of originals'; gfxAll = 'Графика во все аккаунты ПК|Graphics to all PC accounts' }
+                        app = 'Приложение в автозапуске|App at startup'; tempAuto = 'Автовозврат исходных|Auto-restore of originals'; gfxAll = 'Графика во все аккаунты ПК|Graphics to all PC accounts'
+                        autoAsked = 'Вопрос про автоперенос|Auto-apply question' }
 
 function Test-ExtraAction([string]$a) {
     $a -eq 'gfxsave' -or $a -match '^(pro|restore|history):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
@@ -108,6 +109,7 @@ function Invoke-DoSet([string]$key, [string]$val) {
     } else { throw (L "неизвестная настройка: $key" "unknown setting: $key") }
     Save-UndoFiles @($ConfigPath)
     Set-Config $key $v
+    if ($key -eq 'autoApply') { Set-Config 'autoAsked' $true }   # выбрал сам — вопрос в панели больше не нужен
     if ($key -eq 'lang') { $script:Lang = $v; $msg = L 'Язык: русский' 'Language: English' }
     Log "настройка $key = $val"
     $msg

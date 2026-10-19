@@ -2,7 +2,7 @@
 #   powershell -c "[Net.ServicePointManager]::SecurityProtocol=3072;irm https://raw.githubusercontent.com/k0ssk0ss-ai/valset/main/install.ps1|iex"
 #
 # Что делает: скачивает valset.cmd из последнего релиза на GitHub, сверяет SHA-256 с SHA256SUMS.txt того же
-# релиза, устанавливает (папка %USERPROFILE%\valset, команда valset, меню по Ctrl+Alt+V) и открывает меню.
+# релиза, устанавливает (папка %USERPROFILE%\valset, команда valset, значок у часов) и открывает панель VALSET.
 # Файлы, скачанные самим PowerShell, Windows не помечает «из интернета» — окна SmartScreen не будет.
 # Работает на чистой Windows 10 / 11: только встроенный PowerShell 5.1, TLS 1.2 включается явно,
 # -UseBasicParsing — потому что в Windows 11 нет движка Internet Explorer.
@@ -33,7 +33,8 @@ try {
     Write-Host (T '    файл проверен (SHA-256 совпадает с релизом)' '    file verified (SHA-256 matches the release)') -ForegroundColor Gray
     & cmd.exe /c "`"$cmd`" install"
     if ($LASTEXITCODE -ne 0) { throw (T 'установка не завершилась — подробности выше.' 'installation did not finish — see above.') }
-    Start-Process (Join-Path $env:USERPROFILE 'valset\valset.cmd')   # открыть меню в своём окне
+    # Панель у часов открывает сама установка; если значок не запустился — запасной путь, консольное меню.
+    if (-not (Get-Process 'valset-app*' -ErrorAction SilentlyContinue)) { Start-Process (Join-Path $env:USERPROFILE 'valset\valset.cmd') }
 } catch {
     Write-Host ''
     Write-Host "  × $($_.Exception.Message)" -ForegroundColor Red

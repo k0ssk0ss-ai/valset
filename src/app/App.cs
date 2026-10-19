@@ -29,11 +29,13 @@ static class Program {
         app.DispatcherUnhandledException += (s, e) => { Dbg.Log("ИСКЛЮЧЕНИЕ: " + e.Exception); e.Handled = true; };
         app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         new Thread(PipeLoop) { IsBackground = true, Name = "pipe" }.Start();
-        new Thread(() => { stop.WaitOne(); Ctl.Ui.BeginInvoke(new Action(Ctl.Exit)); }) { IsBackground = true, Name = "stop" }.Start();
+        // Стоп (обновление/удаление): аккуратно, а если интерфейс завис — через 3 с выйти всё равно, иначе exe останется занят.
+        new Thread(() => { stop.WaitOne(); Ctl.Ui.BeginInvoke(new Action(Ctl.Exit)); Thread.Sleep(3000); Environment.Exit(0); }) { IsBackground = true, Name = "stop" }.Start();
         InProc.Preload();
         Ctl.Init(app, arg);
         app.Run();
         GC.KeepAlive(single); GC.KeepAlive(stop);
+        Environment.Exit(0);   // потоки ядра в памяти (runspace) не фоновые — без этого процесс не завершится
         return 0;
     }
 

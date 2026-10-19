@@ -68,7 +68,7 @@ static class Json {
 
 // Ответ `valset state`.
 class State {
-    public bool Client, Game, IsMain, Have, Temp, Pending, AutoApply, Notify, Badge, Own = true;
+    public bool Client, Game, IsMain, Have, Temp, Pending, AutoApply, AskAuto, Notify, Badge, Own = true;
     public bool? Same;
     public int Diff;
     public string Account = "", Puuid = "", Suggested = "", Lang = "", Error = "";
@@ -79,7 +79,7 @@ class State {
         var s = new State();
         s.Client = Json.Bool(d, "client"); s.Game = Json.Bool(d, "game"); s.IsMain = Json.Bool(d, "isMain");
         s.Have = Json.Bool(d, "have"); s.Temp = Json.Bool(d, "temp"); s.Pending = Json.Bool(d, "pending");
-        s.AutoApply = Json.Bool(d, "autoApply"); s.Notify = Json.Bool(d, "notify"); s.Badge = Json.Bool(d, "badge");
+        s.AutoApply = Json.Bool(d, "autoApply"); s.AskAuto = Json.Bool(d, "askAuto");s.Notify = Json.Bool(d, "notify"); s.Badge = Json.Bool(d, "badge");
         s.Same = Json.NBool(d, "same"); s.Diff = Json.Int(d, "diff");
         s.Account = Json.Str(d, "account"); s.Puuid = Json.Str(d, "puuid"); s.Suggested = Json.Str(d, "suggested");
         s.Lang = Json.Str(d, "lang"); s.Error = Json.Str(d, "error");

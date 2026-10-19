@@ -33,7 +33,7 @@ function ConvertTo-StateObject($st) {
         temp = [bool]($p -and (Test-Temp $p)); own = [bool]($p -and -not (Test-TempDefault $p)); pending = $pending
         synced = @($st.Synced | Where-Object { $_ } | ForEach-Object { "$_" })
         suggested = (Get-SuggestedId $st)
-        autoApply = [bool]$c.autoApply; notify = [bool]$c.notify; badge = [bool]$c.badge
+        autoApply = [bool]$c.autoApply; askAuto = [bool](-not $c.autoApply -and -not $c.autoAsked); notify = [bool]$c.notify; badge = [bool]$c.badge
         lang = $script:Lang; error = "$($st.Error)"
     }
 }

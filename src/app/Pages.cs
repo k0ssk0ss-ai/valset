@@ -59,6 +59,7 @@ static class Pages {
         }
         sp.Children.Add(MainButton(s));
         var r = Ui.Result(); if (r != null) sp.Children.Add(r);
+        if (s.AskAuto && Ctl.HaveState && !Ctl.Busy) sp.Children.Add(AskAuto());
 
         sp.Children.Add(Ui.Sep(12, 6));
         var g = new UniformGrid { Columns = 2 };
@@ -74,6 +75,20 @@ static class Pages {
     }
 
     static UIElement NavItem(string text, string page) { return Ui.Nav(text, () => P.Go(page)); }
+
+    // Один раз после установки: включить автоперенос? Ответ (любой) больше не спрашивается; меняется в «Настройках».
+    static UIElement AskAuto() {
+        var box = new Border { Background = Ui.Br(0x2B2B2B), CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 8, 10, 8), Margin = new Thickness(0, 10, 0, 0) };
+        var sp = new StackPanel();
+        sp.Children.Add(Ui.Tb(L.T("Переносить твои настройки сами при входе в другие аккаунты?", "Apply your settings automatically when you log into other accounts?"), 13, 0xFFFFFF, FontWeights.SemiBold));
+        sp.Children.Add(Ui.Tb(L.T("Основной не трогается; исходные чужих вернутся после игры.", "Main is never touched; the originals come back after the game."), 11.5, 0x9A9A9A, null));
+        var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+        var yes = Ui.Btn(L.T("Да", "Yes"), 12.5, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, true, () => { Ctl.Cur.AskAuto = false; Ctl.DoAction("set:autoApply=on", false); }, 26, 5); yes.MinWidth = 60;
+        var no = Ui.Btn(L.T("Нет", "No"), 12.5, 0xE0E0E0, 0x3A3A3A, 0x484848, true, () => { Ctl.Cur.AskAuto = false; Ctl.DoAction("set:autoAsked=on", false); }, 26, 5); no.MinWidth = 60;
+        no.Margin = new Thickness(6, 0, 0, 0);
+        r.Children.Add(yes); r.Children.Add(no); sp.Children.Add(r);
+        box.Child = sp; return box;
+    }
 
     // Одна большая кнопка по ситуации (state.suggested).
     static UIElement MainButton(State s) {

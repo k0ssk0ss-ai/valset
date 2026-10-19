@@ -37,11 +37,10 @@ function Invoke-Install {
     if ($appErr) { Write-Note "$(L 'Значок в трее не запустился' 'The tray icon did not start'): $appErr" }
     else { Write-Note (L 'Значок VALSET — у часов (трей), запускается с Windows. Выключить: в настройках его окна.' 'The VALSET icon is near the clock (tray) and starts with Windows. Turn it off: in its window settings.') }
     Write-Note (L 'Консоль: ярлык «VALSET» в меню Пуск или команда valset в новом терминале.' 'Console: the “VALSET” shortcut in the Start menu, or run valset in a new terminal.')
-    # Один раз спросить про автоперенос (основной аккаунт не трогается; исходные чужих вернутся после игры). Только в интерактивной установке.
-    $cfg = Get-Config
-    if ($script:Fancy -and -not $cfg.autoApply -and -not $cfg.autoAsked -and -not [Console]::IsInputRedirected) {
-        Set-Config 'autoAsked' $true
-        if (Confirm-Key (L 'Переносить твои настройки сами при входе в другие аккаунты? (основной не трогается; исходные вернутся после игры на чужих)' 'Apply your settings automatically when you log into other accounts? (main is never touched; the originals come back after playing on others)')) { Set-Config 'autoApply' $true }
+    # Дальше всё в панели у часов (там же один раз спросит про автоперенос) — открыть её; консоль больше не нужна.
+    $script:PanelOpened = $false
+    if (-not $appErr -and (Test-AppRunning)) {
+        try { Start-Process $AppExe -ArgumentList "`"$InstalledCmd`" valset:open"; $script:PanelOpened = $true } catch { Log "панель не открылась: $($_.Exception.Message)" }
     }
 }
 
@@ -67,7 +66,13 @@ function Invoke-InstallOffer {
         $q = L 'Установить VALSET?' 'Install VALSET?'
     }
     Write-Host ''
-    if (Confirm-Key $q) { Invoke-Install; Wait-AnyKey (L 'любая клавиша — открыть меню' 'any key — open the menu') }
+    if (-not (Confirm-Key $q)) { return $false }
+    Invoke-Install | Out-Null
+    if ($script:PanelOpened) {
+        Write-Note (L 'Панель VALSET открыта у часов. Это окно закроется само.' 'The VALSET panel is open near the clock. This window will close by itself.')
+        Start-Sleep -Seconds 4; return $true
+    }
+    Wait-AnyKey (L 'любая клавиша — открыть меню' 'any key — open the menu'); $false
 }
 
 function Invoke-Uninstall {

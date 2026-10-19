@@ -377,7 +377,7 @@ function Write-QualityNote {
 
 try {
     switch ($Command) {
-        'menu'      { Invoke-InstallOffer; Show-Menu }
+        'menu'      { if (-not (Invoke-InstallOffer)) { Show-Menu } }
         'save'      { Write-Screen (L 'ЗАПОМНИТЬ КАК МОИ' 'SAVE AS MINE'); if ($BindsOnly) { Invoke-SaveBinds } else { Invoke-Save } }
         'gfxsave'   { Write-Screen (L 'ЗАПОМНИТЬ: ГРАФИКУ' 'SAVE: GRAPHICS'); Invoke-SaveGraphics }
         'apply'     { Write-Screen (L 'ПЕРЕНОС МОИХ НАСТРОЕК' 'APPLY MY SETTINGS'); Invoke-Apply -BindsOnly:$BindsOnly }

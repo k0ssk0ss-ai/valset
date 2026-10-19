@@ -63,12 +63,21 @@ function Set-RegValue([string]$path, [string]$name, [string]$value) {
 
 function Test-AppRunning { Test-NamedMutex $AppMutex }
 
+# Остановить приложение: сигнал, а если не вышло (версии 2.0.0 до исправления не завершались) — завершить процесс по пути exe.
+function Stop-App {
+    Send-Stop $AppStopName { Test-AppRunning }
+    $full = [IO.Path]::GetFullPath($AppExe)
+    foreach ($p in Get-Process ([IO.Path]::GetFileNameWithoutExtension($AppExe)) -ErrorAction SilentlyContinue) {
+        if ($p.Path -eq $full) { try { $p.Kill(); [void]$p.WaitForExit(3000) } catch { } }
+    }
+}
+
 function Enable-App {
     if (-not (Test-Path $InstalledCmd)) { throw (L 'Сначала установи VALSET: valset.cmd install' 'Install VALSET first: valset.cmd install') }
     $src = Get-AppSources
     $fresh = (Test-Path $AppExe) -and (Test-Path $AppHashPath) -and (([IO.File]::ReadAllText($AppHashPath)).Trim() -eq (Get-AppHash $src))
     if (-not $fresh) {
-        if (Test-AppRunning) { Send-Stop $AppStopName { Test-AppRunning } }   # старый exe занят — остановить и пересобрать
+        if (Test-AppRunning) { Stop-App }   # старый exe занят — остановить и пересобрать
         Build-App $src
     }
     # старый сторож: приложение его заменяет
@@ -85,7 +94,7 @@ function Enable-App {
 # Приложение выключено (config.app = false): убрать автозапуск и остановить.
 function Disable-App {
     Remove-ItemProperty $RunKey -Name 'VALSET' -ErrorAction SilentlyContinue
-    if (Test-AppRunning) { Send-Stop $AppStopName { Test-AppRunning } }
+    if (Test-AppRunning) { Stop-App }
 }
 
 # Удаление: автозапуск, протокол, exe и исходники.
