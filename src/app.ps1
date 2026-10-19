@@ -46,7 +46,7 @@ function Build-App($src) {
         [IO.File]::WriteAllText($p, $src[$k], (New-Object Text.UTF8Encoding $true))   # BOM — компилятор иначе читает кириллицу как ANSI
         $p
     }
-    $tmp = "$AppExe.new"
+    $tmp = [IO.Path]::ChangeExtension($AppExe, '.new.exe')   # расширение не .exe — компилятор соберёт библиотеку
     if (Test-Path $tmp) { Remove-Item -LiteralPath $tmp -Force }
     Add-Type -Path $files -OutputAssembly $tmp -OutputType WindowsApplication -ReferencedAssemblies @(Get-AppReferences)
     if (Test-Path $AppExe) { Remove-Item -LiteralPath $AppExe -Force }
@@ -91,6 +91,6 @@ function Disable-App {
 function Remove-App {
     Disable-App
     if (Test-Path $ProtoKey) { Remove-Item $ProtoKey -Recurse -Force -ErrorAction SilentlyContinue }
-    foreach ($p in $AppExe, "$AppExe.new") { if (Test-Path $p) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue } }
+    foreach ($p in $AppExe, [IO.Path]::ChangeExtension($AppExe, '.new.exe')) { if (Test-Path $p) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue } }
     if (Test-Path $AppSrcDir) { Remove-Item -LiteralPath $AppSrcDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
