@@ -1,10 +1,10 @@
 ﻿# backups.ps1 — два вида бэкапов.
-#   История моих настроек: перед каждым «Запомнить» — копия profile.json + source.txt + graphics\ в history\<время>\
-#     с подписью «что было дальше». Хранятся последние 10.
+#   История моих настроек: перед каждым «Сохранить» — копия profile.json + source.txt + graphics\ в history\<время>\
+#     с подписью «что было дальше». Хранятся последние 50 (эталон обновляется после каждой игры).
 #   Откат аккаунта: облачные настройки аккаунта перед каждой записью в него (backups\, последние 30).
 
 $HistoryDir = Join-Path $Root 'history'
-$HistoryMax = 10
+$HistoryMax = 50
 
 function New-HistoryPoint([string]$why) {
     if (-not (Test-Path $ProfilePath)) { return }
@@ -28,7 +28,7 @@ function Show-History {
     $points = Get-HistoryPoints
     if (-not $points) {
         Write-Screen (L 'ИСТОРИЯ МОИХ НАСТРОЕК' 'MY SETTINGS HISTORY')
-        Write-Note (L 'пока пусто: версия сохраняется перед каждым «Запомнить как мои», правкой и импортом' 'empty so far: a version is kept before every “Save as mine”, edit and import')
+        Write-Note (L 'пока пусто: версия сохраняется перед каждым «Сохранить», правкой и импортом' 'empty so far: a version is kept before every “Save”, edit and import')
         Wait-AnyKey; return
     }
     $cur = if (Test-Path $ProfilePath) { Read-Profile } else { $null }
@@ -43,7 +43,7 @@ function Show-History {
         New-MenuEntry "$(Format-When $p.When) · $($p.Why)" $hint $p.Dir
     })
     $i = Select-Item (L 'ИСТОРИЯ МОИХ НАСТРОЕК' 'MY SETTINGS HISTORY') $items -Header {
-        Write-Host (L '    версия — твои настройки перед изменением (последние 10); выбери — покажу, что вернётся' '    a version = your settings before a change (last 10); pick one to see what comes back') -ForegroundColor DarkGray
+        Write-Host (L '    версия — твои настройки перед изменением (последние 50); выбери — покажу, что вернётся' '    a version = your settings before a change (last 50); pick one to see what comes back') -ForegroundColor DarkGray
     }
     if ($i -lt 0) { return }
     $p = $points | Where-Object Dir -eq $items[$i].Id

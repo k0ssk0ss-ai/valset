@@ -137,7 +137,7 @@ function Show-Accounts {
         $items += $gopt
         $i = Select-Item (L 'АККАУНТЫ' 'ACCOUNTS') $items $sel -Header {
             Write-Host (L '    перенос — только на аккаунт, в который вошёл в клиенте Riot' '    applying works only on the account you are logged into in the Riot Client') -ForegroundColor DarkGray
-            Write-Host (L '    основной автоперенос не трогает: с него ты «Запоминаешь» свои настройки' '    auto-apply never touches the main account: that is where you “Save as mine”') -ForegroundColor DarkGray
+            Write-Host (L '    основной автоперенос не трогает: с него ты «Сохраняешь» свои настройки' '    auto-apply never touches the main account: that is where you “Save” yours') -ForegroundColor DarkGray
         }
         if ($i -lt 0) { return }
         $sel = $i

@@ -240,10 +240,10 @@ function Test-MainDrift($s, [string]$name) {
     Set-AccountState $s.Puuid @{ state = $(if ($dr.Same) { 'same' } else { 'diff' }); diff = $dr.Count; checked = (Get-Stamp); notified = $dr.Sig }
     if ($dr.Same -or $dr.Sig -eq $prev) { return }
     Log "основной $($name): настройки разошлись с твоими ($($dr.Count))"
-    Send-Toast "VALSET · $name" (L "Настройки изменились ($($dr.Count)). Поменял в игре — Ctrl+Alt+V → «Запомнить как мои»." "Settings changed ($($dr.Count)). Changed them in game? Ctrl+Alt+V → `“Save as mine`”.")
+    Send-Toast "VALSET · $name" (L "Настройки изменились ($($dr.Count)). Поменял в игре — Ctrl+Alt+V → «Сохранить»." "Settings changed ($($dr.Count)). Changed them in game? Ctrl+Alt+V → `“Save`”.")
 }
 
-# Эталон обновился из игры — сказать, что именно (вернуть — «Ещё» → «История моих настроек»).
+# Эталон обновился из игры — сказать, что именно (вернуть — «Ещё» → «Бэкапы» → «моих настроек»).
 function Send-SyncToast($s, $names) {
     if (-not @($names).Count) { return }
     Send-Toast "VALSET · $(Get-AccountLabel $s.Puuid)" "$(L 'Твои настройки обновлены из игры' 'Your settings updated from the game'): $(Format-Changed $names)."

@@ -158,8 +158,8 @@ try {
     $v = (Get-HistoryPoints)[0]
     Copy-ProfileFiles $v.Dir $Root
     Check 'версия из истории возвращается' ([Math]::Abs((& $sens) - $before) -lt 0.0001) "сейчас $(& $sens), ждали $before"
-    1..12 | ForEach-Object { New-HistoryPoint "лишняя $_" }
-    Check 'хранится не больше 10 версий' (@(Get-HistoryPoints).Count -eq 10)
+    1..($HistoryMax + 2) | ForEach-Object { New-HistoryPoint "лишняя $_" }
+    Check "хранится не больше $HistoryMax версий" (@(Get-HistoryPoints).Count -eq $HistoryMax)
 
     Set-Content $ConfigPath '{"gfxAll":false}' -Encoding UTF8
     Check 'выбор «графика только в текущий» запоминается' ((Get-Config).gfxAll -eq $false -and -not (Get-Config).notify)

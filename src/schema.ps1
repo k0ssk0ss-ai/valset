@@ -4,7 +4,7 @@
 $Inv = [Globalization.CultureInfo]::InvariantCulture
 
 function Read-Profile {
-    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Запомнить как мои».' 'Your settings are not saved yet — use “Save as mine” first.') }
+    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Сохранить».' 'Your settings are not saved yet — use “Save” first.') }
     Get-Content $ProfilePath -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 

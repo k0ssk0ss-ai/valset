@@ -28,9 +28,11 @@ press **Y** when asked to install. Windows may say “Windows protected your PC�
 ## How to use
 
 1. Open the Riot Client and log into your **main** account.
-2. **Ctrl+Alt+V → “Save as mine”** — VALSET takes your settings from it.
+2. **Ctrl+Alt+V → “Save”** — VALSET takes your settings from it. Once is enough.
 3. Log into another account → **Ctrl+Alt+V → “Apply mine”** (before launching the game).
    VALSET shows exactly what will change and asks first. After the game the account gets its own settings back.
+4. From then on, changes you make in game on accounts that have your settings are picked up automatically
+   (pro try-ons are not). Each update is a history point: **More → History** to roll back.
 
 The main screen says which account you are on and whether it has your settings, and shows only what makes sense
 right now (apply, save, restore originals) — usually 1–3 items. Everything else is under **More**. Press **?** for help.

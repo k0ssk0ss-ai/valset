@@ -40,11 +40,11 @@ function Write-State($st) {
         else            { Write-StateLine (L 'Аккаунт' 'Account') (L 'клиент Riot закрыт' 'Riot Client closed') 'Yellow' (L 'открой его и войди' 'open it and log in') }
     } else {
         Write-StateLine (L 'Аккаунт' 'Account') "$($st.Name)$(if ($st.IsMain) { L ' · основной' ' · main' })" 'White'
-        if ($st.Synced.Count) { Write-StateLine (L 'Из игры' 'From game') "√ $(L 'сохранено в твои' 'saved to yours'): $(Format-Changed $st.Synced)" 'Green' (L 'вернуть — «Ещё» → история' 'undo — “More” → history') }
-        if (-not $st.Have)  { Write-StateLine (L 'Настройки' 'Settings') (L 'твои настройки ещё не запомнены' 'your settings are not saved yet') 'Yellow' (L '→ «Запомнить как мои»' '→ “Save as mine”') }
+        if ($st.Synced.Count) { Write-StateLine (L 'Из игры' 'From game') "√ $(L 'сохранено в твои' 'saved to yours'): $(Format-Changed $st.Synced)" 'Green' (L 'вернуть — «Ещё» → «Бэкапы»' 'undo — “More” → “Backups”') }
+        if (-not $st.Have)  { Write-StateLine (L 'Настройки' 'Settings') (L 'твои настройки ещё не запомнены' 'your settings are not saved yet') 'Yellow' (L '→ «Сохранить»' '→ “Save”') }
         elseif ($st.Error)  { Write-StateLine (L 'Настройки' 'Settings') (L 'не удалось проверить' 'could not check') 'Red' $st.Error }
         elseif ($st.Same)   { Write-StateLine (L 'Настройки' 'Settings') (L '√ совпадают с твоими' '√ match yours') 'Green' }
-        elseif ($st.IsMain) { Write-StateLine (L 'Настройки' 'Settings') "‼ $(L 'поменялись в игре' 'changed in game') ($($st.Diff))" 'Yellow' (L '→ «Запомнить как мои» (вернуть прежние — «Ещё» → «Перенести мои»)' '→ “Save as mine” (to revert — “More” → “Apply mine”)') }
+        elseif ($st.IsMain) { Write-StateLine (L 'Настройки' 'Settings') "‼ $(L 'поменялись в игре' 'changed in game') ($($st.Diff))" 'Yellow' (L '→ «Сохранить» (вернуть прежние — «Ещё» → «Перенести мои»)' '→ “Save” (to revert — “More” → “Apply mine”)') }
         else                { Write-StateLine (L 'Настройки' 'Settings') "‼ $(L 'не твои: отличий' 'not yours: differences') $($st.Diff)" 'Yellow' (L '→ «Перенести мои настройки»' '→ “Apply my settings”') }
     }
     if ($st.Session -and (Test-Temp $st.Session.Puuid)) {
@@ -70,7 +70,7 @@ function Get-Suggested($st, $items) {
     -1
 }
 
-# Строки «Перенести мои» / «Запомнить как мои» — одни и те же на главном экране и в «Ещё».
+# Строки «Перенести мои» / «Сохранить» — одни и те же на главном экране и в «Ещё».
 function New-ApplyEntry($st) {
     $temp = $st.Session -and (Test-TempDefault $st.Session.Puuid)
     New-MenuEntry (L 'Перенести мои' 'Apply mine') '' '' @(
@@ -79,7 +79,7 @@ function New-ApplyEntry($st) {
         New-MenuOpt (L 'насовсем' 'permanently') 'applyperm' (L 'без возврата исходных' 'originals are not restored'))
 }
 function New-SaveEntry {
-    New-MenuEntry (L 'Запомнить как мои' 'Save as mine') '' '' @(
+    New-MenuEntry (L 'Сохранить' 'Save') '' '' @(
         New-MenuOpt (L 'всё' 'all') 'save' (L 'с этого аккаунта' 'from this account')
         New-MenuOpt (L 'бинды' 'binds') 'savebinds' (L 'только клавиши' 'keys only')
         New-MenuOpt (L 'графику' 'graphics') 'gfxsave' (L 'можно прямо в игре' 'works even in game'))
@@ -176,7 +176,7 @@ function Show-Help {
         '«Мои настройки» — один набор на все аккаунты: бинды, мышь, интерфейс,'
         'прицел, статистика на экране и графика.'
         ''
-        '  Запомнить как мои   взять настройки с аккаунта, в который вошёл (обычно основной)'
+        '  Сохранить           взять настройки с аккаунта, в который вошёл (один раз)'
         '  Перенести мои       записать их на аккаунт, в который вошёл'
         '  Уведомления         подскажут, если на аккаунте не твои настройки или на основном'
         '                      они поменялись в игре'
@@ -192,15 +192,16 @@ function Show-Help {
         'настройки через сам клиент — как игра. Больше ничего не читает и не отправляет.'
         'Выключишь оба — помощник удаляется из автозапуска.'
         ''
-        'Основной аккаунт автоперенос не трогает: поменял настройки в игре —'
-        '«Запомнить как мои», и они уйдут на остальные аккаунты.'
+        'Сохраняешь один раз. Дальше правки, сделанные в игре на твоих аккаунтах, подхватываются'
+        'сами и уходят на остальные. Примерки про — не подхватываются. Откат: «Ещё» → «Бэкапы».'
+        'Основной аккаунт автоперенос не трогает.'
         ''
         'Переносить — до запуска игры: она читает настройки при старте.'
         'Ctrl+Alt+V во время игры ничего не открывает — чтобы случайно не свернуть её.'
-        'Графика хранится на этом ПК, а не в облаке: после «Запомнить» она сама уходит во все'
+        'Графика хранится на этом ПК, а не в облаке: после «Сохранить» она сама уходит во все'
         'аккаунты этого ПК (если игра запущена — сразу после выхода из неё).'
         'Перед каждой записью — бэкап аккаунта (последние 30): «Ещё» → «Бэкапы».'
-        'Перед каждым изменением твоих настроек — версия (последние 10): «Ещё» → «Бэкапы».'
+        'Перед каждым изменением твоих настроек — версия (последние 50): «Ещё» → «Бэкапы».'
         'Прицелы: на время — на аккаунте только твои (его вернутся вместе с исходными);'
         'насовсем — прицелы аккаунта не стираются, твой добавляется и становится активным (до 15).'
     )
@@ -208,7 +209,7 @@ function Show-Help {
         '“My settings” is one set for all your accounts: binds, mouse, interface,'
         'crosshair, on-screen stats and graphics.'
         ''
-        '  Save as mine     take the settings from the account you are logged into (usually main)'
+        '  Save             take the settings from the account you are logged into (once)'
         '  Apply mine       write them to the account you are logged into'
         '  Notifications    tell you when an account has different settings, or when your'
         '                   main account''s settings changed in game'
@@ -224,15 +225,16 @@ function Show-Help {
         'compares settings through the client itself — like the game does. Nothing else is read'
         'or sent. Turn both off and the helper is removed from startup.'
         ''
-        'Auto-apply never touches the main account: changed settings in game —'
-        '“Save as mine”, and they will reach your other accounts.'
+        'You save once. After that, changes you make in game on your accounts are picked up by'
+        'themselves and reach the others. Pro try-ons are not. Undo: “More” → “Backups”.'
+        'Auto-apply never touches the main account.'
         ''
         'Apply before launching the game: it reads settings at startup.'
         'Ctrl+Alt+V does nothing while the game is in focus — so you never minimize it by accident.'
         'Graphics live on this PC, not in the cloud: after “Save” they go to all accounts'
         'on this PC (if the game is running — right after you exit it).'
         'Before every write — an account backup (last 30): “More” → “Backups”.'
-        'Before every change to your settings — a version (last 10): “More” → “Backups”.'
+        'Before every change to your settings — a version (last 50): “More” → “Backups”.'
         'Crosshairs: for now — only yours on the account (its own come back with the originals);'
         'permanently — the account''s crosshairs are kept, yours is added and made active (up to 15).'
     )
@@ -262,8 +264,9 @@ function Show-Welcome {
         'бинды, мышь, интерфейс, прицел, статистику на экране и графику.'
         ''
         '  1. Открой клиент Riot и войди в свой основной аккаунт.'
-        '  2. «Запомнить как мои» — VALSET возьмёт настройки с него.'
+        '  2. «Сохранить» — VALSET возьмёт настройки с него (один раз).'
         '  3. Входи в другие аккаунты и жми «Перенести мои» — до запуска игры.'
+        '  Дальше правки в игре на твоих аккаунтах подхватываются сами; откат — в истории.'
         ''
         'По желанию в меню: уведомления и автоперенос (сам при входе в аккаунт).'
         'Открыть меню потом: Ctrl+Alt+V, ярлык «VALSET» в Пуске или команда valset.'
@@ -278,8 +281,9 @@ function Show-Welcome {
         'binds, mouse, interface, crosshair, on-screen stats and graphics.'
         ''
         '  1. Open the Riot Client and log into your main account.'
-        '  2. “Save as mine” — VALSET takes the settings from it.'
+        '  2. “Save” — VALSET takes the settings from it (once).'
         '  3. Log into your other accounts and press “Apply mine” — before launching the game.'
+        '  After that, changes you make in game on your accounts are picked up; undo is in “More” → “Backups”.'
         ''
         'Optional in the menu: notifications and auto-apply (by itself on login).'
         'Open the menu later: Ctrl+Alt+V, the “VALSET” shortcut in Start, or the valset command.'

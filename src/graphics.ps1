@@ -64,7 +64,7 @@ function Set-GraphicsFor([string]$dir) {
 
 # $puuid пустой — все аккаунты, которые уже запускали игру на этом ПК.
 function Invoke-ApplyGraphics([string]$puuid) {
-    if (-not (Test-GraphicsSaved)) { throw (L 'Графика не сохранена — «Запомни как мои» на аккаунте, который играл на этом ПК.' 'Graphics not saved — use “Save as mine” on an account that has played on this PC.') }
+    if (-not (Test-GraphicsSaved)) { throw (L 'Графика не сохранена — «Сохранить» на аккаунте, который играл на этом ПК.' 'Graphics not saved — use “Save” on an account that has played on this PC.') }
     if (Get-Process $GameProc -ErrorAction SilentlyContinue) { Request-GraphicsAfterExit $puuid; return -1 }
     if ($puuid) {
         $all = @(Get-AccountDirs | Where-Object { $_.Name.StartsWith("$puuid-") })  # все регионы аккаунта (-eu, -ap)
@@ -177,7 +177,7 @@ function Get-QualityOddities {
     })
 }
 
-# После «Запомнить» и правки графики: во все аккаунты этого ПК (в игре — после выхода) или только в текущий.
+# После «Сохранить» и правки графики: во все аккаунты этого ПК (в игре — после выхода) или только в текущий.
 # Если на ПК больше одного аккаунта (общий ПК, брат, клуб) — один раз спросить, ответ в config.json (gfxAll).
 function Sync-Graphics([string]$current = '') {
     if (-not (Test-GraphicsSaved)) { return }

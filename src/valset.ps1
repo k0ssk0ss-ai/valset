@@ -218,7 +218,7 @@ function Get-JsonPart($obj, [string]$key) { ConvertTo-Json -InputObject $obj.$ke
 
 # ── Эталон: сохранить / применить ────────────────────────────────────────────
 
-# Эталон меняется только здесь и в редакторе — по явному действию.
+# Эталон меняется по явному действию («Сохранить») и сам — правками из игры на аккаунтах с твоими настройками.
 function Invoke-Save($s) {
     if (-not $s) { $s = Connect-Session }
     if ($script:Fancy -and (Test-Path $ProfilePath)) {
@@ -229,7 +229,7 @@ function Invoke-Save($s) {
     Invoke-Step (L 'Запись на диск' 'Writing to disk') {
         $null = $json | ConvertFrom-Json   # проверка, что это валидный JSON
         New-Item -ItemType Directory -Force $Root | Out-Null
-        New-HistoryPoint (L 'до «Запомнить как мои → всё»' 'before “Save as mine → all”')
+        New-HistoryPoint (L 'до «Сохранить → всё»' 'before “Save → all”')
         Write-FileSafe $ProfilePath $json
         Write-FileSafe $SourcePath $s.Puuid
         Set-SessionBase $s.Puuid $json   # дальше правки в игре здесь попадут в эталон сами
@@ -244,7 +244,7 @@ function Invoke-Save($s) {
 }
 
 function Invoke-Apply($s, [switch]$BindsOnly, [switch]$Permanent) {
-    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Запомнить как мои».' 'Your settings are not saved yet — use “Save as mine” first.') }
+    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Сохранить».' 'Your settings are not saved yet — use “Save” first.') }
     if (-not $s) { $s = Connect-Session }
 
     $curJson = Invoke-Step (L 'Чтение текущих настроек аккаунта' 'Reading the account''s current settings') { Get-Settings $s }
@@ -323,11 +323,11 @@ function New-Backup($s, [string]$json) {
 
 # Только графика эталона — с текущего аккаунта. Работает и при запущенной игре: она пишет файлы сразу после смены настроек.
 function Invoke-SaveGraphics($s) {
-    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Запомнить как мои» → всё.' 'Your settings are not saved yet — use “Save as mine → all” first.') }
+    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Сохранить» → всё.' 'Your settings are not saved yet — use “Save → all” first.') }
     if (-not $s) { $s = Connect-Session }
     $q = if (Test-NotMain $s) { L 'Всё равно запомнить графику отсюда?' 'Save graphics from here anyway?' } else { L "Заменить твою графику графикой аккаунта $(Get-AccountLabel $s.Puuid)?" "Replace your graphics with those of $(Get-AccountLabel $s.Puuid)?" }
     if ($script:Fancy -and -not (Confirm-Key $q)) { Write-Note (L 'отменено' 'cancelled'); return }
-    New-HistoryPoint (L 'до «Запомнить → графику»' 'before “Save → graphics”')
+    New-HistoryPoint (L 'до «Сохранить → графику»' 'before “Save → graphics”')
     $ok = Invoke-Step (L 'Снимок графики с этого ПК' 'Snapshot of this PC''s graphics') { Save-Graphics $s.Puuid }
     if (-not $ok) { throw (L 'Графику не нашёл: этот аккаунт ещё не запускал игру на этом ПК.' 'No graphics found: this account has not run the game on this PC yet.') }
     Log "графика запомнена с аккаунта $(Get-AccountLabel $s.Puuid)"
@@ -335,7 +335,7 @@ function Invoke-SaveGraphics($s) {
     Sync-Graphics $s.Puuid
 }
 
-# «Запомнить» не с основного аккаунта: предупредить — так легко затереть свои настройки чужими. $true — не основной.
+# «Сохранить» не с основного аккаунта: предупредить — так легко затереть свои настройки чужими. $true — не основной.
 function Test-NotMain($s) {
     $main = Get-MainPuuid
     if (-not $script:Fancy -or -not $main -or $main -eq $s.Puuid -or -not (Test-Path $ProfilePath)) { return $false }
@@ -345,7 +345,7 @@ function Test-NotMain($s) {
 
 # Только бинды текущего аккаунта → в эталон; остальные настройки эталона не трогаются.
 function Invoke-SaveBinds($s) {
-    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Запомнить как мои» → всё.' 'Your settings are not saved yet — use “Save as mine → all” first.') }
+    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Сохранить» → всё.' 'Your settings are not saved yet — use “Save → all” first.') }
     if (-not $s) { $s = Connect-Session }
     $acc = Invoke-Step (L 'Чтение биндов из облака Riot' 'Reading binds from the Riot cloud') { Get-Settings $s | ConvertFrom-Json }
     $p = Read-Profile
@@ -360,9 +360,9 @@ function Invoke-SaveBinds($s) {
         $null = Test-NotMain $s
         Show-Diff $diff
         if (-not $diff.Count) { Write-Note (L 'отличия только в агентских биндах или осях' 'differences only in agent binds or axes') }
-        if (-not (Confirm-Key (L "Запомнить бинды аккаунта $(Get-AccountLabel $s.Puuid) как мои?" "Save the binds of $(Get-AccountLabel $s.Puuid) as mine?"))) { Write-Note (L 'отменено' 'cancelled'); return }
+        if (-not (Confirm-Key (L "Сохранить бинды аккаунта $(Get-AccountLabel $s.Puuid) как мои?" "Save the binds of $(Get-AccountLabel $s.Puuid) as mine?"))) { Write-Note (L 'отменено' 'cancelled'); return }
     }
-    New-HistoryPoint (L 'до «Запомнить → бинды»' 'before “Save → binds”')
+    New-HistoryPoint (L 'до «Сохранить → бинды»' 'before “Save → binds”')
     Save-Profile $new
     Log "бинды запомнены с аккаунта $(Get-AccountLabel $s.Puuid) ($($diff.Count) изм.)"
     if ($script:Fancy) { Write-Ok (L "Бинды запомнены с аккаунта $(Get-AccountLabel $s.Puuid), остальное не тронуто" "Binds saved from $(Get-AccountLabel $s.Puuid), everything else untouched") }

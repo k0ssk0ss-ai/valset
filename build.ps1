@@ -50,8 +50,9 @@ VALSET $ver — твои настройки VALORANT на всех твоих а
    «Подробнее» → «Выполнить в любом случае» (файл скачан и не подписан;
    это обычный текстовый скрипт — можно открыть в Блокноте и прочитать).
 2. VALSET предложит установиться — нажми Y. Дальше меню: Ctrl+Alt+V.
-3. Войди в основной аккаунт → «Запомнить как мои».
+3. Войди в основной аккаунт → «Сохранить» (один раз).
    В другом аккаунте → «Перенести мои» (до запуска игры).
+   Правки в игре на твоих аккаунтах дальше подхватываются сами.
 
 Справка внутри программы — клавиша ?. Неофициальная программа, Riot Games её не проверяла.
 
@@ -62,8 +63,9 @@ VALSET $ver — your VALORANT settings on all your accounts
    If Windows says "Windows protected your PC" — "More info" → "Run anyway"
    (downloaded, unsigned file; it is a plain-text script you can read in Notepad).
 2. VALSET offers to install — press Y. Then the menu is Ctrl+Alt+V.
-3. Log into your main account → "Save as mine".
+3. Log into your main account → "Save" (once).
    On another account of yours → "Apply mine" (before launching the game).
+   Changes you make in game on your accounts are then picked up automatically.
 
 Help inside the app — key ?. Unofficial tool, not reviewed by Riot Games.
 "@
