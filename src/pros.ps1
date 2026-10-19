@@ -84,6 +84,8 @@ function Invoke-ApplyPro($pro, $s) {
         }
     }
     $null = Invoke-Step (L 'Резервная копия' 'Backup') { New-Backup $s $curJson }
+    $null = Update-Reference $s $curJson   # твои правки в игре — в эталон до примерки
+    Clear-SessionBase $s.Puuid             # дальше на аккаунте настройки про — в эталон не попадут
     Save-TempOriginal $s.Puuid $curJson   # до записи: упадёт посередине — исходные всё равно вернутся
     $newJson = ConvertTo-Json -InputObject $new -Depth 32 -Compress
     Invoke-Step (L 'Запись в облако Riot' 'Writing to the Riot cloud') { Set-Settings $s $newJson }

@@ -200,6 +200,74 @@ try {
     Check 'очередь после выхода из игры: на аккаунт — последнее действие' ($cq.Count -eq 2 -and ($cq -contains "p1aaaaaaaa`tbinds") -and ($cq -contains "p2aaaaaaaa`tpro:TenZ")) ($cq -join ' | ')
     Remove-Item $CloudQueue
 
+    Write-Host 'сессионный эталон'
+    $fe = 'EAresFloatSettingName::MouseSensitivity'; $fz = 'EAresFloatSettingName::Zoom'
+    function New-Xh([string[]]$specs, [int]$act) {   # 'Имя:метка' → профиль прицела; строка JSON внутри stringSettings
+        $ps = @($specs | ForEach-Object { $a = $_ -split ':'; [ordered]@{ profileName = $a[0]; mark = $a[1] } })
+        $v = ConvertTo-Json -InputObject ([ordered]@{ currentProfile = $act; profiles = $ps }) -Depth 5 -Compress
+        '{"settingEnum":"' + $CrosshairEnum + '","value":' + (ConvertTo-Json $v) + '}'
+    }
+    function New-Prof([string]$fl, [string]$xh = '', [string]$am = '[1]') {
+        $s = if ($xh) { '"stringSettings":[' + $xh + '],' } else { '' }
+        ('{' + $s + '"actionMappings":' + $am + ',"floatSettings":[' + $fl + ']}') | ConvertFrom-Json
+    }
+    $f1 = '{"settingEnum":"' + $fe + '","value":0.3}'; $f2 = '{"settingEnum":"' + $fz + '","value":1}'
+    $fN = '{"settingEnum":"' + $fe + '","value":0.5}'
+    $rf = New-Prof "$f1,$f2"; $bs = New-Prof "$f1,$f2"; $nw = New-Prof "$fN,$f2"
+    $m = Merge-Reference $rf $bs $nw
+    Check 'сессия: изменённое игроком попало в эталон' ($m.Ref.floatSettings.Where({ $_.settingEnum -eq $fe }).value -eq 0.5 -and $m.Changed -contains $fe -and $m.Changed.Count -eq 1)
+    Check 'сессия: входной эталон не тронут' ($rf.floatSettings.Where({ $_.settingEnum -eq $fe }).value -eq 0.3)
+    $m = Merge-Reference (New-Prof "$f1,$f2") (New-Prof '{"settingEnum":"EAresFloatSettingName::Other","value":9}') (New-Prof '{"settingEnum":"EAresFloatSettingName::Other","value":9}')
+    Check 'сессия: нетронутое эталонное остаётся, даже если base отличается' ($m.Changed.Count -eq 0 -and @($m.Ref.floatSettings).Count -eq 2)
+    $m = Merge-Reference (New-Prof "$f1,$f2") (New-Prof "$f1,$f2") (New-Prof $f2)
+    Check 'сессия: пропавшее (стало стандартным) убирается из эталона' ($m.Changed -contains $fe -and @($m.Ref.floatSettings).Count -eq 1 -and $m.Ref.floatSettings[0].settingEnum -eq $fz)
+    $m = Merge-Reference (New-Prof $f2) (New-Prof $f2) (New-Prof "$f1,$f2")
+    Check 'сессия: новая настройка добавляется в эталон' ($m.Changed -contains $fe -and @($m.Ref.floatSettings).Count -eq 2)
+    $m = Merge-Reference (New-Prof $f1) (New-Prof $f1) (New-Prof $f1 '' '[2,3]')
+    Check 'сессия: actionMappings переписываются целиком' ($m.Changed -contains 'actionMappings' -and (ConvertTo-Json -InputObject $m.Ref.actionMappings -Compress) -eq '[2,3]')
+    $m = Merge-Reference (New-Prof "$f1,$f2") (New-Prof "$f1,$f2") (New-Prof "$f1,$f2")
+    Check 'сессия: без правок Changed пуст' ($m.Changed.Count -eq 0)
+    $m = Merge-Reference (New-Prof $f1 '' '[1]') (New-Prof $f1 '' '[1]') (New-Prof $fN '' '[2]') 'binds'
+    Check 'сессия: scope binds не трогает числа' ($m.Changed.Count -eq 1 -and $m.Changed[0] -eq 'actionMappings' -and $m.Ref.floatSettings[0].value -eq 0.3)
+
+    $xr = New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 0)
+    $xb = New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 0)
+    $xn = New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1', 'Acc:1' 0)   # Acc — прицел владельца аккаунта: не должен просочиться
+    $xr2 = New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 0); $xb2 = New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 0)
+    $m = Merge-Reference $xr2 $xb2 (New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 0))
+    Check 'прицел: без правок — пусто' ($m.Changed.Count -eq 0)
+    # аккаунтный прицел уже был в base (эталон его не содержит) — не переносится
+    $m = Merge-Reference (New-Prof $f1 (New-Xh 'Mine:1' 0)) (New-Prof $f1 (New-Xh 'Mine:1', 'Acc:1' 0)) (New-Prof $f1 (New-Xh 'Mine:1', 'Acc:1' 0))
+    Check 'прицел: чужой прицел аккаунта не просачивается в эталон' ($m.Changed.Count -eq 0 -and @((Get-Crosshairs $m.Ref).profiles).Count -eq 1)
+    $m = Merge-Reference (New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 0)) (New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 0)) (New-Prof $f1 (New-Xh 'Mine:9', 'Mine2:1' 0))
+    $xc = Get-Crosshairs $m.Ref
+    Check 'прицел: изменённый свой обновлён' ($m.Changed -contains 'Crosshair:Mine' -and $xc.profiles[0].mark -eq '9' -and @($xc.profiles).Count -eq 2)
+    $m = Merge-Reference (New-Prof $f1 (New-Xh 'Mine:1' 0)) (New-Prof $f1 (New-Xh 'Mine:1' 0)) (New-Prof $f1 (New-Xh 'Mine:1', 'New:1' 1))
+    $xc = Get-Crosshairs $m.Ref
+    Check 'прицел: новый добавлен в конец и стал активным' ($m.Changed -contains 'Crosshair:New' -and $xc.profiles[1].profileName -eq 'New' -and $xc.currentProfile -eq 1)
+    $m = Merge-Reference (New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 0)) (New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 0)) (New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 1))
+    $xc = Get-Crosshairs $m.Ref
+    Check 'прицел: смена активного переносится' ($xc.currentProfile -eq 1 -and $m.Changed -contains 'Crosshair:Mine2')
+    $m = Merge-Reference (New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 1)) (New-Prof $f1 (New-Xh 'Mine:1', 'Mine2:1' 1)) (New-Prof $f1 (New-Xh 'Mine2:1' 0))
+    $xc = Get-Crosshairs $m.Ref
+    Check 'прицел: удалённый убран, активный пересчитан' ($m.Changed -contains 'Crosshair:Mine' -and @($xc.profiles).Count -eq 1 -and $xc.profiles[0].profileName -eq 'Mine2' -and $xc.currentProfile -eq 0)
+    $many = @(1..15 | ForEach-Object { "P${_}:1" })
+    $m = Merge-Reference (New-Prof $f1 (New-Xh $many 0)) (New-Prof $f1 (New-Xh $many 0)) (New-Prof $f1 (New-Xh ($many + 'Extra:1') 0))
+    Check 'прицел: больше 15 — лишние срезаются с конца' (@((Get-Crosshairs $m.Ref).profiles).Count -eq 15)
+
+    Write-Host 'эталон: правки из игры'
+    $sp = [pscustomobject]@{ Puuid = 'sessaaaaaaaa' }
+    $refJ = Get-Content $ProfilePath -Raw -Encoding UTF8
+    $sensE = 'EAresFloatSettingName::MouseSensitivity'
+    $gameJ = ConvertTo-Json -InputObject (Join-ProPrefs ($refJ | ConvertFrom-Json) ([pscustomobject]@{ floatSettings = @([pscustomobject]@{ settingEnum = $sensE; value = 0.777 }) })) -Depth 32 -Compress
+    Check 'без базы аккаунт не участвует' (@(Update-Reference $sp $gameJ).Count -eq 0)
+    Set-SessionBase $sp.Puuid $refJ
+    $got = @(Update-Reference $sp $gameJ)
+    $sensNow = (@((Read-Profile).floatSettings) | Where-Object { $_.settingEnum -eq $sensE }).value
+    Check 'сенса из игры — в эталоне' ($got.Count -ge 1 -and $sensNow -eq 0.777) "$($got -join ', ') / $sensNow"
+    Check 'база сдвинулась — повторно не переносится' (@(Update-Reference $sp $gameJ).Count -eq 0 -and (Get-SessionBase $sp.Puuid).json -ceq $gameJ)
+    Write-FileSafe $ProfilePath $refJ; Clear-SessionBase $sp.Puuid
+
     Write-Host 'настройки про'
     $pj = Join-Path $tmp 'pros.json'
     $ProsUrl = $pj

@@ -76,6 +76,7 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'guest.ps1')
 . (Join-Path $PSScriptRoot 'accounts.ps1')
 . (Join-Path $PSScriptRoot 'agent.ps1')
+. (Join-Path $PSScriptRoot 'session.ps1')
 . (Join-Path $PSScriptRoot 'menu.ps1')
 . (Join-Path $PSScriptRoot 'pros.ps1')
 . (Join-Path $PSScriptRoot 'more.ps1')
@@ -231,6 +232,7 @@ function Invoke-Save($s) {
         New-HistoryPoint (L 'до «Запомнить как мои → всё»' 'before “Save as mine → all”')
         Write-FileSafe $ProfilePath $json
         Write-FileSafe $SourcePath $s.Puuid
+        Set-SessionBase $s.Puuid $json   # дальше правки в игре здесь попадут в эталон сами
     }
     $gfx = Invoke-Step (L 'Снимок графики с этого ПК' 'Snapshot of this PC''s graphics') { Save-Graphics $s.Puuid }
     Log "мои настройки запомнены с аккаунта $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' (+ графика)' })"
@@ -244,9 +246,12 @@ function Invoke-Save($s) {
 function Invoke-Apply($s, [switch]$BindsOnly, [switch]$Permanent) {
     if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Запомнить как мои».' 'Your settings are not saved yet — use “Save as mine” first.') }
     if (-not $s) { $s = Connect-Session }
-    $profJson = Get-Content $ProfilePath -Raw -Encoding UTF8
 
     $curJson = Invoke-Step (L 'Чтение текущих настроек аккаунта' 'Reading the account''s current settings') { Get-Settings $s }
+    # правки в игре на этом аккаунте — сначала в эталон, иначе перенос их бы затёр
+    $synced = Update-Reference $s $curJson
+    if ($synced.Count -and $script:Fancy) { Write-Ok "$(L 'В твои настройки добавлено из игры' 'Added to your settings from the game'): $(Format-Changed $synced)" }
+    $profJson = Get-Content $ProfilePath -Raw -Encoding UTF8
     $cur = $curJson | ConvertFrom-Json
     $prof = $profJson | ConvertFrom-Json
     $new = $prof
@@ -284,6 +289,7 @@ function Invoke-Apply($s, [switch]$BindsOnly, [switch]$Permanent) {
         Invoke-Step (L 'Запись в облако Riot' 'Writing to the Riot cloud') { Set-Settings $s $newJson }
         Invoke-Step (L 'Проверка записи' 'Verifying') { Assert-Written $s $newJson (L 'перенос' 'apply') }
     }
+    Set-SessionBase $s.Puuid $(if ($same) { $curJson } else { $newJson }) $(if ($BindsOnly) { 'binds' } else { 'all' })
 
     $gameRunning = Test-GameRunning
     $gfx = 0

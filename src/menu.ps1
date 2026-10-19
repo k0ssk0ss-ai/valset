@@ -12,7 +12,9 @@ function Get-MenuState {
     $st.IsMain = $s.Puuid -eq (Get-MainPuuid)
     if ($st.Have) {
         try {
-            $cur = Get-Settings $s | ConvertFrom-Json
+            $curJson = Get-Settings $s
+            $st.Synced = @(Update-Reference $s $curJson)   # правки в игре — сразу в эталон
+            $cur = $curJson | ConvertFrom-Json
             $new = Read-Profile
             $null = Join-Crosshairs $cur $new (Test-TempDefault $s.Puuid)
             $st.Same = Test-PrefsEqual $cur $new
@@ -38,6 +40,7 @@ function Write-State($st) {
         else            { Write-StateLine (L 'Аккаунт' 'Account') (L 'клиент Riot закрыт' 'Riot Client closed') 'Yellow' (L 'открой его и войди' 'open it and log in') }
     } else {
         Write-StateLine (L 'Аккаунт' 'Account') "$($st.Name)$(if ($st.IsMain) { L ' · основной' ' · main' })" 'White'
+        if ($st.Synced.Count) { Write-StateLine (L 'Из игры' 'From game') "√ $(L 'сохранено в твои' 'saved to yours'): $(Format-Changed $st.Synced)" 'Green' (L 'вернуть — «Ещё» → история' 'undo — “More” → history') }
         if (-not $st.Have)  { Write-StateLine (L 'Настройки' 'Settings') (L 'твои настройки ещё не запомнены' 'your settings are not saved yet') 'Yellow' (L '→ «Запомнить как мои»' '→ “Save as mine”') }
         elseif ($st.Error)  { Write-StateLine (L 'Настройки' 'Settings') (L 'не удалось проверить' 'could not check') 'Red' $st.Error }
         elseif ($st.Same)   { Write-StateLine (L 'Настройки' 'Settings') (L '√ совпадают с твоими' '√ match yours') 'Green' }

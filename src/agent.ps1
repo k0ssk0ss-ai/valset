@@ -243,6 +243,15 @@ function Test-MainDrift($s, [string]$name) {
     Send-Toast "VALSET · $name" (L "Настройки изменились ($($dr.Count)). Поменял в игре — Ctrl+Alt+V → «Запомнить как мои»." "Settings changed ($($dr.Count)). Changed them in game? Ctrl+Alt+V → `“Save as mine`”.")
 }
 
+# Эталон обновился из игры — сказать, что именно (вернуть — «Ещё» → «История моих настроек»).
+function Send-SyncToast($s, $names) {
+    if (-not @($names).Count) { return }
+    Send-Toast "VALSET · $(Get-AccountLabel $s.Puuid)" "$(L 'Твои настройки обновлены из игры' 'Your settings updated from the game'): $(Format-Changed $names)."
+}
+function Add-SyncNote([string]$msg) {
+    if (@($script:LastSync).Count) { "$msg $(L 'Правки из игры сохранены' 'In-game changes saved'): $(Format-Changed $script:LastSync)." } else { $msg }
+}
+
 # ── Слежение ─────────────────────────────────────────────────────────────────
 
 function Read-WatchDone { @(if (Test-Path $WatchDonePath) { Get-Content $WatchDonePath -Encoding ASCII }) }
@@ -281,19 +290,24 @@ function Invoke-Watch([switch]$AfterGame) {
             }
             $msg = if ($ok) { L 'Исходные настройки аккаунта возвращены.' 'The account''s original settings are back.' }
                    else { L 'Не успел вернуть исходные: ты вышел из аккаунта. Зайди в него и открой VALSET — «Вернуть исходные».' 'Could not restore the originals: you logged out. Log in to it and open VALSET — `“Restore originals`”.' }
-            Send-Toast "VALSET · $(Get-AccountLabel $g.Puuid)" $msg
+            Send-Toast "VALSET · $(Get-AccountLabel $g.Puuid)" (Add-SyncNote $msg)
+        } elseif ($AfterGame -and $g -and (-not $s -or $s.Puuid -ne $g.Puuid)) {
+            Send-SyncToast $g (Update-Reference $g)   # вышел из аккаунта прямо из игры — правки всё равно забрать
         }
         if (-not $s) { return }
         $key = "$($s.ClientPid):$($s.Puuid)"
         $isMain = $s.Puuid -eq (Get-MainPuuid)
         # Игра закрыта на аккаунте, где твои настройки стоят на время, — вернуть его исходные, пока ты в нём.
         if ($AfterGame -and (Test-Temp $s.Puuid)) {
-            if (Invoke-RestoreTemp $s) { Send-Toast "VALSET · $(Get-AccountLabel $s.Puuid)" (L 'Исходные настройки аккаунта возвращены. Можно выходить.' 'The account''s original settings are back. You can log out.') }
+            if (Invoke-RestoreTemp $s) { Send-Toast "VALSET · $(Get-AccountLabel $s.Puuid)" (Add-SyncNote (L 'Исходные настройки аккаунта возвращены. Можно выходить.' 'The account''s original settings are back. You can log out.')) }
             return
         }
+        # Аккаунт с твоими настройками: правки в игре (или с другого ПК) — в эталон. Без базы — по-старому.
+        $hasBase = [bool](Get-SessionBase $s.Puuid)
         if ($key -notin (Read-WatchDone)) {
             $name = Register-Account $s
-            if ($isMain) { if ($cfg.notify) { Test-MainDrift $s $name } }
+            if ($isMain -and $hasBase) { Send-SyncToast $s (Update-Reference $s) }
+            elseif ($isMain) { if ($cfg.notify) { Test-MainDrift $s $name } }
             elseif ($cfg.autoApply) {
                 Invoke-Apply $s
                 $r = $script:LastApply
@@ -307,6 +321,8 @@ function Invoke-Watch([switch]$AfterGame) {
                 if (-not $dr.Same) { Send-Toast "VALSET · $name" (L "Настройки не твои ($($dr.Count)). Ctrl+Alt+V → «Перенести мои» до запуска игры." "Not your settings ($($dr.Count)). Ctrl+Alt+V → `“Apply mine`” before launching the game.") }
             }
             Add-WatchDone $key
+        } elseif ($AfterGame -and $hasBase) {
+            Send-SyncToast $s (Update-Reference $s)
         } elseif ($AfterGame -and $isMain -and $cfg.notify) {
             Test-MainDrift $s (Get-AccountLabel $s.Puuid)   # не поменял ли что-то в игре
         }
