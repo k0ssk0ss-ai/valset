@@ -38,6 +38,27 @@ static class Json {
         var v = Get(d, k); int n;
         return v != null && int.TryParse(v.ToString(), out n) ? n : 0;
     }
+    // Последняя строка-массив JSON; null — ядро не ответило или JSON не разобрался.
+    public static List<Dictionary<string, object>> ParseArray(string text) {
+        if (string.IsNullOrEmpty(text)) return null;
+        string line = null;
+        foreach (var l in text.Split((char)10)) { var x = l.Trim().TrimStart((char)0xFEFF); if (x.StartsWith("[")) line = x; }
+        if (line == null) return null;
+        try { return Dicts(Ser().DeserializeObject(line)); } catch { return null; }
+    }
+
+    // Элементы-объекты из массива; строки становятся {what: строка}.
+    public static List<Dictionary<string, object>> Dicts(object v) {
+        var r = new List<Dictionary<string, object>>(); var e = v as IEnumerable;
+        if (e == null || v is string) return r;
+        foreach (var o in e) {
+            var d = o as Dictionary<string, object>;
+            if (d != null) r.Add(d);
+            else if (o != null) { d = new Dictionary<string, object>(); d["what"] = o.ToString(); r.Add(d); }
+        }
+        return r;
+    }
+
     public static List<string> List(Dictionary<string, object> d, string k) {
         var r = new List<string>(); var v = Get(d, k) as IEnumerable;
         if (v != null && !(v is string)) foreach (var o in v) if (o != null) r.Add(o.ToString());
@@ -47,11 +68,12 @@ static class Json {
 
 // Ответ `valset state`.
 class State {
-    public bool Client, Game, IsMain, Have, Temp, Pending, AutoApply, Notify, Badge;
+    public bool Client, Game, IsMain, Have, Temp, Pending, AutoApply, Notify, Badge, Own = true;
     public bool? Same;
     public int Diff;
     public string Account = "", Puuid = "", Suggested = "", Lang = "", Error = "";
-    public List<string> DiffList = new List<string>(), Synced = new List<string>();
+    public List<Dictionary<string, object>> DiffList = new List<Dictionary<string, object>>();
+    public List<string> Synced = new List<string>();
 
     public static State From(Dictionary<string, object> d) {
         var s = new State();
@@ -61,7 +83,8 @@ class State {
         s.Same = Json.NBool(d, "same"); s.Diff = Json.Int(d, "diff");
         s.Account = Json.Str(d, "account"); s.Puuid = Json.Str(d, "puuid"); s.Suggested = Json.Str(d, "suggested");
         s.Lang = Json.Str(d, "lang"); s.Error = Json.Str(d, "error");
-        s.DiffList = Json.List(d, "diffList"); s.Synced = Json.List(d, "synced");
+        s.DiffList = Json.Dicts(Json.Get(d, "diffList"));
+        s.Own = Json.NBool(d, "own") ?? (s.IsMain || s.Have); s.Synced = Json.List(d, "synced");
         return s;
     }
 }

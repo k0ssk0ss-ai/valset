@@ -10,7 +10,8 @@ using System.Windows;
 using System.Windows.Threading;
 
 static class Program {
-    const string PipeName = "valset-app";
+    static readonly string Inst = Environment.GetEnvironmentVariable("VALSET_APP_INSTANCE") ?? "";
+    static readonly string PipeName = "valset-app" + Inst;
 
     [STAThread]
     static int Main(string[] args) {
@@ -19,12 +20,13 @@ static class Program {
         Core.Cmd = args[0];
         string arg = args.Length > 1 ? args[1] : "";
         bool created;
-        var single = new Mutex(true, "Local\\valset-app", out created);
+        var single = new Mutex(true, "Local\\valset-app" + Inst, out created);
         if (!created) { SendToFirst(arg.Length > 0 ? arg : "valset:open"); return 0; }
         // У клиента Riot самоподписанный сертификат; ходим только на 127.0.0.1.
         ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, e) => { var r = s as HttpWebRequest; return r == null || r.RequestUri.Host == "127.0.0.1"; };
-        var stop = new EventWaitHandle(false, EventResetMode.ManualReset, "Local\\valset-app-stop");
+        var stop = new EventWaitHandle(false, EventResetMode.ManualReset, "Local\\valset-app-stop" + Inst);
         var app = new Application();
+        app.DispatcherUnhandledException += (s, e) => { Dbg.Log("ИСКЛЮЧЕНИЕ: " + e.Exception); e.Handled = true; };
         app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         new Thread(PipeLoop) { IsBackground = true, Name = "pipe" }.Start();
         new Thread(() => { stop.WaitOne(); Ctl.Ui.BeginInvoke(new Action(Ctl.Exit)); }) { IsBackground = true, Name = "stop" }.Start();
@@ -103,6 +105,7 @@ static class Ctl {
         RefreshState();
         Events.Start();
         if (arg.Length > 0) Handle(arg);
+        if (Environment.GetEnvironmentVariable("VALSET_SELFTEST") == "1") SelfTest.Start();
     }
 
     static bool exiting;
@@ -112,7 +115,7 @@ static class Ctl {
     public static bool IsGame() { return Events != null && Events.ClientUp ? Events.GameRunning : Cur.Game; }
 
     // ── очередь вызовов ядра: по одному ──
-    static void Post(Action a) { lock (queue) queue.Enqueue(a); wake.Set(); }
+    public static void Post(Action a) { lock (queue) queue.Enqueue(a); wake.Set(); }
     static void Worker() {
         while (true) {
             Action a = null;
@@ -159,7 +162,7 @@ static class Ctl {
         Post(() => {
             var d = Json.Parse(Core.Run("do " + act, null, 180000));
             Ui.BeginInvoke(new Action(() => {
-                Busy = false;
+                Busy = false; Lists.Reset();
                 if (d == null) { ResultOk = false; ResultUndo = false; ResultMsg = L.T("Ядро не ответило", "Core did not answer"); }
                 else {
                     ResultOk = Json.Bool(d, "ok"); ResultUndo = Json.Bool(d, "undo");

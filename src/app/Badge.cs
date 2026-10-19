@@ -29,9 +29,9 @@ class BadgeWin : IDisposable {
         row.Children.Add(dot); row.Children.Add(txt);
         var pill = new Border {
             Child = row, CornerRadius = new CornerRadius(12), Padding = new Thickness(11, 5, 12, 6), Cursor = Cursors.Hand,
-            Background = new SolidColorBrush(Color.FromArgb(0xEE, 0x20, 0x20, 0x20)), BorderBrush = PanelWin.Br(0x3A3A3A), BorderThickness = new Thickness(1)
+            Background = new SolidColorBrush(Color.FromArgb(0xEE, 0x20, 0x20, 0x20)), BorderBrush = Ui.Br(0x3A3A3A), BorderThickness = new Thickness(1)
         };
-        pill.MouseLeftButtonUp += (s, e) => Ctl.Panel.Toggle();
+        pill.MouseLeftButtonUp += (s, e) => { Native.RECT bb; Native.GetWindowRect(badgeH, out bb); Ctl.Panel.Toggle(new System.Drawing.Rectangle(bb.Left, bb.Top, bb.Right - bb.Left, bb.Bottom - bb.Top)); };
         w = new Window {
             WindowStyle = WindowStyle.None, AllowsTransparency = true, Background = Brushes.Transparent, ShowInTaskbar = false,
             ShowActivated = false, Topmost = false, ResizeMode = ResizeMode.NoResize, SizeToContent = SizeToContent.WidthAndHeight,
@@ -64,7 +64,7 @@ class BadgeWin : IDisposable {
         if (text == null) { HideBadge(); return; }
         Ensure();
         if (client != IntPtr.Zero) Native.SetOwner(badgeH, client);
-        txt.Text = text; dot.Fill = PanelWin.Br(color);
+        txt.Text = text; dot.Fill = Ui.Br(color);
         Refit();
     }
 
