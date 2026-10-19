@@ -30,6 +30,7 @@ static class Program {
         app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         new Thread(PipeLoop) { IsBackground = true, Name = "pipe" }.Start();
         new Thread(() => { stop.WaitOne(); Ctl.Ui.BeginInvoke(new Action(Ctl.Exit)); }) { IsBackground = true, Name = "stop" }.Start();
+        InProc.Preload();
         Ctl.Init(app, arg);
         app.Run();
         GC.KeepAlive(single); GC.KeepAlive(stop);

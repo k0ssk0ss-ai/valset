@@ -44,10 +44,12 @@ function Repair-Utf8([string]$t) {
 # Riot ID из локального клиента (без сети). $null — клиент не ответил.
 # Ответ без charset: Invoke-RestMethod в PowerShell 5.1 читал его как Latin-1 и портил кириллицу — декодируем UTF-8 сами.
 function Get-RiotId($s) {
+    # в lib: имя не меняется, пока тот же puuid (сеть 0,2 с)
+    if ($script:Lib -and $script:RiotIdCache -and $script:RiotIdCache.Puuid -eq $s.Puuid) { return $script:RiotIdCache.Name }
     try {
         $w = Invoke-WebRequest "https://127.0.0.1:$($s.Port)/player-account/aliases/v1/active" -Headers @{ Authorization = $s.Auth } -TimeoutSec 3 -UseBasicParsing
         $r = [Text.Encoding]::UTF8.GetString($w.RawContentStream.ToArray()) | ConvertFrom-Json
-        if ($r.game_name) { return "$($r.game_name)#$($r.tag_line)" }
+        if ($r.game_name) { $n = "$($r.game_name)#$($r.tag_line)"; if ($script:Lib) { $script:RiotIdCache = @{ Puuid = $s.Puuid; Name = $n } }; return $n }
     } catch {}
     $null
 }

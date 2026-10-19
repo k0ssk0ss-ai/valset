@@ -4,6 +4,7 @@
   valset             меню: стрелки или цифры (ярлык «VALSET» в Пуске); новое окно заменяет старое
   valset pros / more консольное меню сразу на этом экране
   valset list <pros|accounts|backups|history|diff>   списки для панели приложения (одна строка JSON)
+  valset lib         (для приложения) только загрузить функции: Invoke-Core state|list|do|watch → строка JSON, без exit
   valset state       (для приложения) состояние одной строкой JSON
   valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo|gfxsave|pro:НИК|restore:ID|history:ID|set:КЛЮЧ=ЗНАЧЕНИЕ|account:PUUID:ДЕЙСТВИЕ — без вопросов, ответ JSON
   valset save        запомнить настройки текущего аккаунта как мои (-BindsOnly — только бинды)
@@ -20,7 +21,7 @@
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('menu', 'save', 'gfxsave', 'apply', 'status', 'watch', 'gfxwait', 'install', 'uninstall', 'state', 'do', 'pros', 'more', 'list')]
+    [ValidateSet('menu', 'save', 'gfxsave', 'apply', 'status', 'watch', 'gfxwait', 'install', 'uninstall', 'state', 'do', 'pros', 'more', 'list', 'lib')]
     [string]$Command = 'menu',
     [Parameter(Position = 1)]
     [string]$Action = '',
@@ -30,8 +31,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $Version = '2.0.0'
-$script:Fancy = $Command -notin 'watch', 'gfxwait', 'state', 'do', 'list'   # скрытые режимы — без оформления
-$script:Quiet = $Command -in 'state', 'do', 'list'   # stdout этих команд — ровно одна строка JSON: журнал на экран не пишем
+$script:Fancy = $Command -notin 'watch', 'gfxwait', 'state', 'do', 'list', 'lib'   # скрытые режимы — без оформления
+$script:Quiet = $Command -in 'state', 'do', 'list', 'lib'   # stdout этих команд — ровно одна строка JSON: журнал на экран не пишем
+$script:Lib = $Command -eq 'lib'   # режим библиотеки: только функции (приложение держит ядро в своём runspace, зовёт Invoke-Core), без exit и вопросов
 
 # Собранный valset.cmd передаёт свой путь через VALSET_FILE; при запуске из исходников — сам .ps1.
 $Self        = if ($env:VALSET_FILE) { $env:VALSET_FILE } else { $PSCommandPath }
@@ -90,6 +92,7 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'do.ps1')
 . (Join-Path $PSScriptRoot 'doextra.ps1')
 . (Join-Path $PSScriptRoot 'lists.ps1')
+. (Join-Path $PSScriptRoot 'core.ps1')
 . (Join-Path $PSScriptRoot 'app.ps1')
 . (Join-Path $PSScriptRoot 'install.ps1')
 
@@ -202,26 +205,6 @@ function Invoke-Cloud([scriptblock]$call) {
 }
 
 function Test-GameRunning { [bool](Get-Process $GameProc -ErrorAction SilentlyContinue) }
-
-# Записали — прочитать обратно и сверить целиком (все группы, включая прицел и миникарту).
-function Assert-Written($s, [string]$json, [string]$what) {
-    $norm = { param($j) ConvertTo-Json -InputObject ($j | ConvertFrom-Json) -Depth 32 -Compress }
-    if ((& $norm (Get-Settings $s)) -cne (& $norm $json)) { throw (L "в облаке не то, что записали ($what)" "the cloud doesn't match what was written ($what)") }
-}
-
-function Get-Settings($s) {
-    $r = Invoke-Cloud { Invoke-RestMethod "$PrefUrl/getPreference/Ares.PlayerSettings" -Headers (Get-Headers $s) -TimeoutSec 15 }
-    if (-not $r.data) { throw (L 'Облако вернуло пустые настройки (аккаунт ни разу не заходил в Valorant?).' 'The cloud returned empty settings (has this account never played VALORANT?).') }
-    $json = Expand-Pref $r.data
-    Register-Actions $json
-    $json
-}
-
-function Set-Settings($s, [string]$json) {
-    $body = @{ type = 'Ares.PlayerSettings'; data = (Compress-Pref $json) } | ConvertTo-Json -Compress
-    Invoke-Cloud { Invoke-RestMethod "$PrefUrl/savePreference" -Method Put -Headers (Get-Headers $s) `
-        -Body $body -ContentType 'application/json' -TimeoutSec 15 | Out-Null }
-}
 
 function Get-Source { if (Test-Path $SourcePath) { (Get-Content $SourcePath -Raw).Trim() } }
 
@@ -407,6 +390,7 @@ try {
         'more'      { Show-OneScreen 'more' }
         'state'     { Write-StateJson }
         'list'      { Write-ListJson $Action }
+        'lib'       { }
         'do'        { Write-DoJson $Action; if (-not $script:DoOk) { exit 1 } }
     }
 } catch {

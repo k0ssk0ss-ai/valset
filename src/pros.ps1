@@ -53,6 +53,7 @@ function Add-ProCrosshair($prof, $pro) {
 # DPI мыши спрашиваем один раз.
 function Get-MyDpi {
     $dpi = (Get-Config).dpi
+    if ($script:Lib -and $dpi -lt 100) { throw (L 'Сначала укажи DPI мыши (set:dpi=N).' 'Set your mouse DPI first (set:dpi=N).') }   # в lib спрашивать нельзя
     while ($dpi -lt 100) {
         $dpi = (Read-Host (L '    DPI твоей мыши (обычно 400, 800 или 1600)' '    Your mouse DPI (usually 400, 800 or 1600)')) -as [int]
         if ($dpi -ge 100 -and $dpi -le 32000) { Set-Config 'dpi' $dpi } else { $dpi = 0 }

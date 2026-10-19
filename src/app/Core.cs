@@ -100,6 +100,13 @@ static class Core {
         si.StandardOutputEncoding = Encoding.UTF8; si.StandardErrorEncoding = Encoding.UTF8;
         si.EnvironmentVariables.Remove("VALSET_GAME_TOKEN");
         if (gameToken != null) si.EnvironmentVariables["VALSET_GAME_TOKEN"] = gameToken;
+        var sp = args.Split(new[] { (char)32 }, 2);
+        if (sp[0] == "state" || sp[0] == "list" || sp[0] == "do" || sp[0] == "watch") {
+            Dbg.Log("core(in-proc): " + args);
+            string ip = InProc.Call(sp[0], sp.Length > 1 ? sp[1] : "", gameToken, timeoutMs);
+            if (ip != null) { Dbg.Log("core: <- " + (ip.Length > 300 ? ip.Substring(0, 300) : ip).Trim()); return ip; }
+            Dbg.Log("core: in-proc недоступен, запасной путь через cmd");
+        }
         Dbg.Log("core: " + args);
         try {
             using (var p = Process.Start(si)) {

@@ -34,6 +34,7 @@ function Get-AppReferences {
         $a = [AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_.GetName().Name -eq $n } | Select-Object -First 1
         if ($a) { $a.Location }
     }
+    [psobject].Assembly.Location   # System.Management.Automation: ядро в runspace приложения (InProc.cs)
 }
 
 function Build-App($src) {

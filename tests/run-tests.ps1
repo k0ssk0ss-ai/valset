@@ -567,6 +567,59 @@ Check 'state: чужой аккаунт — предлагает apply' ($stO.pu
     try { Build-App; $okb = (Test-Path $AppExe) -and (Test-Path "$AppSrcDir\T.cs") -and (Test-Path $AppHashPath) } catch { $okb = $false; $eb = $_.Exception.Message }
     Check 'Build-App: исходники → exe со ссылками на WPF/WinForms' $okb "$eb"
 
+    Write-Host 'режим lib: Invoke-Core и кэши'
+    $profKeep = Get-Content $ProfilePath -Raw -Encoding UTF8; $srcKeep = Get-Content $SourcePath -Raw -Encoding UTF8
+    & {
+        . "$proj\src\valset.ps1" lib
+        Check 'lib: функции загружены, switch не выполнялся (нет exit, Lib=true, Fancy=false)' ((Get-Command Invoke-Core -ErrorAction SilentlyContinue) -and $script:Lib -and -not $script:Fancy)
+        $GameProc = 'valset-test-no-such-process'
+        function Update-Agent {}; function Save-Graphics { $false }; function Sync-Graphics {}; function Invoke-ApplyGraphics { 0 }
+        function Get-Session { $script:sess }; function Get-RiotId($s) { $script:idCalls++; 'Тест#EU' }
+        $script:reads = 0; $script:idCalls = 0
+        function Read-CloudSettings($s) { $script:reads++; $script:cloud }
+        function Invoke-RestMethod { throw 'сеть в тестах не нужна' }
+        Clear-SettingsCache
+        $a = Get-Settings $script:sess; $b = Get-Settings $script:sess
+        Check 'Get-Settings: второй вызов в пределах 60 с из кэша (облако читано 1 раз)' ($script:reads -eq 1 -and $a -ceq $b) "reads=$($script:reads)"
+        $null = Get-Settings $script:sess -Fresh
+        Check 'Get-Settings -Fresh / Assert-Written читают облако, не кэш' ($script:reads -eq 2)
+        $script:cloud = '{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.5}]}'
+        Assert-Written $script:sess $script:cloud 'тест'
+        Check 'Assert-Written видит новое значение облака (кэш обойдён)' ($script:reads -eq 3)
+        $thrown = $false; try { Assert-Written $script:sess $cloud0 'тест' } catch { $thrown = $true }
+        Check 'Assert-Written: расхождение с облаком — ошибка' $thrown
+        $script:cloud = $cloud0; Clear-SettingsCache; $script:reads = 0
+        $null = Get-Settings $script:sess
+        function Set-CloudRaw { }   # Set-Settings должен сбросить кэш (сеть заглушена выше — запись упадёт, кэш всё равно сброшен)
+        try { Set-Settings $script:sess '{}' } catch {}
+        $null = Get-Settings $script:sess
+        Check 'Set-Settings сбрасывает кэш (следующее чтение — из облака)' ($script:reads -eq 2) "reads=$($script:reads)"
+        # игра запущена → кэш не используется
+        $GameProc = 'powershell'; Clear-SettingsCache; $script:reads = 0
+        $null = Get-Settings $script:sess; $null = Get-Settings $script:sess
+        Check 'игра запущена: каждое чтение из облака' ($script:reads -eq 2) "reads=$($script:reads)"
+        $GameProc = 'valset-test-no-such-process'
+        # Invoke-Core
+        Clear-SettingsCache; $script:reads = 0
+        $js = Invoke-Core 'state'; $o = $js | ConvertFrom-Json
+        Check 'Invoke-Core state: одна строка JSON с account' ($js -is [string] -and $js.StartsWith('{') -and $o.account -eq 'Тест#EU' -and $o.puuid -eq $tp) $js
+        $js2 = Invoke-Core 'state'
+        Check 'Invoke-Core state: второй вызов без чтения облака и сети за именем' ($script:reads -eq 1 -and $js2 -ceq $js) "reads=$($script:reads)"
+        $d = (Invoke-Core 'do' 'save') | ConvertFrom-Json
+        Check 'Invoke-Core do save: JSON ok:true' ($d.ok -eq $true) ($d | ConvertTo-Json -Compress)
+        Check 'do читает облако заново (кэш сброшен перед записью)' ($script:reads -ge 2) "reads=$($script:reads)"
+        $d2 = (Invoke-Core 'do' 'нет-такого') | ConvertFrom-Json
+        Check 'Invoke-Core do: ошибка — JSON ok:false, без исключения' ($d2.ok -eq $false -and $d2.message)
+        $l = Invoke-Core 'list' 'accounts'
+        Check 'Invoke-Core list accounts: JSON-массив' ($l.StartsWith('[')) $l
+        $e = (Invoke-Core 'list' 'нет') | ConvertFrom-Json
+        Check 'Invoke-Core list: неизвестный вид — JSON с error' ($e.ok -eq $false -and $e.error)
+        $env:VALSET_GAME_TOKEN = $null
+        Check 'Invoke-Core watch: возвращает {} и убирает токен игры' ((Invoke-Core 'watch' '' '{"x":1}') -eq '{}' -and -not $env:VALSET_GAME_TOKEN)
+    }
+    $script:Lib = $false; $script:Fancy = $false
+    Write-FileSafe $ProfilePath $profKeep; Write-FileSafe $SourcePath $srcKeep
+
     Write-Host 'сборка'
     $b = powershell -NoProfile -ExecutionPolicy Bypass -File "$proj\build.ps1" 2>&1
     Check 'build.ps1 без ошибок' ($LASTEXITCODE -eq 0) "$b"
