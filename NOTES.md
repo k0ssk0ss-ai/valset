@@ -253,3 +253,23 @@
    - Значок у клиента: своё прозрачное окно поверх, приклеено к углу окна клиента Riot (следим за его положением,
      SetWinEventHook), «✓ VALSET · настройки твои», цвет = статус, клик — панель. В процесс клиента не лезем
      (Vanguard/ToS), у ника/«Играть» не ставим (вёрстка Riot и масштаб плавают), поверх игры — нет. Иконка трея — тот же цвет.
+8. Этап 2 — контракт ядро ↔ приложение (решено 2026-10-19, Opus):
+   - Ядро (PS) новые команды, без оформления, stdout — одна строка JSON в UTF-8:
+     `valset state` → {client, game, account, puuid, isMain, have, same (null — не сверено), diff, diffList[], temp,
+       pending (очередь облака для этого аккаунта), synced[], suggested: save|apply|untemp|client|"", autoApply, notify,
+       badge, lang: ru|en, error}
+     `valset do <apply|binds|applyperm|save|savebinds|untemp|undo>` — без подтверждения → {ok, message, undo (можно
+       отменить), queued (ждёт выхода из игры)}. undo — откат последнего действия (last-action.json: что было до).
+     `valset pros` / `valset more` — консольное меню сразу на этом экране (кнопки панели «Про» / «Ещё»).
+   - Приложение: src\app\*.cs (C# 5 — компилятор .NET 4.8 из Windows: без $"", ?., =>-членов), собирает ядро при
+     установке: Add-Type -Path <файлы> → valset-app-1.exe; в dist\valset.cmd исходники вшиты строками и пишутся во
+     временную папку перед сборкой. Аргументы: путь к valset.cmd [valset:<action>]. Один экземпляр (Local\valset-app),
+     второй передаёт аргумент первому по именованному каналу и выходит. Стоп — Local\valset-app-stop.
+   - Приложение заменяет сторож: события клиента те же (вход → `watch`, игра закрыта → 3 с → `watch -AfterGame` с
+     VALSET_GAME_TOKEN), после каждого — `state` → цвет трея и значка. Цвет: зелёный — твои; жёлтый — есть действие;
+     синий — игра/ждёт выхода; серый — клиента нет.
+   - Тосты с кнопками: Send-Toast … -Actions, activationType=protocol, valset:<action>; протокол valset в
+     HKCU\Software\Classes → приложение.
+   - Установка: Run\VALSET → приложение (выключается галочкой в ⚙, config.app=false), сторож и valset-open-*.exe
+     удаляются, у ярлыка VALSET в Пуске снимается Ctrl+Alt+V (ярлык — консольное меню, запасной).
+   - Окно клиента Riot: процесс «Riot Client», заголовок «Riot Client» (проверено 2026-10-19).
