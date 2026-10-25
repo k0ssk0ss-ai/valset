@@ -474,6 +474,56 @@ Check 'state: чужой аккаунт — предлагает apply' ($stO.pu
     Check 'do restore при запущенной игре — отказ' (-not $r.ok -and $r.message -like 'Игра запущена*' -and $script:cloud -ceq $cloudP) ($r | ConvertTo-Json -Compress)
     $GameProc = 'valset-test-no-such-process'
 
+    # код для друга: упаковка, чтение, предпросмотр, запись и отмена — облако подставное
+    $bad = @(foreach ($n in 1..9) { $b = [byte[]](@(250, 0, 77, 255, 1, 128, 64, 3, 200)[0..($n - 1)]); if (((ConvertFrom-Cjk (ConvertTo-Cjk $b)) -join ',') -ne ($b -join ',')) { $n } })
+    Check 'код: 14 бит в символ туда и обратно (длины 1–9)' (-not $bad.Count) "$bad"
+    $profS = Get-Content $ProfilePath -Raw -Encoding UTF8
+    $pf = $profS | ConvertFrom-Json
+    $pf | Add-Member -NotePropertyName stringSettings -NotePropertyValue @(@($pf.stringSettings) + [pscustomobject]@{ settingEnum = 'EAresStringSettingName::LastSeenSeasonalPopup'; value = 'x' }) -Force
+    $pf | Add-Member -NotePropertyName boolSettings -NotePropertyValue @(@($pf.boolSettings) + [pscustomobject]@{ settingEnum = 'EAresBoolSettingName::HasSeenSettingsTutorial'; value = $true }) -Force
+    $xs = Get-Content "$fx\crosshair-profiles.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+    Set-CrosshairValue $pf (ConvertTo-CrosshairJson $xs)
+    $pf | Add-Member -NotePropertyName floatSettings -NotePropertyValue @(@($pf.floatSettings | Where-Object { $_.settingEnum -ne $SensEnum }) + [pscustomobject]@{ settingEnum = $SensEnum; value = 0.31 }) -Force
+    Save-Profile $pf
+    $code = New-ShareCode; $codeB = New-ShareCode -BindsOnly
+    $plain = Expand-Bytes (ConvertFrom-Cjk $code.Substring(8))
+    Check 'код: VALSET2, без служебных отметок и без PUUID' ($code.StartsWith('VALSET2:') -and $plain -notmatch 'LastSeen|HasSeen' -and $plain -notmatch $tp -and $plain -notmatch 'mainmainmain') $plain.Substring(0, [Math]::Min(200, $plain.Length))
+    Check 'код: бинды короче полного' ($codeB.Length -lt $code.Length -and $codeB.Length -gt 8) "$($codeB.Length) / $($code.Length)"
+    $rc = Read-ShareCode ("держи: " + $code.Substring(0, 20) + " `r`n " + $code.Substring(20) + " — вставь в VALSET")
+    $xa = @($xs.profiles)[[int]$xs.currentProfile]; $xb = @((Get-Crosshairs $rc.Prefs).profiles)
+    Check 'код: читается с подписью и переносами; прицел — один, активный, без потерь' ($rc.Kind -eq 'full' -and $xb.Count -eq 1 -and (Get-XhKey $xb[0]) -eq (Get-XhKey $xa) -and $xb[0].profileName -eq $xa.profileName)
+    Check 'код: из ссылки без префикса, с %-кодировкой' ((Read-ShareCode ([Uri]::EscapeDataString($codeB.Substring(8)))).Kind -eq 'binds')
+    $old = 'VALSET2:' + (ConvertTo-Cjk (Compress-Bytes (ConvertTo-Json -InputObject ([ordered]@{ v = 2; kind = 'full'; name = 'набор'; profile = $pf; gfxIniT = 'a'; gfxRiotT = 'b' }) -Depth 32 -Compress)))
+    $ro = Read-ShareCode $old
+    Check 'код 1.0.0 (full с графикой): читается, графика не берётся, прицел один' ($ro.Gfx -and @((Get-Crosshairs $ro.Prefs).profiles).Count -eq 1 -and (ConvertTo-Json -InputObject $ro.Prefs -Depth 32 -Compress) -notmatch 'LastSeen')
+    Check 'код: обрезанный — понятная ошибка' ($(try { $null = Read-ShareCode $code.Substring(0, 30); $false } catch { $_.Exception.Message -like '*повреждён*' -or $_.Exception.Message -like '*другой версии*' }))
+    Check 'код: текст без кода — ошибка' ($(try { $null = Read-ShareCode 'привет'; $false } catch { $_.Exception.Message -like '*VALSET*' }))
+    $cloudC = $script:cloud = '{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.9}],"boolSettings":[{"settingEnum":"EAresBoolSettingName::HasSeenSettingsTutorial","value":false}]}'
+    $lc = Parse-Arr (Get-ListJson "code:$code")
+    Check 'list code: аккаунт, что в коде, отличия; облако не тронуто' ($lc[0].info -like 'В коде:*' -and $lc[0].account -eq 'Тест#EU' -and $lc[0].same -eq $false -and @($lc | Where-Object { $_.what -eq 'Чувствительность' -and $_.new -eq '0.31' }).Count -eq 1 -and $script:cloud -ceq $cloudC) (Get-ListJson "code:$code")
+    Check 'list code: битый код — элемент error' ([bool](Parse-Arr (Get-ListJson 'code:VALSET2:abc'))[0].error)
+    $baseKeep = Get-SessionBase $tp; $bkT = [DateTime]::Now.AddSeconds(-1)
+    $r = Invoke-Do "code:$code"
+    $cc = $script:cloud | ConvertFrom-Json
+    Check 'do code: записано, бэкап, отмена; отметки аккаунта не тронуты' ($r.ok -and $r.undo -and $script:cloud -like '*0.31*' -and @(Get-BackupFiles | Where-Object { $_.LastWriteTime -gt $bkT }).Count -ge 1 -and @($cc.boolSettings | Where-Object { $_.settingEnum -like '*HasSeenSettingsTutorial' -and $_.value -eq $false }).Count -eq 1 -and @((Get-Crosshairs $cc).profiles).Count -eq 1) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do 'share'
+    Check 'do share: код в ответе, прошлая отмена не стёрта' ($r.ok -and $r.code -like 'VALSET2:*' -and $r.undo -and (Test-Path $LastActionPath)) ($r | ConvertTo-Json -Compress)
+    $r = Invoke-Do "code:$code"
+    Check 'do code повторно: уже как в коде, без записи' ($r.ok -and $r.message -like 'Настройки уже*')
+    Remove-LastAction
+    $script:cloud = $cloudC
+    $null = Invoke-Do "code:$code"; $r = Invoke-Do 'undo'
+    Check 'do undo после code: облако как было' ($r.ok -and $script:cloud -ceq $cloudC) ($r | ConvertTo-Json -Compress)
+    $GameProc = 'powershell'
+    $r = Invoke-Do "code:$code"
+    Check 'do code при запущенной игре — отказ, облако цело' (-not $r.ok -and $script:cloud -ceq $cloudC)
+    $GameProc = 'valset-test-no-such-process'
+    $lp2 = Parse-Arr (Get-ListJson 'pro:Pro1')
+    Check 'list pro: предпросмотр примерки без записи' ($lp2[0].info -like 'Pro1*' -and @($lp2 | Where-Object { $_.what -eq 'Чувствительность' }).Count -eq 1 -and $script:cloud -ceq $cloudC) (Get-ListJson 'pro:Pro1')
+    Check 'list pro: нет такого — error' ([bool](Parse-Arr (Get-ListJson 'pro:Нетакого'))[0].error)
+    Write-FileSafe $ProfilePath $profS; $script:cloud = $cloudP; Remove-LastAction
+    if ($baseKeep) { Set-SessionBase $tp $baseKeep.json $baseKeep.scope } else { Clear-SessionBase $tp }
+
     # откат аккаунта из бэкапа
     $bk2 = New-Backup $script:sess '{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.31}]}'
     $id2 = [IO.Path]::GetFileNameWithoutExtension($bk2)

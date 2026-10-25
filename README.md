@@ -94,6 +94,7 @@ src\diff.ps1       preview: what will change
 src\crosshair.ps1  crosshair profiles: “for now” — only yours, “permanently” — merged
 src\backups.ps1    account rollback and my settings history
 src\pros.ps1       “Pro settings”: try a pro's settings for now (list — pros.json in this repo)
+src\share.ps1      “Share code”: my settings as one line (VALSET2:…), paste preview and write
 src\accounts.ps1   accounts by Riot ID, main account, status
 src\agent.ps1      config, toasts, login check (`valset watch`)
 src\app.ps1, src\app\*.cs   tray app (C#, built on your PC)

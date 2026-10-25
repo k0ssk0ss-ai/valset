@@ -1,4 +1,4 @@
-﻿# doextra.ps1 — остальные действия `valset do` для панели: gfxsave, pro:<ник>, restore:<id>, history:<id>,
+﻿# doextra.ps1 — остальные действия `valset do` для панели: gfxsave, share, code:<код> (share.ps1), pro:<ник>, restore:<id>, history:<id>,
 # set:<ключ>=<значение>, account:<puuid>:<действие>. Каждое пишущее оставляет точку отмены (last-action.json).
 # Виды точек: account / profile — см. do.ps1; history — прежние твои настройки лежат в истории (data = имя папки);
 # files — прежнее содержимое файлов (config.json, accounts.json).
@@ -8,7 +8,7 @@ $SetBools = [ordered]@{ notify = 'Уведомления|Notifications'; autoApp
                         autoAsked = 'Вопрос про автоперенос|Auto-apply question' }
 
 function Test-ExtraAction([string]$a) {
-    $a -eq 'gfxsave' -or $a -match '^(pro|restore|history):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
+    $a -in 'gfxsave', 'share' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
 }
 
 function Write-UndoExtra([string]$kind, $data) {
@@ -139,6 +139,8 @@ function Invoke-DoExtra([string]$action, $r) {
             if ($script:LastHistory) { Write-UndoExtra 'history' (Split-Path $script:LastHistory -Leaf) }
             L 'Графика сохранена' 'Graphics saved'
         }
+        '^share$'        { Invoke-DoShare $r }
+        '^code:(.+)$'    { Invoke-DoCode $Matches[1] }
         '^pro:(.+)$'     { Invoke-DoPro $Matches[1] $r }
         '^restore:(.+)$' { Invoke-DoRestore $Matches[1] }
         '^history:(.+)$' { Invoke-DoHistory $Matches[1] }

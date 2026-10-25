@@ -61,10 +61,8 @@ function Get-MyDpi {
     $dpi
 }
 
-function Invoke-ApplyPro($pro, $s) {
-    if (-not $s) { $s = Connect-Session }
-    $curJson = Invoke-Step (L 'Чтение текущих настроек аккаунта' 'Reading the account''s current settings') { Get-Settings $s }
-    $cur = $curJson | ConvertFrom-Json
+# Настройки про поверх текущих (с пересчётом чувствительности на твой DPI) — для примерки и для предпросмотра.
+function Join-Pro($cur, $pro) {
     $prefs = (ConvertTo-Json -InputObject $pro.prefs -Depth 32 -Compress) | ConvertFrom-Json
     if ($pro.dpi -and (@($prefs.floatSettings) | Where-Object { $_.settingEnum -eq $SensEnum })) {
         $my = Get-MyDpi
@@ -73,6 +71,28 @@ function Invoke-ApplyPro($pro, $s) {
     }
     $new = Join-ProPrefs $cur $prefs
     if ($pro.crosshair) { Add-ProCrosshair $new $pro }
+    $new
+}
+
+# `valset list pro:<ник>` — что изменит примерка на текущем аккаунте (без записи). Ошибка — одним элементом { error }.
+function Get-ListProPreview([string]$nick) {
+    try {
+        $all = Get-Pros; $pro = $all | Where-Object { $_.nick -eq $nick } | Select-Object -First 1   # Get-Pros отдаёт массив одним объектом
+        if (-not $pro) { throw (L "Про «$nick» нет в списке." "Pro `“$nick`” is not in the list.") }
+        if (Test-ProNeedsDpi $pro) { return @([ordered]@{ error = (L 'Чтобы пересчитать чувствительность, выбери DPI своей мыши:' 'To convert the sensitivity, pick your mouse DPI:'); needsDpi = $true }) }
+        $s = Connect-Session
+        $cur = (Get-Settings $s) | ConvertFrom-Json
+        $new = Join-Pro $cur $pro 6>$null
+        $info = (@("$($pro.nick)", "$($pro.team)", $(if ($pro.source) { "$(L 'источник' 'source'): $($pro.source)" })) | Where-Object { $_ }) -join ' · '
+        @([ordered]@{ info = $info; account = (Get-AccountLabel $s.Puuid); same = [bool](Test-PrefsEqual $cur $new) }) + @(ConvertTo-DiffItems (Compare-Prefs $cur $new))
+    } catch { @([ordered]@{ error = $_.Exception.Message }) }
+}
+
+function Invoke-ApplyPro($pro, $s) {
+    if (-not $s) { $s = Connect-Session }
+    $curJson = Invoke-Step (L 'Чтение текущих настроек аккаунта' 'Reading the account''s current settings') { Get-Settings $s }
+    $cur = $curJson | ConvertFrom-Json
+    $new = Join-Pro $cur $pro
     if (Test-PrefsEqual $cur $new) { $script:LastOp = 'same'; Write-Ok (L "Уже как у $($pro.nick)" "Already like $($pro.nick)"); return }
     Show-Diff (Compare-Prefs $cur $new)
     Write-Note (L 'на время: «Вернуть исходные» вернёт аккаунт как был' 'for now: “Restore originals” brings the account back')

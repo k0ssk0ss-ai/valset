@@ -38,7 +38,7 @@ static class Lists {
 
 static class PagesLists {
     // Загрузилось? Иначе в b уже добавлен «…» или ошибка.
-    static List<Dictionary<string, object>> Load(string name, StackPanel b) {
+    public static List<Dictionary<string, object>> Load(string name, StackPanel b) {
         var l = Lists.Get(name);
         if (l != null) return l;
         if (Lists.Failed(name)) {
@@ -63,21 +63,24 @@ static class PagesLists {
         // чувствительность про пересчитывается под твой DPI — без него ядро откажет
         if (l.Exists(x => Json.Bool(x, "needsDpi"))) {
             b.Children.Add(Ui.Note(L.T("Сначала выбери DPI своей мыши:", "First pick your mouse DPI:")));
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 8) };
-            foreach (var dpi in new[] { "400", "800", "1600", "3200" }) {
-                string v = dpi;
-                var btn = Ui.Btn(v, 13, 0xFFFFFF, 0x2D2D2D, 0x3A3A3A, true, () => Ctl.DoAction("set:dpi=" + v, false), 30, 6);
-                btn.Width = 64; btn.Margin = new Thickness(0, 0, 6, 0);
-                row.Children.Add(btn);
-            }
-            b.Children.Add(row);
+            b.Children.Add(DpiRow());
         }
         foreach (var d in l) {
             string nick = Json.Str(d, "nick"), label = Json.Str(d, "label"), team = Json.Str(d, "team"), hint = Json.Str(d, "hint");
             string title = label.Length > 0 ? label : (team.Length > 0 ? nick + " · " + team : nick);
-            string id = "pro:" + nick;
-            b.Children.Add(Ui.Row(title, hint, "", 0, () => Ctl.DoAction(id, false)));
+            b.Children.Add(Ui.Row(title, hint, "", 0, () => Share.Open("pro", nick)));   // сначала предпросмотр, запись — по кнопке
         }
+    }
+
+    public static UIElement DpiRow() {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 8) };
+        foreach (var dpi in new[] { "400", "800", "1600", "3200" }) {
+            string v = dpi;
+            var btn = Ui.Btn(v, 13, 0xFFFFFF, 0x2D2D2D, 0x3A3A3A, true, () => Ctl.DoAction("set:dpi=" + v, false), 30, 6);
+            btn.Width = 64; btn.Margin = new Thickness(0, 0, 6, 0);
+            row.Children.Add(btn);
+        }
+        return row;
     }
 
     static bool IsOk(string st) {

@@ -171,6 +171,11 @@ static class Ctl {
                     ResultOk = Json.Bool(d, "ok"); ResultUndo = Json.Bool(d, "undo");
                     ResultMsg = Json.Str(d, "message");
                     if (Json.Bool(d, "queued") && ResultMsg.Length == 0) ResultMsg = L.T("Применится после выхода из игры", "Will apply after the game closes");
+                    string code = Json.Str(d, "code");   // «Поделиться»: код в буфер обмена (буфер — только из потока интерфейса)
+                    if (ResultOk && code.Length > 0) {
+                        try { Clipboard.SetText(code); }
+                        catch (Exception e) { Dbg.Log("буфер: " + e.Message); ResultOk = false; ResultMsg = L.T("Не удалось положить код в буфер обмена — попробуй ещё раз", "Could not copy the code to the clipboard — try again"); }
+                    }
                 }
                 Raise();
                 if (show && !Panel.IsVisible) Panel.ShowPanel();
@@ -179,12 +184,22 @@ static class Ctl {
         });
     }
 
-    // Аргумент второго запуска / кнопки тоста: valset:<действие>.
+    // Аргумент второго запуска / кнопки тоста: valset:<действие>; ссылки valset:code/<код>, valset:pro/<ник> — предпросмотр.
     public static void Handle(string arg) {
         string a = (arg ?? "").Trim();
         if (a.StartsWith("valset:", StringComparison.OrdinalIgnoreCase)) a = a.Substring(7);
         int q = a.IndexOf('?'); if (q >= 0) a = a.Substring(0, q);
-        a = a.Trim('/', ' ').ToLowerInvariant();
+        a = a.Trim('/', ' ');
+        // valset:code/<код> и valset:pro/<ник> — только предпросмотр; записать — кнопкой в нём
+        int sl = a.IndexOf('/');
+        if (sl > 0) {
+            string kind = a.Substring(0, sl).ToLowerInvariant(), val = a.Substring(sl + 1);
+            try { val = Uri.UnescapeDataString(val); } catch { }
+            val = val.Trim('/', ' ');
+            if (kind == "code") { string c = Share.Clean(val.IndexOf("VALSET", StringComparison.OrdinalIgnoreCase) >= 0 ? val : "VALSET2:" + val); if (c != null) { Share.Open("code", c); return; } }
+            if (kind == "pro" && val.Length > 0 && val.IndexOfAny(new[] { ' ', '"', '&', '|', '<', '>', '^', '%' }) < 0) { Share.Open("pro", val); return; }
+        }
+        a = a.ToLowerInvariant();
         if (Array.IndexOf(Actions, a) >= 0) DoAction(a, true);
         else Panel.ShowPanel();
     }
