@@ -1,7 +1,7 @@
 ﻿# app.ps1 — трей-приложение VALSET (исходник — src\app\*.cs) вместо сторожа из agent.ps1.
 # Собирается на ПК пользователя (как сторож): без подписи и без скачанного exe. Исходники берутся из src\app\ при запуске
 # из исходников, а в dist\valset.cmd вшиты build.ps1 строками в $AppSources (имя → текст). Перед сборкой пишутся в app-src\.
-# Запуск: Run\VALSET → `valset-app-1.exe "<valset.cmd>"`; протокол valset: (кнопки в уведомлениях) → то же + аргумент `valset:<действие>`.
+# Запуск: ярлык Startup\VALSET.lnk → `valset-app-1.exe "<valset.cmd>"`; протокол valset: (кнопки в уведомлениях) → то же + аргумент `valset:<действие>`.
 # Один экземпляр — мьютекс Local\valset-app; остановка — событие Local\valset-app-stop.
 
 $AppExe      = Join-Path $Root 'valset-app-1.exe'
@@ -10,6 +10,7 @@ $AppHashPath = Join-Path $Root 'app-src\hash.txt'   # отпечаток исх�
 $AppMutex    = 'Local\valset-app'
 $AppStopName = 'Local\valset-app-stop'
 $ProtoKey    = 'HKCU:\Software\Classes\valset'
+$AppLnk      = Join-Path ([Environment]::GetFolderPath('Startup')) 'VALSET.lnk'
 $AppSources  = @{}
 # @@APP-SOURCES@@ — build.ps1 заменяет эту строку на `$AppSources['имя.cs'] = @'…'@` для каждого src\app\*.cs
 
@@ -83,7 +84,13 @@ function Enable-App {
     # старый сторож: приложение его заменяет
     if (Test-OldAgentRunning) { Send-Stop $AgentStopName { Test-OldAgentRunning } }
     foreach ($old in Get-ChildItem $Root -Filter 'valset-agent-*.exe' -ErrorAction SilentlyContinue) { Remove-Item -LiteralPath $old.FullName -ErrorAction SilentlyContinue }
-    Set-RegValue $RunKey 'VALSET' "`"$AppExe`" `"$InstalledCmd`""
+    # Автозапуск — ярлык в «Автозагрузке»: запись в Run Explorer на некоторых ПК молча пропускал (замер 25.10.2026).
+    Remove-ItemProperty $RunKey -Name 'VALSET' -ErrorAction SilentlyContinue
+    $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($AppLnk)
+    $sc.TargetPath = $AppExe
+    $sc.Arguments = "`"$InstalledCmd`""
+    $sc.WorkingDirectory = $Root
+    $sc.Save()
     # протокол valset: — кнопки в уведомлениях открывают приложение с аргументом valset:<действие>
     Set-RegValue $ProtoKey '(default)' 'URL:VALSET'
     Set-RegValue $ProtoKey 'URL Protocol' ''
@@ -94,6 +101,7 @@ function Enable-App {
 # Приложение выключено (config.app = false): убрать автозапуск и остановить.
 function Disable-App {
     Remove-ItemProperty $RunKey -Name 'VALSET' -ErrorAction SilentlyContinue
+    if (Test-Path $AppLnk) { Remove-Item -LiteralPath $AppLnk -Force -ErrorAction SilentlyContinue }
     if (Test-AppRunning) { Stop-App }
 }
 
