@@ -17,7 +17,7 @@ function Get-SortedWeapons($cat) {
 # Коллекции каталога по порядку: [{ id, name, items: [{ w, k }] }]. Без «Стандартных» (тема стандартных скинов)
 # и «случайного скина». Оружие внутри — в порядке игры.
 function Get-CatalogThemes($cat) {
-    $names = @{}; foreach ($t in @($cat.themes)) { $names["$($t.id)"] = "$($t.name)" }
+    $names = @{}; $icons = @{}; foreach ($t in @($cat.themes)) { $names["$($t.id)"] = "$($t.name)"; $icons["$($t.id)"] = "$($t.icon)" }
     $skip = @{ $ThemeRandom = $true }
     foreach ($w in @($cat.weapons)) { foreach ($k in @($w.skins)) { if ($k.id -eq $w.def -and $k.th) { $skip["$($k.th)"] = $true } } }
     $by = [ordered]@{}
@@ -25,7 +25,7 @@ function Get-CatalogThemes($cat) {
         foreach ($k in @($w.skins)) {
             $t = "$($k.th)"
             if (-not $t -or $skip[$t]) { continue }
-            if (-not $by.Contains($t)) { $by[$t] = [ordered]@{ id = $t; name = $(if ($names[$t]) { $names[$t] } else { "$($k.name)" }); items = New-Object Collections.ArrayList } }
+            if (-not $by.Contains($t)) { $by[$t] = [ordered]@{ id = $t; name = $(if ($names[$t]) { $names[$t] } else { "$($k.name)" }); bn = $icons[$t]; items = New-Object Collections.ArrayList } }
             [void]$by[$t].items.Add([pscustomobject]@{ w = $w; k = $k })
         }
     }
@@ -51,7 +51,7 @@ function Get-ListCollections {
         $out = foreach ($t in Get-CatalogThemes $cat) {
             $n = 0
             $items = @(foreach ($x in $t.items) { $o = Test-SkinOwned $x.k $own; if ($o) { $n++ }; [ordered]@{ i = "$($x.k.icon)"; o = $o } })
-            [ordered]@{ id = $t.id; name = $t.name; n = $items.Count; own = $n; items = $items }
+            [ordered]@{ id = $t.id; name = $t.name; n = $items.Count; own = $n; items = $items; bn = "$($t.bn)" }
         }
         $out = @($out | Sort-Object @{ Expression = { [int]($_.own -gt 0) }; Descending = $true }, @{ Expression = { $_.own }; Descending = $true }, @{ Expression = { $_.name } })
         , (@([ordered]@{ info = ''; account = (Get-AccountLabel $s.Puuid) }) + $out)
@@ -94,7 +94,7 @@ function Get-ListCollection([string]$id) {
                 ch = @(foreach ($c in @($k.ch)) { [ordered]@{ id = $c.id; name = "$($c.name)"; icon = "$($c.icon)"; own = [bool]$oc[$c.id] } }) }
         })
         $put = @(Get-CollGuns $t $lo $own).Count
-        , (@([ordered]@{ info = ''; account = (Get-AccountLabel $s.Puuid); name = $t.name; n = $rows.Count; own = $n; put = $put }) + $rows)
+        , (@([ordered]@{ info = ''; account = (Get-AccountLabel $s.Puuid); name = $t.name; n = $rows.Count; own = $n; put = $put; bn = "$($t.bn)" }) + $rows)
     } catch { , @([ordered]@{ error = $_.Exception.Message }) }
 }
 

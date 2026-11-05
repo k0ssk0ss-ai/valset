@@ -43,27 +43,21 @@ static class Sets {
     }
 
     static Border Small(string text, Action click) {
-        var x = Ui.Btn(text, 12, 0xE8E8E8, 0x333333, 0x404040, !Ctl.Busy, click, 26, 5);
+        var x = Ui.Sec(text, 12, !Ctl.Busy, click, 26, 5);
         x.Margin = new Thickness(4, 0, 0, 4); return x;
     }
 
     static UIElement ConfirmDel(string nm, string doId) {
-        var box = new Border { Background = Ui.Br(0x2B2B2B), CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6, 10, 8), Margin = new Thickness(0, 0, 0, 2) };
-        var sp = new StackPanel();
-        sp.Children.Add(Ui.Tb(L.T("Удалить набор «", "Delete set “") + nm + L.T("»?", "”?"), 13.5, 0xFFFFFF, FontWeights.SemiBold));
-        var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
-        var yes = Ui.Btn(L.T("Да", "Yes"), 12.5, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, true, () => { Lists.Confirm = null; Ctl.DoAction(doId, false); }, 26, 5); yes.MinWidth = 60;
-        var no = Ui.Btn(L.T("Нет", "No"), 12.5, 0xE0E0E0, 0x3A3A3A, 0x484848, true, () => { Lists.Confirm = null; Ctl.Panel.Refresh(); }, 26, 5); no.MinWidth = 60;
-        no.Margin = new Thickness(6, 0, 0, 0);
-        r.Children.Add(yes); r.Children.Add(no); sp.Children.Add(r);
-        box.Child = sp; return box;
+        return Ui.Ask(L.T("Удалить набор «", "Delete set “") + nm + L.T("»?", "”?"), "",
+                      Ui.Pri(L.T("Да", "Yes"), 12, true, () => { Lists.Confirm = null; Ctl.DoAction(doId, false); }, 28, 8),
+                      Ui.Sec(L.T("Нет", "No"), 12, true, () => { Lists.Confirm = null; Ctl.Panel.Refresh(); }, 28, 8));
     }
 
     // Поле имени: Enter — сохранить, Esc — закрыть.
     static void NameBox(StackPanel b) {
         if (name == null) {
-            name = new TextBox { FontSize = 13.5, MaxLength = 32, Padding = new Thickness(6, 4, 6, 4), Margin = new Thickness(10, 4, 10, 4),
-                                 Background = Ui.Br(0x2B2B2B), Foreground = Ui.Br(0xFFFFFF), CaretBrush = Ui.Br(0xFFFFFF), BorderBrush = Ui.Br(0x3D8BFD) };
+            name = new TextBox { FontSize = 13, MaxLength = 32, Padding = new Thickness(8, 5, 8, 5), Margin = new Thickness(8, 4, 8, 4), BorderThickness = new Thickness(1),
+                                 Background = Ui.Br(Ui.Bg0), Foreground = Ui.Br(Ui.T1), CaretBrush = Ui.Br(Ui.T1), BorderBrush = Ui.Line2 };
             name.KeyDown += (s, e) => {
                 if (e.Key == Key.Enter) { e.Handled = true; SaveName(); }
                 else if (e.Key == Key.Escape) { e.Handled = true; naming = false; fromColl = ""; name.Text = ""; Ctl.Panel.Refresh(); }
@@ -72,12 +66,12 @@ static class Sets {
         var p = name.Parent as Panel; if (p != null) p.Children.Remove(name);
         if (fromColl.Length > 0 && name.Text.Length == 0) name.Text = fromName.Length > SetNameMax ? fromName.Substring(0, SetNameMax) : fromName;
         string what = fromColl.Length > 0 ? L.T("Имя набора из коллекции «", "Set name from the “") + fromName + L.T("» — в нём только её оружие", "” collection — only its weapons") : L.T("Имя набора", "Set name");
-        var lbl = Ui.Tb(what, 12, 0x9A9A9A, null); lbl.Margin = new Thickness(10, 4, 10, 0);
+        var lbl = Ui.Tb(what, 12, Ui.T2, null); lbl.Margin = new Thickness(10, 4, 10, 0);
         b.Children.Add(lbl);
         b.Children.Add(name);
         var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(10, 2, 0, 4) };
-        var yes = Ui.Btn(L.T("Сохранить", "Save"), 12.5, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, !Ctl.Busy, SaveName, 28, 5); yes.MinWidth = 90;
-        var no = Ui.Btn(L.T("Отмена", "Cancel"), 12.5, 0xE0E0E0, 0x3A3A3A, 0x484848, true, () => { naming = false; fromColl = ""; name.Text = ""; Ctl.Panel.Refresh(); }, 28, 5); no.MinWidth = 70;
+        var yes = Ui.Pri(L.T("Сохранить", "Save"), 12, !Ctl.Busy, SaveName, 28, 5); yes.MinWidth = 90;
+        var no = Ui.Sec(L.T("Отмена", "Cancel"), 12, true, () => { naming = false; fromColl = ""; name.Text = ""; Ctl.Panel.Refresh(); }, 28, 5); no.MinWidth = 70;
         no.Margin = new Thickness(6, 0, 0, 0);
         r.Children.Add(yes); r.Children.Add(no); b.Children.Add(r);
         var tb = name;
@@ -105,13 +99,13 @@ static class Sets {
     // ── Агент для набора ──
     public static void Agents(StackPanel b) {
         b.Children.Add(Ui.Note(L.T("Набор «", "Set “") + agentForName + L.T("» надевать при выборе агента:", "” goes on when you lock in:")));
-        b.Children.Add(Ui.Row(L.T("Без агента", "No agent"), "", agentCur.Length == 0 ? "✓" : "", Ctl.Green, () => Bind("none")));
+        b.Children.Add(Ui.Row(L.T("Без агента", "No agent"), "", agentCur.Length == 0 ? "on" : "", 0, () => Bind("none")));
         var l = PagesLists.Load("agents", b); if (l == null) return;
         if (l.Count == 0) { b.Children.Add(Ui.Note(L.T("Список агентов не загрузился (нет сети?) — открой позже.", "The agent list did not load (no network?) — open again later."))); return; }
         var g = new UniformGrid { Columns = 2 };
         foreach (var d in l) {
             string aid = Json.Str(d, "id");
-            g.Children.Add(Ui.Nav(Json.Str(d, "name") + (aid == agentCur ? "  ✓" : ""), () => Bind(aid)));
+            g.Children.Add(Ui.Nav(null, Json.Str(d, "name"), aid == agentCur ? Ui.Dot(Ui.Acc, 6) : null, () => Bind(aid)));
         }
         b.Children.Add(g);
         b.Children.Add(Ui.Note(L.T("У агента один набор: выберешь занятого — у прежнего набора привязка снимется.", "One set per agent: picking a taken agent unbinds the previous set.")));

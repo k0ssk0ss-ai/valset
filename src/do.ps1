@@ -35,7 +35,8 @@ function ConvertTo-StateObject($st) {
         suggested = (Get-SuggestedId $st)
         autoApply = [bool]$c.autoApply; askAuto = [bool](-not $c.autoApply -and -not $c.autoAsked); notify = [bool]$c.notify; badge = [bool]$c.badge; setsAuto = [bool]$c.setsAuto
         overlay = $(if ($null -ne $c.overlay) { [bool]$c.overlay } else { $null }); overlayHint = [bool]$c.overlayHint
-        lang = $script:Lang; error = "$($st.Error)"
+        lang = $script:Lang; error = "$($st.Error)"; ver = "$Version"
+        nSets = @(Read-Sets).Count; nAccounts = $(try { @((Read-Accounts).Keys).Count } catch { 0 })
     }
 }
 

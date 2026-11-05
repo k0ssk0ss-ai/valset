@@ -55,16 +55,16 @@ class OverlayWin : IDisposable {
     // ── окно кнопки ──
     void Ensure() {
         if (w != null) return;
-        var t = new TextBlock { Text = "VALSET · " + L.T("скины", "skins"), FontSize = 12.5, FontWeight = FontWeights.SemiBold, Foreground = Brushes.White };
+        var t = new TextBlock { Text = "VALSET · " + L.T("скины", "skins"), FontSize = 12, FontWeight = FontWeights.Medium, Foreground = Ui.Br(Ui.T1) };
         var pill = new Border {
-            Child = t, CornerRadius = new CornerRadius(13), Padding = new Thickness(12, 5, 12, 6), Cursor = Cursors.Hand,
-            Background = new SolidColorBrush(Color.FromArgb(0xE6, 0x20, 0x20, 0x20)), BorderBrush = Ui.Br(0x3D8BFD), BorderThickness = new Thickness(1)
+            Child = t, CornerRadius = new CornerRadius(8), Padding = new Thickness(12, 5, 12, 6), Cursor = Cursors.Hand,
+            Background = Ui.A(Ui.Bg1, 0xF0), BorderBrush = Ui.Line2, BorderThickness = new Thickness(1)
         };
         pill.MouseLeftButtonUp += (s, e) => Click();
         w = new Window {
             WindowStyle = WindowStyle.None, AllowsTransparency = true, Background = Brushes.Transparent, ShowInTaskbar = false,
             ShowActivated = false, Topmost = true, ResizeMode = ResizeMode.NoResize, SizeToContent = SizeToContent.WidthAndHeight,
-            Content = pill, FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI"), Left = -10000, Top = -10000
+            Content = pill, FontFamily = Ui.Sans, Left = -10000, Top = -10000
         };
         w.Closed += (s, e) => { w = null; h = IntPtr.Zero; };
         h = new WindowInteropHelper(w).EnsureHandle();

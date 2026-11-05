@@ -6,7 +6,7 @@
 # Владение — GET https://pd.{shard}.a.pvp.net/store/v1/entitlements/{puuid} (все типы одним запросом, ItemTypeID ниже).
 # Картинки качает и кэширует приложение (Img.cs), здесь — только адреса media.valorant-api.com.
 
-$CatalogVer = 3   # 3: коллекции (th, themes — collections.ps1); у стандартных скинов — картинка оружия
+$CatalogVer = 4   # 3: коллекции (th, themes — collections.ps1); у стандартных скинов — картинка оружия; 4: баннер коллекции (themes.icon)
 $EntSkinLevel = 'e7c63390-eda7-46e0-bb7a-a6abdacd2433'   # уровни скинов (ItemID — uuid уровня)
 $EntChroma = '3ad1b2b2-acdb-4524-852f-954a76ddae0a'      # цвета (базовый цвет не выдаётся — он есть у каждого скина)
 $EntBuddy = 'dd3bf334-87f3-40bd-b043-682a57a8dc3a'       # брелоки (ItemID — uuid уровня брелока, у каждого экземпляра свой InstanceID)
@@ -45,6 +45,8 @@ function Get-CatalogFromApi([string]$lang) {
                     lv = @(foreach ($l in @($k.levels)) { "$($l.uuid)".ToLowerInvariant() })   # по порядку: номер уровня = место в списке
                     ch = @(foreach ($c in $ch) { [ordered]@{ id = "$($c.uuid)".ToLowerInvariant(); name = (Get-ChromaLabel "$($c.displayName)" ($i++)); icon = "$(if ($def) { $w.displayIcon } elseif ($c.displayIcon) { $c.displayIcon } else { $c.fullRender })"; sw = "$($c.swatch)" } }) } } }) }
     })
+    # баннер коллекции — картинка набора в магазине (/bundles) с тем же названием, что у темы; нет такого — без баннера
+    $bundles = @{}; foreach ($b in & $get 'bundles') { $k = "$($b.displayName)".Trim().ToLowerInvariant(); if ($k -and $b.displayIcon -and -not $bundles[$k]) { $bundles[$k] = "$($b.displayIcon)" } }
     $flat = { param($list, $nameOf, $iconOf) @(foreach ($x in $list) { if ($x.uuid) { [ordered]@{ id = "$($x.uuid)".ToLowerInvariant(); name = "$(& $nameOf $x)"; icon = "$(& $iconOf $x)" } } }) }
     [ordered]@{
         v = $CatalogVer; lang = $lang; at = (Get-Stamp); weapons = $weapons
@@ -52,7 +54,7 @@ function Get-CatalogFromApi([string]$lang) {
         sprays = & $flat (& $get 'sprays') { param($x) $x.displayName } { param($x) $x.displayIcon }
         flex = & $flat (& $get 'flex') { param($x) $x.displayName } { param($x) $x.displayIcon }
         cards = & $flat (& $get 'playercards') { param($x) $x.displayName } { param($x) $x.smallArt }
-        themes = & $flat (& $get 'themes') { param($x) $x.displayName } { param($x) '' }
+        themes = & $flat (& $get 'themes') { param($x) $x.displayName } { param($x) $bundles["$($x.displayName)".Trim().ToLowerInvariant()] }
         titles = & $flat (& $get 'playertitles') { param($x) if ($x.titleText) { $x.titleText } else { $x.displayName } } { param($x) '' }
     }
 }
@@ -112,6 +114,13 @@ function ConvertTo-OwnedSkin($w, $k, $own, $g) {
                 curLv = $(if ($on) { "$($g.SkinLevelID)".ToLowerInvariant() } else { '' }); curCh = $(if ($on) { "$($g.ChromaID)".ToLowerInvariant() } else { '' }) }
 }
 
+# Коллекция скина для сцены «Всех скинов»: thn — название, bn — баннер, lvN — всего уровней (у стандартных — без коллекции).
+function Add-SkinTheme($x, $k, $th) {
+    $x['lvN'] = @($k.lv).Count
+    $t = if (-not $x.def -and $k.th) { $th["$($k.th)"] }
+    if ($t) { $x['thn'] = "$($t.name)"; $x['bn'] = "$($t.icon)" }
+}
+
 # `valset list skins`: первый элемент — сведения (аккаунт, слоты спреев/флексов), дальше оружие, скины, брелоки, спреи,
 # флексы, карточки, титулы — только то, что есть на аккаунте (и надетое сейчас).
 function Get-ListSkins {
@@ -126,13 +135,14 @@ function Get-ListSkins {
             slots = @(foreach ($x in @($lo.ActiveExpressions)) { [ordered]@{ i = $slot++; type = $(if ("$($x.TypeID)" -eq $EntFlex) { 'flex' } else { 'spray' }); name = (Get-ExprName $names $x) } }) }
         $out = New-Object Collections.ArrayList
         [void]$out.Add($info)
+        $th = @{}; foreach ($x in @($cat.themes)) { $th["$($x.id)"] = $x }
         $ws = @($cat.weapons) | Sort-Object { $i = [array]::IndexOf($WeaponOrder, "$($_.cat)"); if ($i -lt 0) { 99 } else { $i } }, { "$($_.name)" }
         foreach ($w in $ws) {
             $g = $guns[$w.id]; if (-not $g) { continue }   # оружия нет в лоадауте — надеть на него нельзя
             $cur = @($w.skins) | Where-Object { $_.id -eq "$($g.SkinID)".ToLowerInvariant() } | Select-Object -First 1
             $chOn = if ($cur) { @($cur.ch) | Where-Object { $_.id -eq "$($g.ChromaID)".ToLowerInvariant() } | Select-Object -First 1 }
             [void]$out.Add([ordered]@{ cat = 'weapon'; id = $w.id; name = $w.name; skin = (Get-SkinLabel $names $g); icon = "$(if ($chOn.icon) { $chOn.icon } elseif ($cur) { $cur.icon })" })
-            foreach ($k in @($w.skins)) { $x = ConvertTo-OwnedSkin $w $k $own $g; if ($x) { [void]$out.Add($x) } }
+            foreach ($k in @($w.skins)) { $x = ConvertTo-OwnedSkin $w $k $own $g; if ($x) { Add-SkinTheme $x $k $th; [void]$out.Add($x) } }
         }
         foreach ($b in @($cat.buddies)) { if ($own.Contains($b.id)) { [void]$out.Add([ordered]@{ cat = 'buddy'; id = $b.id; name = $b.name; icon = $b.icon }) } }
         foreach ($k in @(@('sprays', 'spray'), @('flex', 'flex'))) {
@@ -189,4 +199,42 @@ function Invoke-SkinApply([string]$spec) {
     if (-not $rows.Count) { return (L 'Уже надето' 'Already on') }
     $r = $rows[0]
     L "Надето: $($r.what) — $($r.new)" "Put on: $($r.what) — $($r.new)"
+}
+
+# ── «Надето сейчас» на главной панели ────────────────────────────────────────
+# `valset list now`: один GET лоадаута, без каталога — картинки по адресам media.valorant-api.com из ID.
+# { region, card, gun — Vandal, ex — первые два спрея/флекса, set — набор, совпадающий с надетым, agent — его агент }.
+$VandalId = '9c82e19d-4575-0200-1a81-3eacf00cf872'
+
+function Test-SetWorn($set, $lo) {
+    $guns = @{}; foreach ($g in @($lo.Guns)) { $guns["$($g.ID)".ToLowerInvariant()] = $g }
+    $n = 0
+    foreach ($sg in @($set.guns)) {
+        $g = $guns["$($sg.ID)".ToLowerInvariant()]; if (-not $g) { continue }
+        foreach ($k in 'SkinID', 'SkinLevelID', 'ChromaID') { if ($sg.$k -and "$($sg.$k)" -ne "$($g.$k)") { return $false } }
+        $n++
+    }
+    if ((Test-Key $set 'expressions') -and @($set.expressions).Count) {
+        $a = @(foreach ($x in @($set.expressions)) { "$($x.AssetID)".ToLowerInvariant() }) -join ','
+        $b = @(foreach ($x in @($lo.ActiveExpressions)) { "$($x.AssetID)".ToLowerInvariant() }) -join ','
+        if ($a -ne $b) { return $false }
+    }
+    $n -gt 0
+}
+
+function Get-ListNow {
+    try {
+        $s = Connect-Session
+        $lo = Get-Loadout $s
+        $m = 'https://media.valorant-api.com'
+        $g = @($lo.Guns) | Where-Object { "$($_.ID)".ToLowerInvariant() -eq $VandalId } | Select-Object -First 1
+        $card = "$($lo.Identity.PlayerCardID)".ToLowerInvariant()
+        $ex = @(foreach ($x in @($lo.ActiveExpressions)) { $a = "$($x.AssetID)".ToLowerInvariant(); if ($a -and $a -ne $ZeroGuid) { "$m/$(if ("$($x.TypeID)" -eq $EntFlex) { 'flex' } else { 'sprays' })/$a/displayicon.png" } }) | Select-Object -First 2
+        $set = @(Read-Sets) | Where-Object { Test-SetWorn $_ $lo } | Select-Object -First 1
+        , @([ordered]@{ region = "$((Get-RiotRoute $s).Region)".ToUpperInvariant()
+            card = $(if ($card -and $card -ne $ZeroGuid) { "$m/playercards/$card/smallart.png" } else { '' })
+            gun = $(if ($g -and $g.ChromaID) { "$m/weaponskinchromas/$("$($g.ChromaID)".ToLowerInvariant())/fullrender.png" } else { '' })
+            ex = @($ex); set = $(if ($set) { "$($set.name)" } else { '' })
+            agent = $(if ($set -and $set.agent) { Get-AgentName (Get-CosmeticNames) "$($set.agent)" } else { '' }) })
+    } catch { , @([ordered]@{ error = $_.Exception.Message }) }
 }

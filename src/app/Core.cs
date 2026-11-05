@@ -70,8 +70,8 @@ static class Json {
 class State {
     public bool Client, Game, IsMain, Have, Temp, Pending, AutoApply, AskAuto, Notify, Badge, SetsAuto, OverlayHint, Own = true;
     public bool? Same, Overlay;   // Overlay: null — по режиму экрана
-    public int Diff;
-    public string Account = "", Puuid = "", Suggested = "", Lang = "", Error = "";
+    public int Diff, NSets, NAccounts;
+    public string Account = "", Puuid = "", Suggested = "", Lang = "", Error = "", Ver = "";
     public List<Dictionary<string, object>> DiffList = new List<Dictionary<string, object>>();
     public List<string> Synced = new List<string>();
 
@@ -82,7 +82,8 @@ class State {
         s.AutoApply = Json.Bool(d, "autoApply"); s.AskAuto = Json.Bool(d, "askAuto");s.Notify = Json.Bool(d, "notify"); s.Badge = Json.Bool(d, "badge"); s.SetsAuto = Json.Bool(d, "setsAuto");
         s.Same = Json.NBool(d, "same"); s.Overlay = Json.NBool(d, "overlay"); s.OverlayHint = Json.Bool(d, "overlayHint"); s.Diff = Json.Int(d, "diff");
         s.Account = Json.Str(d, "account"); s.Puuid = Json.Str(d, "puuid"); s.Suggested = Json.Str(d, "suggested");
-        s.Lang = Json.Str(d, "lang"); s.Error = Json.Str(d, "error");
+        s.Lang = Json.Str(d, "lang"); s.Error = Json.Str(d, "error"); s.Ver = Json.Str(d, "ver");
+        s.NSets = Json.Int(d, "nSets"); s.NAccounts = Json.Int(d, "nAccounts");
         s.DiffList = Json.Dicts(Json.Get(d, "diffList"));
         s.Own = Json.NBool(d, "own") ?? (s.IsMain || s.Have); s.Synced = Json.List(d, "synced");
         return s;

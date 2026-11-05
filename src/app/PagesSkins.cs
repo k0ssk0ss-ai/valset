@@ -1,24 +1,24 @@
-// PagesSkins.cs — «Все скины»: что есть на аккаунте (ядро — skins.ps1, `list skins`), по вкладкам: оружие → скины
-// с цветом и уровнем, коллекции (PagesColl.cs), брелоки, спреи, флексы, карточки, титулы. Выбранное — предпросмотр «было → станет» (PagesShare.cs,
-// вид skin), надеть — кнопкой в нём (бэкап и «Отменить», как у наборов). Картинки — Img.cs, только видимые.
+// PagesSkins.cs — «Все скины»: что есть на аккаунте (ядро — skins.ps1, `list skins`), по вкладкам: оружие (слева список,
+// справа сцена выбранного скина с цветом и уровнем и сетка своих скинов), коллекции (PagesColl.cs), брелоки, спреи, флексы,
+// карточки, титулы. «Надеть» — предпросмотр «было → станет» (PagesShare.cs, вид skin; бэкап и «Отменить», как у наборов).
+// Оформление — PagesStage.cs; картинки — Img.cs, только видимые.
 using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Threading;
 
 static class Skins {
     public static string Tab = "gun";
     static string gunId = "", gunName = "";
-    static string open = "", selLv = "", selCh = "";                // раскрытый скин: выбранные уровень и цвет
+    static string selId = "", selLv = "", selCh = "";                // скин на сцене: выбранные уровень и цвет
     static string pickId = "", pickType = "", pickName = "";         // спрей/флекс ждёт выбора слота
     static TextBox find; static bool typing;                         // поиск живёт между перерисовками панели
-    const string TSpray = "d5f120f8-ff8c-4aac-92ea-f2b5acbe9475", TFlex = "03a572de-4234-31ed-d344-ababa488f981";
+    const string TSpray = "d5f120f8-ff8c-4aac-92ea-f2b5acbe9475", TFlex = "03a572de-4234-31ed-d344-ababa488f981", Vandal = "9c82e19d-4575-0200-1a81-3eacf00cf872";
 
-    public static string Title(string page) { return page == "skinsgun" ? gunName : L.T("Все скины", "All skins"); }
+    public static string Title(string page) { return L.T("Все скины", "All skins"); }
 
     static List<Dictionary<string, object>> Data(StackPanel b) {
         var l = PagesLists.Load("skins", b); if (l == null) return null;
@@ -27,55 +27,94 @@ static class Skins {
         return l;
     }
 
-    // ── вкладки ──
-    public static void Page(StackPanel b) {
+    // ── каркас окна ──
+    public static UIElement Frame(out ScrollViewer pane) {
         if (OverlayWin.FsMode < 0) OverlayWin.ReadFsMode();
+        if (find == null) { find = Stage.NewSearchBox(); find.TextChanged += (s, e) => { typing = true; Ctl.Panel.ResetScroll = true; Ctl.Panel.Refresh(); }; }
+        bool coll = Ctl.Panel.Page == "skinscoll";
+        var seg = Ui.Seg(TabBtn("gun", "Оружие", "Weapons"), TabBtn("buddy", "Брелоки", "Buddies"), TabBtn("spray", "Спреи", "Sprays"),
+                         TabBtn("flex", "Флексы", "Flex"), TabBtn("card", "Карточки", "Cards"), TabBtn("title", "Титулы", "Titles"));
+        var top = Stage.Top(L.T("Все скины", "All skins"), seg, Stage.Search(find));
+        var l = Lists.Get("skins");
+        bool ok = l != null && (l.Count == 0 || Json.Str(l[0], "error").Length == 0);
+        UIElement rail = (Tab == "gun" || Tab == "coll" || coll) && ok ? Rail(l, coll) : null;
+        StackPanel b;
+        var root = Stage.Frame(top, rail, out pane, out b);
+        var r = Ui.Result(); if (r != null) { ((FrameworkElement)r).Margin = new Thickness(0, 0, 0, 12); b.Children.Add(r); }
         Hint(b);
-        var tabs = new WrapPanel { Margin = new Thickness(0, 0, 0, 6) };
-        foreach (var t in new[] { new[] { "gun", "Оружие", "Weapons" }, new[] { "coll", "Коллекции", "Collections" }, new[] { "buddy", "Брелоки", "Buddies" }, new[] { "spray", "Спреи", "Sprays" },
-                                  new[] { "flex", "Флексы", "Flex" }, new[] { "card", "Карточки", "Cards" }, new[] { "title", "Титулы", "Titles" } }) {
-            string id = t[0]; bool on = Tab == id;
-            var x = Ui.Btn(L.T(t[1], t[2]), 12, on ? 0xFFFFFFu : 0xD0D0D0u, on ? 0x3D8BFDu : 0x2E2E2Eu, on ? 0x5A9DFEu : 0x3A3A3Au, true,
-                () => { if (Tab == id) return; Tab = id; pickId = ""; if (find != null) find.Text = ""; typing = false; Ctl.Panel.ResetScroll = true; Ctl.Panel.Refresh(); }, 26, 5);
-            x.Margin = new Thickness(0, 0, 4, 4); tabs.Children.Add(x);
-        }
-        b.Children.Add(tabs);
-        if (Tab == "coll") Colls.List(b);   // свой список (collections.ps1), PagesColl.cs
+        if (coll) Colls.Page(b);
+        else if (Tab == "coll") Colls.List(b);
         else {
-            var l = Data(b); if (l == null) return;
-            if (Tab == "gun") Weapons(b, l);
-            else if (Tab == "title") Titles(b, l);
-            else Tiles(b, l, Tab);
+            var d = Data(b);
+            if (d != null) {
+                if (Tab == "gun") Weapon(b, d);
+                else if (Tab == "title") Titles(b, d);
+                else Tiles(b, d, Tab);
+            }
         }
-        b.Children.Add(Ui.Sep(8, 4));
-        b.Children.Add(Ui.Row(L.T("Сохранить текущие как набор", "Save current as a set"), L.T("всё, что надето сейчас, — в «Скины»", "everything on now — to Skins"), "", 0, Sets.StartNaming));
+        if (typing) { var tb = find; tb.Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => { tb.Focus(); Keyboard.Focus(tb); tb.CaretIndex = tb.Text.Length; })); }
+        return root;
+    }
+
+    static Border TabBtn(string id, string ru, string en) {
+        bool on = Tab == id || (id == "gun" && Tab == "coll");
+        return Ui.SegItem(L.T(ru, en), on, () => SetTab(id));
+    }
+
+    static void SetTab(string id) {
+        bool coll = Ctl.Panel.Page == "skinscoll";
+        if (Tab == id && !coll) return;
+        Tab = id; pickId = ""; find.Text = ""; typing = false; Ctl.Panel.ResetScroll = true;
+        if (coll) Ctl.Panel.Back(); else Ctl.Panel.Refresh();
+    }
+
+    // Слева: оружие из лоадаута со счётчиком своих скинов, внизу — «Коллекции».
+    static UIElement Rail(List<Dictionary<string, object>> l, bool collPage) {
+        var sp = new StackPanel { Margin = new Thickness(8) };
+        var count = new Dictionary<string, int>();
+        foreach (var d in l) if (Json.Str(d, "cat") == "skin") { string w = Json.Str(d, "w"); int n; count.TryGetValue(w, out n); count[w] = n + 1; }
+        Pick(l);
+        foreach (var d in l) {
+            if (Json.Str(d, "cat") != "weapon") continue;
+            string id = Json.Str(d, "id"), nm = Json.Str(d, "name"); int n; count.TryGetValue(id, out n);
+            sp.Children.Add(Stage.RailRow(nm, n > 0 ? n.ToString() : "", Tab == "gun" && !collPage && id == gunId, Ui.T1, () => {
+                gunId = id; gunName = nm; selId = ""; find.Text = ""; typing = false; Ctl.Panel.ResetScroll = true;
+                if (Tab != "gun" || collPage) { Tab = "gun"; if (collPage) { Ctl.Panel.Back(); return; } }
+                Ctl.Panel.Refresh();
+            }));
+        }
+        sp.Children.Add(Ui.Sep(8, 8));
+        var cl = Lists.Peek("collections"); int own = 0;
+        if (cl != null) foreach (var c in cl) if (Json.Int(c, "own") > 0) own++;
+        sp.Children.Add(Stage.RailRow(L.T("Коллекции", "Collections"), own > 0 ? own.ToString() : "", Tab == "coll" || collPage, Ui.T2, () => {
+            if (collPage) { Tab = "coll"; Ctl.Panel.Back(); return; }
+            if (Tab == "coll") return;
+            Tab = "coll"; find.Text = ""; typing = false; Ctl.Panel.ResetScroll = true; Ctl.Panel.Refresh();
+        }));
+        return sp;
+    }
+
+    // Оружие по умолчанию — Vandal (или первое в лоадауте).
+    static void Pick(List<Dictionary<string, object>> l) {
+        Dictionary<string, object> first = null, cur = null;
+        foreach (var d in l) {
+            if (Json.Str(d, "cat") != "weapon") continue;
+            if (first == null) first = d;
+            if (Json.Str(d, "id") == gunId) cur = d;
+            else if (cur == null && gunId.Length == 0 && Json.Str(d, "id") == Vandal) cur = d;
+        }
+        if (cur == null) cur = first;
+        if (cur != null) { gunId = Json.Str(cur, "id"); gunName = Json.Str(cur, "name"); }
     }
 
     // Одноразовая подсказка: игра в режиме «Полноэкранный» — кнопки поверх игры не будет.
     static void Hint(StackPanel b) {
         if (OverlayWin.FsMode != 0 || Ctl.Cur.OverlayHint) return;
-        var box = new Border { Background = Ui.Br(0x2B2B2B), CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 6, 10, 8), Margin = new Thickness(0, 0, 0, 8) };
-        var sp = new StackPanel();
-        sp.Children.Add(Ui.Tb(L.T("Кнопка поверх игры работает в режиме „Оконный полноэкранный“", "The button over the game works in “Windowed Fullscreen” mode"), 12.5, 0xFFFFFF, FontWeights.SemiBold));
-        sp.Children.Add(Ui.Tb(L.T("Сейчас в игре — „Полноэкранный“: окно поверх свернуло бы игру. Сменить: настройки игры → Видео → Режим экрана. А пока — Ctrl+Alt+S в меню игры откроет «Все скины» (игра свернётся, пока открыта панель).",
-                                  "The game is in “Fullscreen” now: a window on top would minimize it. Change it: game settings → Video → Display mode. Meanwhile Ctrl+Alt+S in the game menu opens All skins (the game minimizes while the panel is open)."), 12, 0xB0B0B0, null));
-        var ok = Ui.Btn(L.T("Понятно", "Got it"), 12, 0xFFFFFF, 0x3A3A3A, 0x484848, true, () => { Config.SetBool("overlayHint", true); Ctl.Cur.OverlayHint = true; Ctl.Panel.Refresh(); }, 26, 5);
-        ok.HorizontalAlignment = HorizontalAlignment.Left; ok.Margin = new Thickness(0, 6, 0, 0);
-        sp.Children.Add(ok);
-        box.Child = sp; b.Children.Add(box);
-    }
-
-    // ── поиск ──
-    public static void FindBox(StackPanel b) {
-        if (find == null) {
-            find = new TextBox { FontSize = 13, Padding = new Thickness(6, 3, 6, 3), Margin = new Thickness(0, 0, 0, 6),
-                                 Background = Ui.Br(0x2B2B2B), Foreground = Ui.Br(0xFFFFFF), CaretBrush = Ui.Br(0xFFFFFF), BorderBrush = Ui.Br(0x444444) };
-            find.TextChanged += (s, e) => { typing = true; Ctl.Panel.ResetScroll = true; Ctl.Panel.Refresh(); };
-        }
-        var p = find.Parent as Panel; if (p != null) p.Children.Remove(find);
-        b.Children.Add(Ui.Tb(L.T("Поиск", "Search"), 11.5, 0x9A9A9A, null));
-        b.Children.Add(find);
-        if (typing) { var tb = find; tb.Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => { tb.Focus(); Keyboard.Focus(tb); tb.CaretIndex = tb.Text.Length; })); }
+        var a = Ui.Ask(L.T("Кнопка поверх игры работает в режиме „Оконный полноэкранный“", "The button over the game works in “Windowed Fullscreen” mode"),
+                       L.T("Сейчас в игре — „Полноэкранный“: окно поверх свернуло бы игру. Сменить: настройки игры → Видео → Режим экрана. А пока — Ctrl+Alt+S в меню игры откроет «Все скины» (игра свернётся, пока открыта панель).",
+                           "The game is in “Fullscreen” now: a window on top would minimize it. Change it: game settings → Video → Display mode. Meanwhile Ctrl+Alt+S in the game menu opens All skins (the game minimizes while the panel is open)."),
+                       Ui.Sec(L.T("Понятно", "Got it"), 12, true, () => { Config.SetBool("overlayHint", true); Ctl.Cur.OverlayHint = true; Ctl.Panel.Refresh(); }, 28, 8));
+        a.Margin = new Thickness(0, 0, 0, 12); b.Children.Add(a);
     }
 
     public static string Query() { return find != null ? find.Text.Trim() : ""; }
@@ -85,137 +124,106 @@ static class Skins {
         return q.Length == 0 || Json.Str(d, "name").IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
-    // ── строка с картинкой ──
-    static Border ImgRow(string icon, double w, double h, string title, string sub, bool on, Action click) {
-        var g = new Grid();
-        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(w + 10) });
-        g.ColumnDefinitions.Add(new ColumnDefinition());
-        g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var im = Img.Make(icon, w, h); im.HorizontalAlignment = HorizontalAlignment.Left;
-        g.Children.Add(im);
-        var sp = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        var t = Ui.Tb(title, 13, 0xFFFFFF, FontWeights.SemiBold); t.TextTrimming = TextTrimming.CharacterEllipsis; t.TextWrapping = TextWrapping.NoWrap;
-        sp.Children.Add(t);
-        if (sub.Length > 0) { var s = Ui.Tb(sub, 11.5, 0x9A9A9A, null); s.TextTrimming = TextTrimming.CharacterEllipsis; s.TextWrapping = TextWrapping.NoWrap; sp.Children.Add(s); }
-        Grid.SetColumn(sp, 1); g.Children.Add(sp);
-        if (on) { var c = Ui.Tb("✓", 13, Ctl.Green, FontWeights.SemiBold); c.VerticalAlignment = VerticalAlignment.Center; c.Margin = new Thickness(6, 0, 0, 0); Grid.SetColumn(c, 2); g.Children.Add(c); }
-        var b = new Border { Child = g, CornerRadius = new CornerRadius(6), Padding = new Thickness(6, 4, 8, 4), Margin = new Thickness(0, 0, 0, 2), Background = Brushes.Transparent };
-        Ui.Hover(b, 0, 0x2B2B2B, click != null, click);
-        return b;
-    }
-
-    // ── оружие ──
-    static void Weapons(StackPanel b, List<Dictionary<string, object>> l) {
-        foreach (var d in l) {
-            if (Json.Str(d, "cat") != "weapon") continue;
-            string id = Json.Str(d, "id"), nm = Json.Str(d, "name");
-            b.Children.Add(ImgRow(Json.Str(d, "icon"), 96, 30, nm, Json.Str(d, "skin"), false, () => { gunId = id; gunName = nm; open = ""; if (find != null) find.Text = ""; typing = false; Ctl.Panel.Go("skinsgun"); }));
-        }
-    }
-
-    public static void Gun(StackPanel b) {
-        var l = Data(b); if (l == null) return;
-        var list = l.FindAll(d => Json.Str(d, "cat") == "skin" && Json.Str(d, "w") == gunId);
-        if (list.Count > 10) FindBox(b);
+    // ── оружие: сцена + сетка своих скинов ──
+    static void Weapon(StackPanel b, List<Dictionary<string, object>> l) {
+        Pick(l);
+        var all = l.FindAll(d => Json.Str(d, "cat") == "skin" && Json.Str(d, "w") == gunId);
+        var list = all.FindAll(Match);
+        Dictionary<string, object> sel = all.Find(d => Json.Str(d, "id") == selId);
+        if (sel == null) { sel = all.Find(d => Json.Bool(d, "on")) ?? (all.Count > 0 ? all[0] : null); if (sel != null) Select(sel); }
+        if (sel != null) b.Children.Add(Scene(sel, all.IndexOf(sel), all.Count));
+        b.Children.Add(Stage.GridHead(L.T("Твои скины на ", "Your skins for ") + gunName, list.Count.ToString()));
+        var g = new UniformGrid { Columns = 4, Margin = new Thickness(-4, 0, -4, 0) };
         foreach (var d in list) {
-            if (!Match(d)) continue;
-            string id = Json.Str(d, "id");
-            var lv = Json.Dicts(Json.Get(d, "lv")); var ch = Json.Dicts(Json.Get(d, "ch"));
-            bool on = Json.Bool(d, "on");
-            string sub = on ? L.T("надет", "on") : Json.Bool(d, "def") ? L.T("стандартный", "standard") : "";
-            if (ch.Count > 1) sub += (sub.Length > 0 ? " · " : "") + L.Plural(ch.Count, "цвет", "цвета", "цветов", "variant", "variants");
-            b.Children.Add(ImgRow(Json.Str(d, "icon"), 110, 34, Json.Str(d, "name"), sub, on, () => {
-                if (open == id) { open = ""; Ctl.Panel.Refresh(); return; }
-                open = id;
-                selLv = Json.Str(d, "curLv"); if (selLv.Length == 0 && lv.Count > 0) selLv = Json.Str(lv[lv.Count - 1], "id");
-                selCh = Json.Str(d, "curCh"); if (selCh.Length == 0 && ch.Count > 0) selCh = Json.Str(ch[0], "id");
-                if (lv.Count <= 1 && ch.Count <= 1) { open = ""; Share.Open("skin", Spec(id)); return; }
-                Ctl.Panel.Refresh();
-            }));
-            if (open == id) b.Children.Add(Choose(id, lv, ch));
+            var x = d;
+            g.Children.Add(Stage.Cell(Json.Str(d, "icon"), 104, 40, Json.Str(d, "name"), d == sel, Json.Bool(d, "on"), 1, () => { Select(x); Ctl.Panel.Refresh(); }));
         }
+        b.Children.Add(g);
+        if (list.Count == 0 && Query().Length > 0) b.Children.Add(Ui.Note(L.T("Ничего не нашлось", "Nothing found")));
+        var save = Ui.Sec(L.T("Сохранить надетое как набор", "Save what's on as a set"), 12, !Ctl.Busy, Sets.StartNaming, 30, 8);
+        save.HorizontalAlignment = HorizontalAlignment.Left; save.Margin = new Thickness(0, 12, 0, 0);
+        b.Children.Add(save);
     }
 
-    static string Spec(string skin) { return "gun:" + gunId + ":" + skin + ":" + selLv + ":" + selCh; }
-
-    // Выбор цвета (образцы) и уровня (номера), потом — предпросмотр.
-    static UIElement Choose(string skin, List<Dictionary<string, object>> lv, List<Dictionary<string, object>> ch) {
-        var sp = new StackPanel { Margin = new Thickness(12, 2, 0, 8) };
-        if (ch.Count > 1) {
-            var row = new WrapPanel();
-            string cur = "";
-            foreach (var c in ch) {
-                string cid = Json.Str(c, "id"); bool sel = cid == selCh; if (sel) cur = Json.Str(c, "name");
-                var cell = new Border { Child = Img.Make(Json.Str(c, "sw"), 24, 24), Padding = new Thickness(2), Margin = new Thickness(0, 0, 4, 4), CornerRadius = new CornerRadius(4),
-                                        BorderThickness = new Thickness(2), BorderBrush = sel ? Ui.Br(0x3D8BFD) : Ui.Br(0x333333), ToolTip = Json.Str(c, "name"), Cursor = Cursors.Hand, Background = Ui.Br(0x2B2B2B) };
-                cell.MouseLeftButtonUp += (s, e) => { selCh = cid; Ctl.Panel.Refresh(); };
-                row.Children.Add(cell);
-            }
-            sp.Children.Add(row);
-            sp.Children.Add(Ui.Tb(cur, 11.5, 0x9A9A9A, null));
-        }
-        if (lv.Count > 1) {
-            var row = new WrapPanel { Margin = new Thickness(0, 4, 0, 0) };
-            row.Children.Add(Ui.Tb(L.T("Уровень ", "Level "), 12, 0x9A9A9A, null));
-            foreach (var v in lv) {
-                string vid = Json.Str(v, "id"); bool sel = vid == selLv;
-                var x = Ui.Btn(Json.Str(v, "n"), 12, 0xFFFFFF, sel ? 0x3D8BFDu : 0x333333u, sel ? 0x5A9DFEu : 0x404040u, true, () => { selLv = vid; Ctl.Panel.Refresh(); }, 24, 5);
-                x.Margin = new Thickness(4, 0, 0, 4); x.MinWidth = 28; row.Children.Add(x);
-            }
-            sp.Children.Add(row);
-        }
-        var go = Ui.Btn(L.T("Что изменится →", "What changes →"), 12.5, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, !Ctl.Busy, () => Share.Open("skin", Spec(skin)), 28, 5);
-        go.HorizontalAlignment = HorizontalAlignment.Left; go.Margin = new Thickness(0, 6, 0, 0);
-        sp.Children.Add(go);
-        return sp;
+    // На сцену: надетый — его уровень и цвет; иначе — старший свой уровень и первый цвет.
+    static void Select(Dictionary<string, object> d) {
+        var lv = Json.Dicts(Json.Get(d, "lv")); var ch = Json.Dicts(Json.Get(d, "ch"));
+        selId = Json.Str(d, "id");
+        selLv = Json.Str(d, "curLv"); if (selLv.Length == 0 && lv.Count > 0) selLv = Json.Str(lv[lv.Count - 1], "id");
+        selCh = Json.Str(d, "curCh"); if (selCh.Length == 0 && ch.Count > 0) selCh = Json.Str(ch[0], "id");
     }
 
-    // ── брелоки, спреи, флексы, карточки: плитки ──
+    static UIElement Scene(Dictionary<string, object> d, int idx, int n) {
+        string id = Json.Str(d, "id");
+        var lv = Json.Dicts(Json.Get(d, "lv")); var ch = Json.Dicts(Json.Get(d, "ch"));
+        var curCh = ch.Find(c => Json.Str(c, "id") == selCh);
+        string icon = curCh != null && Json.Str(curCh, "icon").Length > 0 ? Json.Str(curCh, "icon") : Json.Str(d, "icon");
+        var hero = Img.Make(icon, 400, 120);
+        var curLv = lv.Find(v => Json.Str(v, "id") == selLv);
+        string sub;
+        if (Json.Bool(d, "def")) sub = L.T("Стандартный", "Standard");
+        else {
+            sub = curLv != null ? L.T("Уровень ", "Level ") + Json.Str(curLv, "n") + L.T(" из ", " of ") + Json.Int(d, "lvN") : "";
+            string th = Json.Str(d, "thn");
+            if (th.Length > 0) sub += (sub.Length > 0 ? " · " : "") + L.T("коллекция «", "collection “") + th + L.T("»", "”");
+        }
+        var ctl = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(12, 0, 0, 0) };
+        if (ch.Count > 1) foreach (var c in ch) {
+            string cid = Json.Str(c, "id");
+            ctl.Children.Add(Stage.Chip(Img.Make(Json.Str(c, "sw"), 24, 24), cid == selCh, Json.Str(c, "name"), () => { selCh = cid; Ctl.Panel.Refresh(); }));
+        }
+        if (lv.Count > 1) foreach (var v in lv) {
+            string vid = Json.Str(v, "id"); var t = Ui.MonoTb(Json.Str(v, "n"), 11, vid == selLv ? Ui.T1 : Ui.T2); t.HorizontalAlignment = HorizontalAlignment.Center;
+            ctl.Children.Add(Stage.Chip(t, vid == selLv, L.T("Уровень ", "Level ") + Json.Str(v, "n"), () => { selLv = vid; Ctl.Panel.Refresh(); }));
+        }
+        bool on = Json.Bool(d, "on"), same = on && selLv == Json.Str(d, "curLv") && selCh == Json.Str(d, "curCh");
+        var put = Ui.Pri(L.T("Надеть", "Put on"), 13, !Ctl.Busy && !same, () => Share.Open("skin", "gun:" + gunId + ":" + id + ":" + selLv + ":" + selCh), 32, 8);
+        put.Margin = new Thickness(2, 0, 0, 0); ctl.Children.Add(put);
+        string tag = gunName.ToUpperInvariant() + " · " + (idx + 1) + L.T(" из ", " of ") + n;
+        return Stage.Make(236, Json.Str(d, "bn"), hero, tag, on, Stage.Info(Json.Str(d, "name"), sub), ctl);
+    }
+
+    // ── брелоки, спреи, флексы, карточки: сетка ──
     static void Tiles(StackPanel b, List<Dictionary<string, object>> l, string cat) {
-        if (cat == "buddy") b.Children.Add(Ui.Note(L.T("Брелоки — только посмотреть: как Riot хранит брелок на оружии (лоадаут v3), ещё не измерено — надень брелок в игре.",
-                                                      "Buddies are view-only for now: how Riot stores a buddy on a weapon (loadout v3) is not measured yet — equip it in the game.")));
+        if (cat == "buddy") { var n = Ui.Note(L.T("Брелоки — только посмотреть: как Riot хранит брелок на оружии (лоадаут v3), ещё не измерено — надень брелок в игре",
+                                                  "Buddies are view-only for now: how Riot stores a buddy on a weapon (loadout v3) is not measured yet — equip it in the game")); n.Margin = new Thickness(0, 0, 0, 8); b.Children.Add(n); }
         if ((cat == "spray" || cat == "flex") && pickId.Length > 0) { Slots(b, l); return; }
-        var list = l.FindAll(d => Json.Str(d, "cat") == cat);
-        if (list.Count == 0) { b.Children.Add(Ui.Note(L.T("На аккаунте пусто", "Nothing on the account"))); return; }
-        if (list.Count > 12) FindBox(b);
-        var g = new UniformGrid { Columns = 4 };
+        var all = l.FindAll(d => Json.Str(d, "cat") == cat);
+        if (all.Count == 0) { b.Children.Add(Ui.Note(L.T("На аккаунте пусто", "Nothing on the account"))); return; }
+        var list = all.FindAll(Match);
+        b.Children.Add(Stage.GridHead(cat == "buddy" ? L.T("Твои брелоки", "Your buddies") : cat == "spray" ? L.T("Твои спреи", "Your sprays") : cat == "flex" ? L.T("Твои флексы", "Your flex") : L.T("Твои карточки", "Your cards"), list.Count.ToString()));
+        var g = new UniformGrid { Columns = 6, Margin = new Thickness(-4, 0, -4, 0) };
         foreach (var d in list) {
-            if (!Match(d)) continue;
             string id = Json.Str(d, "id"), nm = Json.Str(d, "name"); bool on = Json.Bool(d, "on");
-            var sp = new StackPanel();
-            sp.Children.Add(Img.Make(Json.Str(d, "icon"), 60, 60));
-            var t = Ui.Tb(nm, 10.5, on ? 0x7FD99Au : 0xB0B0B0u, null); t.TextTrimming = TextTrimming.CharacterEllipsis; t.TextWrapping = TextWrapping.NoWrap; t.HorizontalAlignment = HorizontalAlignment.Center; t.Margin = new Thickness(0, 2, 0, 0);
-            sp.Children.Add(t);
-            var cell = new Border { Child = sp, Padding = new Thickness(3, 4, 3, 3), Margin = new Thickness(1), CornerRadius = new CornerRadius(6), ToolTip = nm,
-                                    Background = on ? Ui.Br(0x24364F) : (Brush)Brushes.Transparent };
             Action click = null;
             if (cat == "card") click = () => Share.Open("skin", "card:" + id);
             else if (cat == "spray" || cat == "flex") click = () => { pickId = id; pickType = cat == "flex" ? TFlex : TSpray; pickName = nm; Ctl.Panel.ResetScroll = true; Ctl.Panel.Refresh(); };
-            if (click != null) Ui.Hover(cell, on ? 0x24364Fu : 0u, 0x2E2E2E, true, click);
-            g.Children.Add(cell);
+            g.Children.Add(Stage.Cell(Json.Str(d, "icon"), 56, 56, nm, false, on, 1, click));
         }
         b.Children.Add(g);
+        if (list.Count == 0) b.Children.Add(Ui.Note(L.T("Ничего не нашлось", "Nothing found")));
     }
 
     // Спрей/флекс выбран — в какой слот колеса (порядок — как в игре).
     static void Slots(StackPanel b, List<Dictionary<string, object>> l) {
-        b.Children.Add(Ui.Note("«" + pickName + "» — " + L.T("в какой слот?", "which slot?")));
+        b.Children.Add(Stage.GridHead("«" + pickName + "» — " + L.T("в какой слот?", "which slot?"), ""));
         foreach (var s in Json.Dicts(Json.Get(l[0], "slots"))) {
             int i = Json.Int(s, "i");
-            string what = (i + 1) + ". " + (Json.Str(s, "type") == "flex" ? L.T("Флекс", "Flex") : L.T("Спрей", "Spray"));
+            string what = (i + 1) + " · " + (Json.Str(s, "type") == "flex" ? L.T("флекс", "flex") : L.T("спрей", "spray"));
             b.Children.Add(Ui.Row(what, Json.Str(s, "name"), "", 0, () => { string spec = "expr:" + i + ":" + pickType + ":" + pickId; pickId = ""; Share.Open("skin", spec); }));
         }
         b.Children.Add(Ui.Row(L.T("Отмена", "Cancel"), "", "", 0, () => { pickId = ""; Ctl.Panel.Refresh(); }));
     }
 
-    // ── титулы: строки ──
+    // ── титулы: строки в две колонки ──
     static void Titles(StackPanel b, List<Dictionary<string, object>> l) {
-        var list = l.FindAll(d => Json.Str(d, "cat") == "title");
-        if (list.Count > 12) FindBox(b);
+        var list = l.FindAll(d => Json.Str(d, "cat") == "title" && Match(d));
+        b.Children.Add(Stage.GridHead(L.T("Твои титулы", "Your titles"), list.Count.ToString()));
+        var g = new UniformGrid { Columns = 2 };
         foreach (var d in list) {
-            if (!Match(d)) continue;
             string id = Json.Str(d, "id");
-            b.Children.Add(Ui.Row(Json.Str(d, "name"), "", Json.Bool(d, "on") ? "✓" : "", Ctl.Green, () => Share.Open("skin", "title:" + id)));
+            g.Children.Add(Ui.Row(Json.Str(d, "name"), "", Json.Bool(d, "on") ? "on" : "", 0, () => Share.Open("skin", "title:" + id)));
         }
+        b.Children.Add(g);
     }
 }

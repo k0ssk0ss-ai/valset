@@ -10,7 +10,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Threading;
 
 class PanelWin : Window {
-    const double Shadow = 14, CardW = 340, Gap = 12, ListMax = 400, SkinsMax = 520;
+    const double Shadow = 14, NarrowW = 380, WideW = 740, WideH = 600, Gap = 12, ListMax = 440;
     public const string Home = "home";
     readonly Border card = new Border();
     readonly Stack<string> nav = new Stack<string>();
@@ -20,15 +20,18 @@ class PanelWin : Window {
     System.Drawing.Rectangle? anchor;   // значок у клиента, пиксели экрана; null — у часов
     public string Page = Home;
     public bool ResetScroll;            // следующая перерисовка — с начала списка (вкладка, поиск)
+    // «Все скины» и всё, что открыто из них (предпросмотр, наборы), — в широком окне 740×600
+    public bool Wide { get { if (Page.StartsWith("skins")) return true; foreach (var p in nav) if (p.StartsWith("skins")) return true; return false; } }
+    double CardW { get { return Wide ? WideW : NarrowW; } }
 
     public PanelWin() {
         WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent;
         ShowInTaskbar = false; Topmost = true; ResizeMode = ResizeMode.NoResize; ShowActivated = true;
-        SizeToContent = SizeToContent.Height; Width = CardW + 2 * Shadow;
-        FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI"); UseLayoutRounding = true;
-        card.Margin = new Thickness(Shadow); card.Background = Ui.Br(0x202020); card.BorderBrush = Ui.Br(0x3A3A3A);
-        card.BorderThickness = new Thickness(1); card.CornerRadius = new CornerRadius(8); card.Padding = new Thickness(16, 12, 16, 14);
-        card.Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 3, Opacity = 0.45, Color = Colors.Black };
+        SizeToContent = SizeToContent.Height; Width = NarrowW + 2 * Shadow;
+        FontFamily = Ui.Sans; UseLayoutRounding = true; TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
+        card.Margin = new Thickness(Shadow); card.Background = Ui.Br(Ui.Bg1); card.BorderBrush = Ui.Line;
+        card.BorderThickness = new Thickness(1); card.CornerRadius = new CornerRadius(12);
+        card.Effect = new DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Direction = 270, Opacity = 0.45, Color = Colors.Black };
         Content = card;
         Deactivated += (s, e) => HidePanel();
         KeyDown += (s, e) => { if (e.Key == Key.Escape) HidePanel(); };
@@ -141,20 +144,41 @@ class PanelWin : Window {
         if (sv != null && card.Child != null && !ResetScroll) keep = sv.VerticalOffset;
         ResetScroll = false;
         Img.BeginPage();
-        var outer = new StackPanel();
-        var body = new StackPanel();
-        if (Page == Home) Pages.Home(body);
+        bool wide = Wide;
+        Width = CardW + 2 * Shadow;
+        if (wide) { SizeToContent = SizeToContent.Manual; Height = WideH + 2 * Shadow; } else SizeToContent = SizeToContent.Height;
+        UIElement root;
+        if (Page.StartsWith("skins")) root = Skins.Frame(out sv);   // своя раскладка: шапка, оружие слева, сцена и сетка (PagesStage.cs)
         else {
-            outer.Children.Add(Header(Pages.Title(Page)));
-            var r = Ui.Result(); if (r != null) outer.Children.Add(r);
-            outer.Children.Add(Ui.Sep(8, 6));
-            Pages.Body(Page, body);
+            var body = new StackPanel();
+            sv = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = body };
+            if (Page == Home) {
+                Pages.Home(body);
+                sv.MaxHeight = Math.Max(400, SystemParameters.WorkArea.Height - 2 * Gap - 2 * Shadow);
+                root = sv;
+            } else {
+                var outer = new DockPanel { Margin = new Thickness(12, 12, 12, 12), LastChildFill = true };
+                var top = new StackPanel();
+                top.Children.Add(Header(Pages.Title(Page)));
+                var r = Ui.Result(); if (r != null) top.Children.Add(r);
+                top.Children.Add(Ui.Sep(8, 4));
+                DockPanel.SetDock(top, Dock.Top); outer.Children.Add(top);
+                Pages.Body(Page, body);
+                if (!wide) sv.MaxHeight = ListMax;
+                outer.Children.Add(sv);
+                root = outer;
+            }
         }
-        sv = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, MaxHeight = Page.StartsWith("skins") ? SkinsMax : ListMax, Content = body };
         var me = sv; sv.ScrollChanged += (s, e) => Img.Scan(me);   // картинки — только видимые
-        outer.Children.Add(sv);
-        card.Child = outer;
+        card.Child = root;
         if (keep > 0) { sv.UpdateLayout(); sv.ScrollToVerticalOffset(keep); }
+    }
+
+    // Кнопка «назад»: значок, наведение — подложка bg3.
+    public Border BackBtn() {
+        var b = new Border { Child = Icons.Make("back", Ui.T2), Width = 28, Height = 28, CornerRadius = new CornerRadius(8), Background = Brushes.Transparent, Padding = new Thickness(6) };
+        Ui.Hover(b, 0, Ui.Bg3, true, Back);
+        return b;
     }
 
     // Шапка страницы: стрелка назад + заголовок.
@@ -162,9 +186,8 @@ class PanelWin : Window {
         var g = new Grid();
         g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         g.ColumnDefinitions.Add(new ColumnDefinition());
-        var back = Ui.Btn("←", 16, 0xE0E0E0, 0, 0x2E2E2E, true, Back, 30, 5); back.Width = 36;
-        g.Children.Add(back);
-        var t = Ui.Tb(title, 16, 0xFFFFFF, FontWeights.SemiBold);
+        g.Children.Add(BackBtn());
+        var t = Ui.Tb1(title, 15, Ui.T1, FontWeights.Medium);
         t.VerticalAlignment = VerticalAlignment.Center; t.Margin = new Thickness(8, 0, 0, 0);
         Grid.SetColumn(t, 1); g.Children.Add(t);
         return g;

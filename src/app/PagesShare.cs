@@ -86,10 +86,10 @@ static class Share {
             : L.T("Насовсем, перед записью — бэкап; «Отменить» — сразу или позже в «Бэкапах».", "Permanent, with a backup first; “Undo” right away or later in Backups.")));
         var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 4) };
         string id = Id();
-        var yes = Ui.Btn(Kind == "pro" ? L.T("Примерить", "Try on") : Kind == "loadout" || Kind == "skin" || Kind == "coll" ? L.T("Надеть", "Put on") : L.T("Записать", "Apply"), 13, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, !Ctl.Busy,
+        var yes = Ui.Pri(Kind == "pro" ? L.T("Примерить", "Try on") : Kind == "loadout" || Kind == "skin" || Kind == "coll" ? L.T("Надеть", "Put on") : L.T("Записать", "Apply"), 13, !Ctl.Busy,
                          () => { Ctl.Panel.Back(); Ctl.DoAction(id, false); }, 32, 6);
         yes.MinWidth = 110;
-        var no = Ui.Btn(L.T("Отмена", "Cancel"), 13, 0xE0E0E0, 0x3A3A3A, 0x484848, true, () => Ctl.Panel.Back(), 32, 6);
+        var no = Ui.Sec(L.T("Отмена", "Cancel"), 13, true, () => Ctl.Panel.Back(), 32, 6);
         no.MinWidth = 80; no.Margin = new Thickness(6, 0, 0, 0);
         r.Children.Add(yes); r.Children.Add(no);
         b.Children.Add(r);
