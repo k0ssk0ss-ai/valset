@@ -55,7 +55,7 @@ static class Share {
 
     // ── Предпросмотр ──
     public static string Title() {
-        return Kind == "pro" ? L.T("Примерить ", "Try on ") + Arg : Kind == "loadout" ? L.T("Надеть набор", "Put on the set") : Kind == "skin" ? L.T("Надеть", "Put on") : L.T("Вставить код", "Paste code");
+        return Kind == "pro" ? L.T("Примерить ", "Try on ") + Arg : Kind == "loadout" ? L.T("Надеть набор", "Put on the set") : Kind == "coll" ? L.T("Надеть коллекцию", "Put on the collection") : Kind == "skin" ? L.T("Надеть", "Put on") : L.T("Вставить код", "Paste code");
     }
 
     public static void Preview(StackPanel b) {
@@ -73,24 +73,39 @@ static class Share {
                 same = Json.Bool(d, "same");
                 string acc = Json.Str(d, "account"), info = Json.Str(d, "info");
                 b.Children.Add(Ui.Note(info + (acc.Length > 0 ? "\n" + L.T("Аккаунт: ", "Account: ") + acc : "")));
+                Pics(b, Json.Dicts(Json.Get(d, "pics")));
             }
         }
         if (!ok) return;
         if (same) { b.Children.Add(Ui.Note(L.T("Уже так — менять нечего.", "Already like this — nothing to change."))); return; }
         if (n == 0) b.Children.Add(Ui.Note(L.T("Отличия только служебные (профили прицела, агентские бинды и т. п.)", "Only internal differences (crosshair profiles, agent binds, etc.)")));
-        b.Children.Add(Ui.Note(Kind == "loadout" || Kind == "skin"
+        b.Children.Add(Ui.Note(Kind == "loadout" || Kind == "skin" || Kind == "coll"
             ? L.T("Перед записью — бэкап; «Отменить» — сразу. В матче — сразу (посреди матча — со следующего); «Коллекция» в игре покажет старое до перезапуска игры.", "A backup first; “Undo” right away. Applies to matches right away (mid-match — from the next one); the in-game Collection shows the old one until the game restarts.")
             : Kind == "pro"
             ? L.T("На время: после игры вернутся исходные; «Отменить» — сразу.", "For now: originals come back after the game; “Undo” works right away.")
             : L.T("Насовсем, перед записью — бэкап; «Отменить» — сразу или позже в «Бэкапах».", "Permanent, with a backup first; “Undo” right away or later in Backups.")));
         var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 4) };
         string id = Id();
-        var yes = Ui.Btn(Kind == "pro" ? L.T("Примерить", "Try on") : Kind == "loadout" || Kind == "skin" ? L.T("Надеть", "Put on") : L.T("Записать", "Apply"), 13, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, !Ctl.Busy,
+        var yes = Ui.Btn(Kind == "pro" ? L.T("Примерить", "Try on") : Kind == "loadout" || Kind == "skin" || Kind == "coll" ? L.T("Надеть", "Put on") : L.T("Записать", "Apply"), 13, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, !Ctl.Busy,
                          () => { Ctl.Panel.Back(); Ctl.DoAction(id, false); }, 32, 6);
         yes.MinWidth = 110;
         var no = Ui.Btn(L.T("Отмена", "Cancel"), 13, 0xE0E0E0, 0x3A3A3A, 0x484848, true, () => Ctl.Panel.Back(), 32, 6);
         no.MinWidth = 80; no.Margin = new Thickness(6, 0, 0, 0);
         r.Children.Add(yes); r.Children.Add(no);
         b.Children.Add(r);
+    }
+
+    // Картинки набора / коллекции перед «Надеть»: скины — полосой, карточка, спреи и флексы — квадратами (Img.cs, только видимые).
+    static void Pics(StackPanel b, System.Collections.Generic.List<System.Collections.Generic.Dictionary<string, object>> pics) {
+        if (pics.Count == 0) return;
+        var w = new WrapPanel { Margin = new Thickness(6, 0, 0, 6) };
+        foreach (var p in pics) {
+            bool gun = Json.Str(p, "t") == "gun";
+            var im = gun ? Img.Make(Json.Str(p, "i"), 96, 30) : Img.Make(Json.Str(p, "i"), 40, 40);
+            im.Margin = new Thickness(0, 0, 8, 6); im.VerticalAlignment = VerticalAlignment.Center;
+            string n = Json.Str(p, "n"); if (n.Length > 0) im.ToolTip = n;
+            w.Children.Add(im);
+        }
+        b.Children.Add(w);
     }
 }

@@ -11,6 +11,8 @@ using System.Windows.Threading;
 static class Sets {
     static TextBox name;           // поле имени живёт между перерисовками панели, иначе набранное пропадёт
     static bool naming;            // открыто поле «Сохранить как набор»
+    static string fromColl = "", fromName = "";   // набор из коллекции (PagesColl.cs): id и имя коллекции
+    const int SetNameMax = 32;
     static string agentFor = "", agentForName = "", agentCur = "";   // страница setagent: какой набор и его агент сейчас
 
     public static void Page(StackPanel b) {
@@ -64,16 +66,18 @@ static class Sets {
                                  Background = Ui.Br(0x2B2B2B), Foreground = Ui.Br(0xFFFFFF), CaretBrush = Ui.Br(0xFFFFFF), BorderBrush = Ui.Br(0x3D8BFD) };
             name.KeyDown += (s, e) => {
                 if (e.Key == Key.Enter) { e.Handled = true; SaveName(); }
-                else if (e.Key == Key.Escape) { e.Handled = true; naming = false; Ctl.Panel.Refresh(); }
+                else if (e.Key == Key.Escape) { e.Handled = true; naming = false; fromColl = ""; name.Text = ""; Ctl.Panel.Refresh(); }
             };
         }
         var p = name.Parent as Panel; if (p != null) p.Children.Remove(name);
-        var lbl = Ui.Tb(L.T("Имя набора", "Set name"), 12, 0x9A9A9A, null); lbl.Margin = new Thickness(10, 4, 10, 0);
+        if (fromColl.Length > 0 && name.Text.Length == 0) name.Text = fromName.Length > SetNameMax ? fromName.Substring(0, SetNameMax) : fromName;
+        string what = fromColl.Length > 0 ? L.T("Имя набора из коллекции «", "Set name from the “") + fromName + L.T("» — в нём только её оружие", "” collection — only its weapons") : L.T("Имя набора", "Set name");
+        var lbl = Ui.Tb(what, 12, 0x9A9A9A, null); lbl.Margin = new Thickness(10, 4, 10, 0);
         b.Children.Add(lbl);
         b.Children.Add(name);
         var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(10, 2, 0, 4) };
         var yes = Ui.Btn(L.T("Сохранить", "Save"), 12.5, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, !Ctl.Busy, SaveName, 28, 5); yes.MinWidth = 90;
-        var no = Ui.Btn(L.T("Отмена", "Cancel"), 12.5, 0xE0E0E0, 0x3A3A3A, 0x484848, true, () => { naming = false; Ctl.Panel.Refresh(); }, 28, 5); no.MinWidth = 70;
+        var no = Ui.Btn(L.T("Отмена", "Cancel"), 12.5, 0xE0E0E0, 0x3A3A3A, 0x484848, true, () => { naming = false; fromColl = ""; name.Text = ""; Ctl.Panel.Refresh(); }, 28, 5); no.MinWidth = 70;
         no.Margin = new Thickness(6, 0, 0, 0);
         r.Children.Add(yes); r.Children.Add(no); b.Children.Add(r);
         var tb = name;
@@ -83,12 +87,18 @@ static class Sets {
     static void SaveName() {
         string t = (name.Text ?? "").Trim();
         if (t.Length == 0 || Ctl.Busy) return;
-        naming = false; name.Text = "";
-        Ctl.DoAction("loadoutsave:" + B64(t), false);   // имя — base64url: без пробелов и кавычек в командной строке
+        string coll = fromColl.Length > 0 ? ":" + fromColl : "";   // набор из коллекции — ядро возьмёт только её оружие
+        naming = false; fromColl = ""; name.Text = "";
+        Ctl.DoAction("loadoutsave:" + B64(t) + coll, false);   // имя — base64url: без пробелов и кавычек в командной строке
     }
 
     // «Сохранить как набор» со страницы «Все скины».
-    public static void StartNaming() { naming = true; if (Ctl.Panel.Page != "sets") Ctl.Panel.Go("sets"); else Ctl.Panel.Refresh(); }
+    public static void StartNaming() { StartNaming("", ""); }
+    // Со страницы коллекции: имя по умолчанию — имя коллекции.
+    public static void StartNaming(string coll, string collName) {
+        fromColl = coll ?? ""; fromName = collName ?? ""; if (name != null) name.Text = "";
+        naming = true; if (Ctl.Panel.Page != "sets") Ctl.Panel.Go("sets"); else Ctl.Panel.Refresh();
+    }
 
     static string B64(string t) { return Convert.ToBase64String(Encoding.UTF8.GetBytes(t)).TrimEnd('=').Replace('+', '-').Replace('/', '_'); }
 

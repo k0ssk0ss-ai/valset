@@ -24,6 +24,7 @@ static class Pages {
             case "sets": return L.T("Скины", "Skins");
             case "setagent": return L.T("Агент для набора", "Agent for the set");
             case "skins": case "skinsgun": return Skins.Title(page);
+            case "skinscoll": return Colls.Name;
             case "help": return L.T("Справка", "Help");
         }
         return "VALSET";
@@ -44,6 +45,7 @@ static class Pages {
             case "setagent": Sets.Agents(b); break;
             case "skins": Skins.Page(b); break;
             case "skinsgun": Skins.Gun(b); break;
+            case "skinscoll": Colls.Page(b); break;
             case "help": Help(b); break;
         }
     }

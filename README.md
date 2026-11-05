@@ -53,7 +53,8 @@ right now (apply, save, restore originals) — usually 1–3 items. Everything e
   notifications with buttons, auto-apply on login. It polls nothing — it waits for Riot Client events.
 - **All skins** (tray panel → Skins → All skins, or the “VALSET · skins” button over the game menu in Windowed
   Fullscreen, or Ctrl+Alt+S in the game menu): everything your account owns, with pictures; pick one — see what changes —
-  put it on (backup + undo).
+  put it on (backup + undo). The Collections tab groups skins by collection (bundle): preview all its weapons, put on
+  every owned skin of a collection at once, or save it as a set.
 
 ## Safety — honestly
 
@@ -100,12 +101,13 @@ src\pros.ps1       “Pro settings”: try a pro's settings for now (list — pr
 src\share.ps1      “Share code”: my settings as one line (VALSET2:…), paste preview and write
 src\sets.ps1       “Skins”: cosmetic sets (save, preview, put on, bind to an agent, auto on agent lock-in)
 src\skins.ps1      “All skins”: owned items by category (valorant-api catalog by game version, entitlements), put one on
+src\collections.ps1  “All skins” → Collections: skins by collection (valorant-api themes), put on a collection, set pictures
 src\loadout.ps1    Riot loadout: region/shard, GET/PUT playerloadout, agent select, item names (valorant-api.com, cached)
 src\cloud.ps1      requests to Riot with retries: growing pause, token lifetime, fresh token from the client
 src\accounts.ps1   accounts by Riot ID, main account, status
 src\agent.ps1      config, toasts, login check (`valset watch`)
 src\app.ps1, src\app\*.cs   tray app (C#, built on your PC); PagesSkins.cs + Img.cs — “All skins” page and lazy
-                   images; Overlay.cs — “VALSET · skins” button over the game menu (own window, no injection)
+                   images; PagesColl.cs — collections and one collection's preview; Overlay.cs — “VALSET · skins” button over the game menu (own window, no injection)
 src\do.ps1         `valset state` / `valset do` — JSON interface for the app
 src\install.ps1    install, uninstall
 install.ps1        one-command installer (no BOM: it runs via irm | iex)

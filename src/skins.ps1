@@ -6,7 +6,7 @@
 # Владение — GET https://pd.{shard}.a.pvp.net/store/v1/entitlements/{puuid} (все типы одним запросом, ItemTypeID ниже).
 # Картинки качает и кэширует приложение (Img.cs), здесь — только адреса media.valorant-api.com.
 
-$CatalogVer = 2   # 2: коллекции (th, themes) и видео (lvv, ch.v) — collections.ps1
+$CatalogVer = 3   # 3: коллекции (th, themes — collections.ps1); у стандартных скинов — картинка оружия
 $EntSkinLevel = 'e7c63390-eda7-46e0-bb7a-a6abdacd2433'   # уровни скинов (ItemID — uuid уровня)
 $EntChroma = '3ad1b2b2-acdb-4524-852f-954a76ddae0a'      # цвета (базовый цвет не выдаётся — он есть у каждого скина)
 $EntBuddy = 'dd3bf334-87f3-40bd-b043-682a57a8dc3a'       # брелоки (ItemID — uuid уровня брелока, у каждого экземпляра свой InstanceID)
@@ -39,11 +39,11 @@ function Get-CatalogFromApi([string]$lang) {
         [ordered]@{ id = "$($w.uuid)".ToLowerInvariant(); name = "$($w.displayName)"; cat = $cat; def = "$($w.defaultSkinUuid)".ToLowerInvariant()
             skins = @(foreach ($k in @($w.skins)) { if ($k.uuid -and @($k.levels).Count) {
                 $ch = @($k.chromas); $i = 0
-                $icon = @($k.displayIcon, $(if ($ch.Count) { $ch[0].displayIcon }), @($k.levels)[0].displayIcon) | Where-Object { $_ } | Select-Object -First 1
+                $def = "$($k.uuid)" -eq "$($w.defaultSkinUuid)"   # у стандартного скина вместо картинки — «X», берём картинку оружия
+                $icon = @($(if ($def) { $w.displayIcon }), $k.displayIcon, $(if ($ch.Count) { $ch[0].displayIcon }), @($k.levels)[0].displayIcon) | Where-Object { $_ } | Select-Object -First 1
                 [ordered]@{ id = "$($k.uuid)".ToLowerInvariant(); name = ("$($k.displayName)" -replace '\s*[\r\n]+\s*', ' ').Trim(); icon = "$icon"; th = "$($k.themeUuid)".ToLowerInvariant()
                     lv = @(foreach ($l in @($k.levels)) { "$($l.uuid)".ToLowerInvariant() })   # по порядку: номер уровня = место в списке
-                    lvv = @(foreach ($l in @($k.levels)) { "$($l.streamedVideo)" })            # видео уровня (valorant.dyn.riotcdn.net) или ''
-                    ch = @(foreach ($c in $ch) { [ordered]@{ id = "$($c.uuid)".ToLowerInvariant(); name = (Get-ChromaLabel "$($c.displayName)" ($i++)); icon = "$(if ($c.displayIcon) { $c.displayIcon } else { $c.fullRender })"; sw = "$($c.swatch)"; v = "$($c.streamedVideo)" } }) } } }) }
+                    ch = @(foreach ($c in $ch) { [ordered]@{ id = "$($c.uuid)".ToLowerInvariant(); name = (Get-ChromaLabel "$($c.displayName)" ($i++)); icon = "$(if ($def) { $w.displayIcon } elseif ($c.displayIcon) { $c.displayIcon } else { $c.fullRender })"; sw = "$($c.swatch)" } }) } } }) }
     })
     $flat = { param($list, $nameOf, $iconOf) @(foreach ($x in $list) { if ($x.uuid) { [ordered]@{ id = "$($x.uuid)".ToLowerInvariant(); name = "$(& $nameOf $x)"; icon = "$(& $iconOf $x)" } } }) }
     [ordered]@{

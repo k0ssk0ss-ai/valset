@@ -39,3 +39,35 @@ static class SelfTest {
         step++;
     }
 }
+
+// VALSET_SELFTEST=coll:<id> (+ VALSET_DEBUG=1): замер памяти на странице коллекции — только чтение (list), без записи.
+// Шаги по 3 с: открыть коллекцию, пролистать до конца (все картинки), замер, скрыть панель, замер.
+static class SelfColl {
+    static string id; static int step; static DispatcherTimer t;
+
+    public static void Start(string coll) {
+        id = coll;
+        t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        t.Tick += (s, e) => Tick();
+        Log("старт");
+        t.Start();
+    }
+
+    static void Log(string what) {
+        GC.Collect(); GC.WaitForPendingFinalizers();
+        using (var p = System.Diagnostics.Process.GetCurrentProcess())
+            Dbg.Log("selfcoll: " + what + " — WS " + (p.WorkingSet64 >> 20) + " МБ, private " + (p.PrivateMemorySize64 >> 20) + " МБ, managed " + (GC.GetTotalMemory(false) >> 20) + " МБ");
+    }
+
+    static void Tick() {
+        try {
+            step++;
+            if (step == 1) { Ctl.Panel.ShowPanel(null); Colls.Open(id, "selftest"); }
+            else if (step >= 2 && step <= 7) { var sv = Ctl.Panel.Scroller; if (sv != null) sv.ScrollToVerticalOffset(sv.VerticalOffset + 300); }
+            else if (step == 8) Log("коллекция открыта, всё пролистано");
+            else if (step == 9) Ctl.Panel.HidePanel();
+            else if (step == 10) { Mem.Trim(); Log("панель скрыта"); }
+            else if (step == 11) { t.Stop(); Dbg.Log("selfcoll: ГОТОВО"); }
+        } catch (Exception e) { Dbg.Log("selfcoll: ИСКЛЮЧЕНИЕ " + e); }
+    }
+}

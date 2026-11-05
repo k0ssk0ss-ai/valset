@@ -15,6 +15,7 @@ class PanelWin : Window {
     readonly Border card = new Border();
     readonly Stack<string> nav = new Stack<string>();
     ScrollViewer sv;
+    public ScrollViewer Scroller { get { return sv; } }   // для самопроверки (SelfTest.cs)
     DateTime hiddenAt = DateTime.MinValue;
     System.Drawing.Rectangle? anchor;   // значок у клиента, пиксели экрана; null — у часов
     public string Page = Home;

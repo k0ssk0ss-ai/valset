@@ -1,5 +1,5 @@
 // PagesSkins.cs — «Все скины»: что есть на аккаунте (ядро — skins.ps1, `list skins`), по вкладкам: оружие → скины
-// с цветом и уровнем, брелоки, спреи, флексы, карточки, титулы. Выбранное — предпросмотр «было → станет» (PagesShare.cs,
+// с цветом и уровнем, коллекции (PagesColl.cs), брелоки, спреи, флексы, карточки, титулы. Выбранное — предпросмотр «было → станет» (PagesShare.cs,
 // вид skin), надеть — кнопкой в нём (бэкап и «Отменить», как у наборов). Картинки — Img.cs, только видимые.
 using System;
 using System.Collections.Generic;
@@ -32,7 +32,7 @@ static class Skins {
         if (OverlayWin.FsMode < 0) OverlayWin.ReadFsMode();
         Hint(b);
         var tabs = new WrapPanel { Margin = new Thickness(0, 0, 0, 6) };
-        foreach (var t in new[] { new[] { "gun", "Оружие", "Weapons" }, new[] { "buddy", "Брелоки", "Buddies" }, new[] { "spray", "Спреи", "Sprays" },
+        foreach (var t in new[] { new[] { "gun", "Оружие", "Weapons" }, new[] { "coll", "Коллекции", "Collections" }, new[] { "buddy", "Брелоки", "Buddies" }, new[] { "spray", "Спреи", "Sprays" },
                                   new[] { "flex", "Флексы", "Flex" }, new[] { "card", "Карточки", "Cards" }, new[] { "title", "Титулы", "Titles" } }) {
             string id = t[0]; bool on = Tab == id;
             var x = Ui.Btn(L.T(t[1], t[2]), 12, on ? 0xFFFFFFu : 0xD0D0D0u, on ? 0x3D8BFDu : 0x2E2E2Eu, on ? 0x5A9DFEu : 0x3A3A3Au, true,
@@ -40,10 +40,13 @@ static class Skins {
             x.Margin = new Thickness(0, 0, 4, 4); tabs.Children.Add(x);
         }
         b.Children.Add(tabs);
-        var l = Data(b); if (l == null) return;
-        if (Tab == "gun") Weapons(b, l);
-        else if (Tab == "title") Titles(b, l);
-        else Tiles(b, l, Tab);
+        if (Tab == "coll") Colls.List(b);   // свой список (collections.ps1), PagesColl.cs
+        else {
+            var l = Data(b); if (l == null) return;
+            if (Tab == "gun") Weapons(b, l);
+            else if (Tab == "title") Titles(b, l);
+            else Tiles(b, l, Tab);
+        }
         b.Children.Add(Ui.Sep(8, 4));
         b.Children.Add(Ui.Row(L.T("Сохранить текущие как набор", "Save current as a set"), L.T("всё, что надето сейчас, — в «Скины»", "everything on now — to Skins"), "", 0, Sets.StartNaming));
     }
@@ -63,7 +66,7 @@ static class Skins {
     }
 
     // ── поиск ──
-    static void FindBox(StackPanel b) {
+    public static void FindBox(StackPanel b) {
         if (find == null) {
             find = new TextBox { FontSize = 13, Padding = new Thickness(6, 3, 6, 3), Margin = new Thickness(0, 0, 0, 6),
                                  Background = Ui.Br(0x2B2B2B), Foreground = Ui.Br(0xFFFFFF), CaretBrush = Ui.Br(0xFFFFFF), BorderBrush = Ui.Br(0x444444) };
@@ -75,8 +78,10 @@ static class Skins {
         if (typing) { var tb = find; tb.Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => { tb.Focus(); Keyboard.Focus(tb); tb.CaretIndex = tb.Text.Length; })); }
     }
 
+    public static string Query() { return find != null ? find.Text.Trim() : ""; }
+
     static bool Match(Dictionary<string, object> d) {
-        string q = find != null ? find.Text.Trim() : "";
+        string q = Query();
         return q.Length == 0 || Json.Str(d, "name").IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 

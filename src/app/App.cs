@@ -115,7 +115,9 @@ static class Ctl {
         RefreshState();
         Events.Start();
         if (arg.Length > 0) Handle(arg);
-        if (Environment.GetEnvironmentVariable("VALSET_SELFTEST") == "1") SelfTest.Start();
+        string selfArg = Environment.GetEnvironmentVariable("VALSET_SELFTEST") ?? "";
+        if (selfArg == "1") SelfTest.Start();
+        else if (selfArg.StartsWith("coll:")) SelfColl.Start(selfArg.Substring(5));   // замер памяти: коллекция с картинками
     }
 
     static bool exiting;

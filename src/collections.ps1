@@ -1,15 +1,13 @@
 ﻿# collections.ps1 — «Все скины» → «Коллекции»: скины по коллекциям (valorant-api: themeUuid скина → /v1/themes).
-# Свои скины коллекции — ярко, чужие — для справки (надеть нельзя). Предпросмотр коллекции: картинки цветов, видео
-# уровней и цветов (адреса valorant.dyn.riotcdn.net; играет приложение — Vid.cs, только по клику).
+# Свои скины коллекции — ярко, чужие — для справки (надеть нельзя). Предпросмотр коллекции: картинки оружия
+# и его цветов (картинки качает приложение — Img.cs).
 # «Надеть коллекцию» — свои скины коллекции на их оружие: предпросмотр «было → станет», бэкап, отмена (sets.ps1).
 # «Сохранить как набор» — набор только из оружия коллекции (остальное при надевании не меняется).
 # Картинки набора в предпросмотре «Надеть набор» — Get-SetPics.
 
 $ThemeRandom = '0d7a5bfb-4850-098e-1821-d989bbfd58a8'   # «Random Favorite Skin» — не коллекция
-$VideoHost = 'https://valorant.dyn.riotcdn.net/'
 
 function Test-Guid([string]$t) { $t -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' }
-function Get-VideoUrl([string]$u) { if ($u.StartsWith($VideoHost, [StringComparison]::OrdinalIgnoreCase)) { $u } else { '' } }
 
 # Оружие в порядке игры (пистолеты → ножи), внутри — по имени.
 function Get-SortedWeapons($cat) {
@@ -76,7 +74,7 @@ function Get-CollGuns($t, $lo, $own) {
 }
 
 # `valset list collection:<id>`: первый элемент — коллекция и аккаунт; дальше скины { w, wn, id, name, icon, own, on, gun,
-# lv: [{ n, own, v }], ch: [{ id, name, icon, own, v }] } — v: адрес видео или ''.
+# lv: [{ n, own }], ch: [{ id, name, icon, own }] }.
 function Get-ListCollection([string]$id) {
     try {
         $s = Connect-Session
@@ -90,10 +88,10 @@ function Get-ListCollection([string]$id) {
             $mine = [bool]$o; if ($mine) { $n++ }
             $ol = @{}; $oc = @{}
             if ($o) { foreach ($l in @($o.lv)) { $ol[$l.id] = $true }; foreach ($c in @($o.ch)) { $oc[$c.id] = $true } }
-            $vv = @($k.lvv); $i = 0
+            $i = 0
             [ordered]@{ w = $x.w.id; wn = "$($x.w.name)"; id = $k.id; name = "$($k.name)"; icon = "$($k.icon)"; own = $mine; on = [bool]($o -and $o.on); gun = [bool]$g
-                lv = @(foreach ($l in @($k.lv)) { [ordered]@{ n = $i + 1; own = [bool]$ol[$l]; v = (Get-VideoUrl "$(if ($i -lt $vv.Count) { $vv[$i] })") }; $i++ })
-                ch = @(foreach ($c in @($k.ch)) { [ordered]@{ id = $c.id; name = "$($c.name)"; icon = "$($c.icon)"; own = [bool]$oc[$c.id]; v = (Get-VideoUrl "$($c.v)") } }) }
+                lv = @(foreach ($l in @($k.lv)) { [ordered]@{ n = $i + 1; own = [bool]$ol[$l] }; $i++ })
+                ch = @(foreach ($c in @($k.ch)) { [ordered]@{ id = $c.id; name = "$($c.name)"; icon = "$($c.icon)"; own = [bool]$oc[$c.id] } }) }
         })
         $put = @(Get-CollGuns $t $lo $own).Count
         , (@([ordered]@{ info = ''; account = (Get-AccountLabel $s.Puuid); name = $t.name; n = $rows.Count; own = $n; put = $put }) + $rows)
