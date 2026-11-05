@@ -79,7 +79,10 @@ static class Colls {
             save.Margin = new Thickness(0, 0, 8, 0); ctl.Children.Add(save);
             ctl.Children.Add(Ui.Pri(L.T("Надеть коллекцию", "Put on the collection"), 13, !Ctl.Busy, () => Share.Open("coll", Id), 32, 8));
         }
-        b.Children.Add(Stage.Make(168, Json.Str(info, "bn"), null, L.T("КОЛЛЕКЦИЯ", "COLLECTION"), false, Stage.Info(Name, sub), ctl));
+        string bn = Json.Str(info, "bn");
+        UIElement hero = null;   // баннера нет — на сцене первый свой скин коллекции
+        if (bn.Length == 0) for (int i = 1; i < l.Count && hero == null; i++) if (Json.Bool(l[i], "own")) hero = Img.Make(Json.Str(l[i], "icon"), 300, 80);
+        b.Children.Add(Stage.Make(168, bn, hero, L.T("КОЛЛЕКЦИЯ", "COLLECTION"), false, Stage.Info(Name, sub), ctl));
         if (put == 0) b.Children.Add(Ui.Note(own > 0 ? L.T("Свои скины этой коллекции — на оружии, которого нет в лоадауте", "Your skins from this collection are for weapons not in the loadout")
                                                      : L.T("Из этой коллекции на аккаунте ничего нет — только посмотреть", "Nothing from this collection on the account — view only")));
         else if (own < n) b.Children.Add(Ui.Note(L.T("Тусклые — для справки, надеть нельзя", "Dim ones are for reference, can't be put on")));
@@ -103,7 +106,7 @@ static class Colls {
         g.Children.Add(big);
         var sp = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         var head = new StackPanel { Orientation = Orientation.Horizontal };
-        head.Children.Add(Ui.Tb1(nm, 13, own ? Ui.T1 : Ui.T2, FontWeights.Medium));
+        head.Children.Add(Ui.Tb1(Skins.Short(nm, Json.Str(d, "wn")), 13, own ? Ui.T1 : Ui.T2, FontWeights.Medium));
         if (on) { var dot = Ui.Dot(Ui.Acc, 6); dot.Margin = new Thickness(8, 0, 0, 0); head.Children.Add(dot); }
         sp.Children.Add(head);
         string sub = Json.Str(d, "wn") + " · " + (!own ? L.T("нет на аккаунте", "not on the account") : on ? L.T("надет", "on") : L.T("есть", "owned"));

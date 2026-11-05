@@ -17,14 +17,23 @@ static class Stage {
         var bar = new Border { Child = top, Height = 52, Padding = new Thickness(12, 0, 16, 0), BorderBrush = Ui.Line, BorderThickness = new Thickness(0, 0, 0, 1) };
         DockPanel.SetDock(bar, Dock.Top); root.Children.Add(bar);
         if (rail != null) {
-            var rs = new ScrollViewer { Content = rail, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-            var rb = new Border { Child = rs, Width = RailW, BorderBrush = Ui.Line, BorderThickness = new Thickness(0, 0, 1, 0) };
+            var rb = new Border { Child = rail, Width = RailW, BorderBrush = Ui.Line, BorderThickness = new Thickness(0, 0, 1, 0) };
             DockPanel.SetDock(rb, Dock.Left); root.Children.Add(rb);
         }
         body = new StackPanel { Margin = new Thickness(16) };
         pane = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         root.Children.Add(pane);
         return root;
+    }
+
+    // Список слева: прокручиваемые строки, внизу — закреплённая строка (foot).
+    public static UIElement Rail(StackPanel rows, UIElement foot) {
+        var d = new DockPanel();
+        var fb = new Border { Child = foot, BorderBrush = Ui.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(8) };
+        DockPanel.SetDock(fb, Dock.Bottom); d.Children.Add(fb);
+        rows.Margin = new Thickness(8);
+        d.Children.Add(new ScrollViewer { Content = rows, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        return d;
     }
 
     // Шапка: назад, заголовок, сегменты, поиск справа.
@@ -76,8 +85,10 @@ static class Stage {
     }
 
     // ── сцена ──
-    // banner — картинка коллекции (нет — тёмная сцена); hero — картинка скина; info — имя и подпись; controls — справа внизу.
-    public static UIElement Make(double h, string banner, UIElement hero, string tag, bool equipped, UIElement info, UIElement controls) {
+    // banner — картинка коллекции (нет — тёмная сцена); hero — картинка скина; info — имя и подпись; controls — справа внизу;
+    // chips — цвета и уровни: строкой над подписью, справа.
+    public static UIElement Make(double h, string banner, UIElement hero, string tag, bool equipped, UIElement info, UIElement controls) { return Make(h, banner, hero, tag, equipped, info, controls, null); }
+    public static UIElement Make(double h, string banner, UIElement hero, string tag, bool equipped, UIElement info, UIElement controls, UIElement chips) {
         var g = new Grid { Height = h, ClipToBounds = true };
         var bg = new RadialGradientBrush { Center = new Point(0.5, 1), GradientOrigin = new Point(0.5, 1), RadiusX = 1.2, RadiusY = 0.9 };
         bg.GradientStops.Add(new GradientStop(Color.FromRgb(0x2A, 0x2C, 0x2F), 0)); bg.GradientStops.Add(new GradientStop(Color.FromRgb(0x1A, 0x1B, 0x1D), 0.55)); bg.GradientStops.Add(new GradientStop(Color.FromRgb(0x14, 0x15, 0x16), 1));
@@ -97,7 +108,7 @@ static class Stage {
             g.Children.Add(new Ellipse { Height = 22, Fill = floor, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(64, 0, 64, 52) });
             var fe = hero as FrameworkElement;
             if (fe != null) {
-                fe.HorizontalAlignment = HorizontalAlignment.Center; fe.VerticalAlignment = VerticalAlignment.Center; fe.Margin = new Thickness(0, 0, 0, 30);
+                fe.HorizontalAlignment = HorizontalAlignment.Center; fe.VerticalAlignment = VerticalAlignment.Center; fe.Margin = new Thickness(0, 0, 0, 44);
                 fe.Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 10, Direction = 270, Opacity = 0.55, Color = Colors.Black };
             }
             g.Children.Add(hero);
@@ -116,6 +127,8 @@ static class Stage {
         if (controls != null) { DockPanel.SetDock(controls, Dock.Right); bottom.Children.Add(controls); }
         if (info != null) bottom.Children.Add(info);
         g.Children.Add(bottom);
+        var ce = chips as FrameworkElement;
+        if (ce != null) { ce.HorizontalAlignment = HorizontalAlignment.Right; ce.VerticalAlignment = VerticalAlignment.Bottom; ce.Margin = new Thickness(0, 0, 16, 58); g.Children.Add(ce); }
         var frame = new Border { Child = g, CornerRadius = new CornerRadius(12), BorderBrush = Ui.Line, BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 0, 16) };
         g.SizeChanged += (s, e) => g.Clip = new RectangleGeometry(new Rect(e.NewSize), 11, 11);
         return frame;

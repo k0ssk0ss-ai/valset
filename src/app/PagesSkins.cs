@@ -70,7 +70,7 @@ static class Skins {
 
     // Слева: оружие из лоадаута со счётчиком своих скинов, внизу — «Коллекции».
     static UIElement Rail(List<Dictionary<string, object>> l, bool collPage) {
-        var sp = new StackPanel { Margin = new Thickness(8) };
+        var sp = new StackPanel();
         var count = new Dictionary<string, int>();
         foreach (var d in l) if (Json.Str(d, "cat") == "skin") { string w = Json.Str(d, "w"); int n; count.TryGetValue(w, out n); count[w] = n + 1; }
         Pick(l);
@@ -83,15 +83,14 @@ static class Skins {
                 Ctl.Panel.Refresh();
             }));
         }
-        sp.Children.Add(Ui.Sep(8, 8));
         var cl = Lists.Peek("collections"); int own = 0;
         if (cl != null) foreach (var c in cl) if (Json.Int(c, "own") > 0) own++;
-        sp.Children.Add(Stage.RailRow(L.T("Коллекции", "Collections"), own > 0 ? own.ToString() : "", Tab == "coll" || collPage, Ui.T2, () => {
+        var foot = Stage.RailRow(L.T("Коллекции", "Collections"), own > 0 ? own.ToString() : "", Tab == "coll" || collPage, Ui.T2, () => {
             if (collPage) { Tab = "coll"; Ctl.Panel.Back(); return; }
             if (Tab == "coll") return;
             Tab = "coll"; find.Text = ""; typing = false; Ctl.Panel.ResetScroll = true; Ctl.Panel.Refresh();
-        }));
-        return sp;
+        });
+        return Stage.Rail(sp, foot);
     }
 
     // Оружие по умолчанию — Vandal (или первое в лоадауте).
@@ -136,13 +135,22 @@ static class Skins {
         var g = new UniformGrid { Columns = 4, Margin = new Thickness(-4, 0, -4, 0) };
         foreach (var d in list) {
             var x = d;
-            g.Children.Add(Stage.Cell(Json.Str(d, "icon"), 104, 40, Json.Str(d, "name"), d == sel, Json.Bool(d, "on"), 1, () => { Select(x); Ctl.Panel.Refresh(); }));
+            g.Children.Add(Stage.Cell(Json.Str(d, "icon"), 104, 40, Short(Json.Str(d, "name")), d == sel, Json.Bool(d, "on"), 1, () => { Select(x); Ctl.Panel.Refresh(); }));
         }
         b.Children.Add(g);
         if (list.Count == 0 && Query().Length > 0) b.Children.Add(Ui.Note(L.T("Ничего не нашлось", "Nothing found")));
         var save = Ui.Sec(L.T("Сохранить надетое как набор", "Save what's on as a set"), 12, !Ctl.Busy, Sets.StartNaming, 30, 8);
         save.HorizontalAlignment = HorizontalAlignment.Left; save.Margin = new Thickness(0, 12, 0, 0);
         b.Children.Add(save);
+    }
+
+    // «Vandal "Прайм"» → «Прайм»: имя оружия и так в заголовке.
+    static string Short(string name) { return Short(name, gunName); }
+    public static string Short(string name, string gun) {
+        string s = name;
+        if (gun.Length > 0 && s.StartsWith(gun + " ", StringComparison.OrdinalIgnoreCase)) s = s.Substring(gun.Length + 1).Trim();
+        s = s.Trim('"', '«', '»', '“', '”', ' ');
+        return s.Length > 0 ? s : name;
     }
 
     // На сцену: надетый — его уровень и цвет; иначе — старший свой уровень и первый цвет.
@@ -167,7 +175,8 @@ static class Skins {
             string th = Json.Str(d, "thn");
             if (th.Length > 0) sub += (sub.Length > 0 ? " · " : "") + L.T("коллекция «", "collection “") + th + L.T("»", "”");
         }
-        var ctl = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(12, 0, 0, 0) };
+        var chips = new StackPanel { Orientation = Orientation.Horizontal };
+        var ctl = chips;
         if (ch.Count > 1) foreach (var c in ch) {
             string cid = Json.Str(c, "id");
             ctl.Children.Add(Stage.Chip(Img.Make(Json.Str(c, "sw"), 24, 24), cid == selCh, Json.Str(c, "name"), () => { selCh = cid; Ctl.Panel.Refresh(); }));
@@ -178,9 +187,9 @@ static class Skins {
         }
         bool on = Json.Bool(d, "on"), same = on && selLv == Json.Str(d, "curLv") && selCh == Json.Str(d, "curCh");
         var put = Ui.Pri(L.T("Надеть", "Put on"), 13, !Ctl.Busy && !same, () => Share.Open("skin", "gun:" + gunId + ":" + id + ":" + selLv + ":" + selCh), 32, 8);
-        put.Margin = new Thickness(2, 0, 0, 0); ctl.Children.Add(put);
+        put.Margin = new Thickness(12, 0, 0, 0); put.VerticalAlignment = VerticalAlignment.Bottom;
         string tag = gunName.ToUpperInvariant() + " · " + (idx + 1) + L.T(" из ", " of ") + n;
-        return Stage.Make(236, Json.Str(d, "bn"), hero, tag, on, Stage.Info(Json.Str(d, "name"), sub), ctl);
+        return Stage.Make(236, Json.Str(d, "bn"), hero, tag, on, Stage.Info(Short(Json.Str(d, "name")), sub), put, chips.Children.Count > 0 ? chips : null);
     }
 
     // ── брелоки, спреи, флексы, карточки: сетка ──

@@ -106,8 +106,9 @@ src\loadout.ps1    Riot loadout: region/shard, GET/PUT playerloadout, agent sele
 src\cloud.ps1      requests to Riot with retries: growing pause, token lifetime, fresh token from the client
 src\accounts.ps1   accounts by Riot ID, main account, status
 src\agent.ps1      config, toasts, login check (`valset watch`)
-src\app.ps1, src\app\*.cs   tray app (C#, built on your PC); PagesSkins.cs + Img.cs — “All skins” page and lazy
-                   images; PagesColl.cs — collections and one collection's preview; Overlay.cs — “VALSET · skins” button over the game menu (own window, no injection)
+src\app.ps1, src\app\*.cs   tray app (C#, built on your PC); Ui.cs + UiIcons.cs — design tokens, shared controls,
+                   line icons; PagesHome.cs — main flyout; PagesSkins.cs + PagesStage.cs + Img.cs — “All skins” window (rail,
+                   stage, grid) and lazy images; PagesColl.cs — collections and one collection's preview; Overlay.cs — “VALSET · skins” button over the game menu (own window, no injection)
 src\do.ps1         `valset state` / `valset do` — JSON interface for the app
 src\install.ps1    install, uninstall
 install.ps1        one-command installer (no BOM: it runs via irm | iex)
