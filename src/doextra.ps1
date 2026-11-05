@@ -5,10 +5,11 @@
 
 $SetBools = [ordered]@{ notify = 'Уведомления|Notifications'; autoApply = 'Автоперенос|Auto-apply'; badge = 'Значок у клиента|Badge at the client'
                         app = 'Приложение в автозапуске|App at startup'; tempAuto = 'Автовозврат исходных|Auto-restore of originals'; gfxAll = 'Графика во все аккаунты ПК|Graphics to all PC accounts'
-                        autoAsked = 'Вопрос про автоперенос|Auto-apply question'; setsAuto = 'Скины при выборе агента|Skins on agent select' }
+                        autoAsked = 'Вопрос про автоперенос|Auto-apply question'; setsAuto = 'Скины при выборе агента|Skins on agent select'
+                        overlay = 'Кнопка поверх игры|Button over the game'; overlayHint = 'Подсказка про кнопку поверх игры|Overlay button hint' }
 
 function Test-ExtraAction([string]$a) {
-    $a -in 'gfxsave', 'share', 'loadoutauto' -or $a -match '^loadout(save|bind|del)?:.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
+    $a -in 'gfxsave', 'share', 'loadoutauto' -or $a -match '^(loadout(save|bind|del)?|skin):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
 }
 
 function Write-UndoExtra([string]$kind, $data) {
@@ -146,6 +147,7 @@ function Invoke-DoExtra([string]$action, $r) {
         '^loadoutsave:(.+)$' { Invoke-SetSave (ConvertFrom-B64Url $Matches[1]) }
         '^loadoutbind:([^:]+):(.+)$' { Invoke-SetBind $Matches[1] $Matches[2] }
         '^loadoutdel:(.+)$' { Invoke-SetDelete $Matches[1] }
+        '^skin:(.+)$'    { Invoke-SkinApply $Matches[1] }   # «Все скины» — skins.ps1
         '^code:(.+)$'    { Invoke-DoCode $Matches[1] }
         '^pro:(.+)$'     { Invoke-DoPro $Matches[1] $r }
         '^restore:(.+)$' { Invoke-DoRestore $Matches[1] }

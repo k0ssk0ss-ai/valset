@@ -358,7 +358,7 @@ try {
     $prof0 = Get-Content $ProfilePath -Raw -Encoding UTF8
     $stJ = Get-StateJson
     $stO = $stJ | ConvertFrom-Json
-    $want = 'client game account puuid isMain have same diff diffList temp own pending synced suggested autoApply askAuto notify badge setsAuto lang error' -split ' '
+    $want = 'client game account puuid isMain have same diff diffList temp own pending synced suggested autoApply askAuto notify badge setsAuto overlay overlayHint lang error' -split ' '
     Check 'state: одна строка JSON с полями контракта' ($stJ -notmatch "[\r\n]" -and (($stO.PSObject.Properties.Name | Sort-Object) -join ' ') -eq (($want | Sort-Object) -join ' ')) $stJ.Substring(0, [Math]::Min(200, $stJ.Length))
     Check 'state: own = false на чужом, true на основном' ($stO.own -eq $false) $stJ
 Check 'state: чужой аккаунт — предлагает apply' ($stO.puuid -eq $tp -and $stO.account -eq 'Тест#EU' -and -not $stO.isMain -and $stO.have -and $stO.same -eq $false -and $stO.diff -ge 1 -and $stO.diffList.Count -ge 1 -and $stO.suggested -eq 'apply' -and $stO.lang -eq 'ru' -and $stO.badge -and $stO.error -eq '')
@@ -520,6 +520,7 @@ Check 'state: чужой аккаунт — предлагает apply' ($stO.pu
     if ($baseKeep) { Set-SessionBase $tp $baseKeep.json $baseKeep.scope } else { Clear-SessionBase $tp }
 
     . "$PSScriptRoot\test-sets.ps1"   # наборы косметики
+    . "$PSScriptRoot\test-skins.ps1"  # «Все скины»
     # откат аккаунта из бэкапа
     $bk2 = New-Backup $script:sess '{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.31}]}'
     $id2 = [IO.Path]::GetFileNameWithoutExtension($bk2)

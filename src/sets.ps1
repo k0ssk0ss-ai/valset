@@ -182,15 +182,22 @@ function Invoke-SetApply([string]$id, $s = $null) {
     $set = Find-Set $id
     if (-not $s) { $s = Connect-Session }
     $cur = Get-Loadout $s
-    $new = Join-SetLoadout $cur $set
-    $n = (Compare-Loadout $cur $new (Get-CosmeticNames)).Count
+    $n = (Write-LoadoutChange $s $cur (Join-SetLoadout $cur $set) "набор «$($set.name)»").Count
     if (-not $n) { return (L "Набор «$($set.name)» уже надет" "Set `“$($set.name)`” is already on") }
+    L "Набор «$($set.name)» надет: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Set `“$($set.name)`” on: $n change$(if ($n -ne 1) { 's' })"
+}
+
+# Записать новый лоадаут: точка отмены (в `valset do`), бэкап, PUT. Возвращает строки «было → станет»; пусто — менять нечего.
+# Общая для наборов и «Всех скинов» (skins.ps1).
+function Write-LoadoutChange($s, $cur, $new, [string]$what) {
+    $rows = Compare-Loadout $cur $new (Get-CosmeticNames)
+    if (-not $rows.Count) { return }
     $curJson = ConvertTo-Json -InputObject $cur -Depth 10 -Compress
     if ($script:UndoAction) { Write-UndoExtra 'loadout' ([ordered]@{ puuid = $s.Puuid; loadout = $curJson }) }
     $bk = New-LoadoutBackup $s $curJson
     $null = Set-Loadout $s (ConvertTo-LoadoutBody $new)
-    Log "набор «$($set.name)» → $(Get-AccountLabel $s.Puuid): $n изм., бэкап $(Split-Path $bk -Leaf)"
-    L "Набор «$($set.name)» надет: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Set `“$($set.name)`” on: $n change$(if ($n -ne 1) { 's' })"
+    Log "$what → $(Get-AccountLabel $s.Puuid): $($rows.Count) изм., бэкап $(Split-Path $bk -Leaf)"
+    , $rows
 }
 
 # Откат точки отмены 'loadout' (из Restore-UndoExtra): прежний лоадаут целиком.
