@@ -33,7 +33,7 @@ function ConvertTo-StateObject($st) {
         temp = [bool]($p -and (Test-Temp $p)); own = [bool]($p -and -not (Test-TempDefault $p)); pending = $pending
         synced = @($st.Synced | Where-Object { $_ } | ForEach-Object { "$_" })
         suggested = (Get-SuggestedId $st)
-        autoApply = [bool]$c.autoApply; askAuto = [bool](-not $c.autoApply -and -not $c.autoAsked); notify = [bool]$c.notify; badge = [bool]$c.badge
+        autoApply = [bool]$c.autoApply; askAuto = [bool](-not $c.autoApply -and -not $c.autoAsked); notify = [bool]$c.notify; badge = [bool]$c.badge; setsAuto = [bool]$c.setsAuto
         lang = $script:Lang; error = "$($st.Error)"
     }
 }
@@ -72,7 +72,7 @@ function Save-UndoPoint([string]$kind, [string]$puuid, $json = $null) {
 function Invoke-Undo {
     if (-not (Test-Path $LastActionPath)) { throw (L 'Нечего отменять.' 'Nothing to undo.') }
     $a = Get-Content $LastActionPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($a.kind -in 'history', 'files') { Restore-UndoExtra $a }
+    if ($a.kind -in 'history', 'files', 'loadout') { Restore-UndoExtra $a }
     elseif ($a.kind -eq 'account') {
         $s = Connect-Session
         if ($s.Puuid -ne $a.puuid) { throw (L "Отменить можно только в том аккаунте, где было действие ($(Get-AccountLabel $a.puuid))." "Undo works only on the account where it happened ($(Get-AccountLabel $a.puuid)).") }
@@ -105,7 +105,7 @@ function Invoke-Do([string]$action) {
     try {
         $writes = 'apply', 'binds', 'applyperm', 'save', 'savebinds', 'untemp'
         if ($action -notin ($writes + 'undo') -and -not (Test-ExtraAction $action)) { throw (L "неизвестное действие: $action" "unknown action: $action") }
-        if ($action -notin 'undo', 'share') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
+        if ($action -notin 'undo', 'share', 'loadoutauto') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
         $msg = $null
         switch ($action) {
             { $_ -in 'apply', 'binds', 'applyperm' } {

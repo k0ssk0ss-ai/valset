@@ -142,11 +142,11 @@ static class ValsetAgent {
 function Get-Config {
     # autoApply/notify — помощник только по личному выбору; gfxAll — писать графику во все аккаунты ПК ($null — ещё не спрашивали)
     # app — трей-приложение (заменяет сторожа), badge — значок у окна клиента Riot; оба включены по умолчанию
-    $c = [pscustomobject]@{ autoApply = $false; autoAsked = $false; notify = $false; gfxAll = $null; tempAuto = $null; lang = ''; dpi = 0; app = $true; badge = $true }
+    $c = [pscustomobject]@{ autoApply = $false; autoAsked = $false; notify = $false; gfxAll = $null; tempAuto = $null; lang = ''; dpi = 0; app = $true; badge = $true; setsAuto = $false }
     if (Test-Path $ConfigPath) {
         try {
             $j = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
-            foreach ($k in 'autoApply', 'autoAsked', 'notify', 'gfxAll', 'tempAuto', 'app', 'badge') { if ($null -ne $j.$k) { $c.$k = [bool]$j.$k } }
+            foreach ($k in 'autoApply', 'autoAsked', 'notify', 'gfxAll', 'tempAuto', 'app', 'badge', 'setsAuto') { if ($null -ne $j.$k) { $c.$k = [bool]$j.$k } }
             if ($j.lang -in 'ru', 'en') { $c.lang = $j.lang }
             if ($j.dpi -as [int]) { $c.dpi = [int]$j.dpi }
         } catch {}

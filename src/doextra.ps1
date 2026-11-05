@@ -1,14 +1,14 @@
 ﻿# doextra.ps1 — остальные действия `valset do` для панели: gfxsave, share, code:<код> (share.ps1), pro:<ник>, restore:<id>, history:<id>,
-# set:<ключ>=<значение>, account:<puuid>:<действие>. Каждое пишущее оставляет точку отмены (last-action.json).
+# set:<ключ>=<значение>, account:<puuid>:<действие>, loadout…: (sets.ps1). Каждое пишущее оставляет точку отмены (last-action.json).
 # Виды точек: account / profile — см. do.ps1; history — прежние твои настройки лежат в истории (data = имя папки);
-# files — прежнее содержимое файлов (config.json, accounts.json).
+# files — прежнее содержимое файлов (config.json, accounts.json, loadouts\sets.json); loadout — прежний лоадаут аккаунта.
 
 $SetBools = [ordered]@{ notify = 'Уведомления|Notifications'; autoApply = 'Автоперенос|Auto-apply'; badge = 'Значок у клиента|Badge at the client'
                         app = 'Приложение в автозапуске|App at startup'; tempAuto = 'Автовозврат исходных|Auto-restore of originals'; gfxAll = 'Графика во все аккаунты ПК|Graphics to all PC accounts'
-                        autoAsked = 'Вопрос про автоперенос|Auto-apply question' }
+                        autoAsked = 'Вопрос про автоперенос|Auto-apply question'; setsAuto = 'Скины при выборе агента|Skins on agent select' }
 
 function Test-ExtraAction([string]$a) {
-    $a -in 'gfxsave', 'share' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
+    $a -in 'gfxsave', 'share', 'loadoutauto' -or $a -match '^loadout(save|bind|del)?:.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
 }
 
 function Write-UndoExtra([string]$kind, $data) {
@@ -22,7 +22,8 @@ function Save-UndoFiles([string[]]$paths) {
 
 # Откат точек history / files (вызывается из Invoke-Undo).
 function Restore-UndoExtra($a) {
-    if ($a.kind -eq 'history') {
+    if ($a.kind -eq 'loadout') { Restore-LoadoutUndo $a }
+    elseif ($a.kind -eq 'history') {
         New-HistoryPoint (L 'до «Отменить»' 'before “Undo”')
         if ($a.data) {
             $dir = Join-Path $HistoryDir $a.data
@@ -140,6 +141,11 @@ function Invoke-DoExtra([string]$action, $r) {
             L 'Графика сохранена' 'Graphics saved'
         }
         '^share$'        { Invoke-DoShare $r }
+        '^loadoutauto$'  { Invoke-DoLoadoutAuto $r }   # наборы косметики — sets.ps1
+        '^loadout:(.+)$' { Invoke-SetApply $Matches[1] }
+        '^loadoutsave:(.+)$' { Invoke-SetSave (ConvertFrom-B64Url $Matches[1]) }
+        '^loadoutbind:([^:]+):(.+)$' { Invoke-SetBind $Matches[1] $Matches[2] }
+        '^loadoutdel:(.+)$' { Invoke-SetDelete $Matches[1] }
         '^code:(.+)$'    { Invoke-DoCode $Matches[1] }
         '^pro:(.+)$'     { Invoke-DoPro $Matches[1] $r }
         '^restore:(.+)$' { Invoke-DoRestore $Matches[1] }
