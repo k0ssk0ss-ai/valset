@@ -21,7 +21,7 @@ static class Sets {
                                    "Lock in an agent and its set goes on for that match. A set put on mid-match shows from the next match.")));
         if (naming) NameBox(b);
         else b.Children.Add(Ui.Row(L.T("Сохранить текущие как набор", "Save current as a set"),
-            L.T("скины с цветом и уровнем, брелоки, спреи, карточка, титул, рамка", "skins with variant and level, buddies, sprays, card, title, border"), "", 0,
+            L.T("скины с цветом и уровнем, брелоки, спреи и флексы, карточка, титул, рамка", "skins with variant and level, buddies, sprays and flex, card, title, border"), "", 0,
             () => { naming = true; Ctl.Panel.Refresh(); }));
         b.Children.Add(Ui.Sep(6, 6));
         var l = PagesLists.Load("loadouts", b); if (l == null) return;

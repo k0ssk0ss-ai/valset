@@ -9,12 +9,16 @@ $script:CosNames = @{ lang = 'ru'; Levels = @{ (G 'lvlb0004') = 4; (G 'lvla0001'
                (G 'buddy001') = 'Брелок-кот'; (G 'spray001') = 'Спрей «Ура»'; (G 'spray002') = 'Спрей «Ой»'; (G 'card0001') = 'Карта 1'; (G 'card0002') = 'Карта 2'
                (G 'title001') = 'Титул 1' }
     Agents = @([pscustomobject]@{ id = (G 'ae000001'); name = 'Jett' }, [pscustomobject]@{ id = (G 'ae000002'); name = 'Sage' }) }
+# Лоадаут v3 (как GET .../personalization/v3/.../playerloadout, 13.09): брелок — в Attachments (формат элемента не измерен,
+# здесь условный), спреи и флексы — ActiveExpressions; полей v2 (Sprays, Charm*) нет.
+$tSpray = 'd5f120f8-ff8c-4aac-92ea-f2b5acbe9475'; $tFlex = '03a572de-4234-31ed-d344-ababa488f981'
 function New-Lo($skin, $lvl, $chroma, $buddy, $spray, $card) {
-    $gun = [ordered]@{ ID = $gV; SkinID = $skin; SkinLevelID = $lvl; ChromaID = $chroma; Attachments = @() }
-    if ($buddy) { $gun.CharmInstanceID = (G 'inst0001'); $gun.CharmID = $buddy; $gun.CharmLevelID = (G 'buddylv1') }
-    $o = [ordered]@{ Subject = $tp; Version = 7; Guns = @($gun, [ordered]@{ ID = $gC; SkinID = (G 'skinc000'); SkinLevelID = (G 'lvlc0001'); ChromaID = (G 'chromac0') })
-        Sprays = @([ordered]@{ EquipSlotID = (G 'slot0001'); SprayID = $spray; SprayLevelID = $null })
-        Identity = [ordered]@{ PlayerCardID = $card; PlayerTitleID = (G 'title001'); AccountLevel = 42; PreferredLevelBorderID = (G 'border01'); HideAccountLevel = $false }; Incognito = $false }
+    $att = @(if ($buddy) { [ordered]@{ ItemID = $buddy; InstanceID = (G 'inst0001') } })
+    $gun = [ordered]@{ ID = $gV; SkinID = $skin; SkinLevelID = $lvl; ChromaID = $chroma; Attachments = $att }
+    $o = [ordered]@{ Subject = $tp; Version = 7; Guns = @($gun, [ordered]@{ ID = $gC; SkinID = (G 'skinc000'); SkinLevelID = (G 'lvlc0001'); ChromaID = (G 'chromac0'); Attachments = @() })
+        ActiveExpressions = @([ordered]@{ TypeID = $tFlex; AssetID = (G 'flex0001') }, [ordered]@{ TypeID = $tSpray; AssetID = $spray }, [ordered]@{ TypeID = $tSpray; AssetID = (G 'spray009') })
+        DynamicOptions = [ordered]@{}
+        Identity = [ordered]@{ PlayerCardID = $card; PlayerTitleID = (G 'title001'); AccountLevel = 42; PreferredLevelBorderID = (G 'border01'); HideAccountLevel = $true }; Incognito = $false }
     ConvertTo-Json -InputObject $o -Depth 10 -Compress | ConvertFrom-Json
 }
 $loA = New-Lo (G 'skina000') (G 'lvla0001') (G 'chromaa0') (G 'buddy001') (G 'spray001') (G 'card0001')
@@ -30,14 +34,23 @@ Write-Host 'наборы косметики'
 $items = ConvertTo-SetItems $loB
 $j = Join-SetLoadout $loA $items
 $jv = @($j.Guns)[0]
-Check 'набор на лоадаут: скин, цвет, уровень; брелок снят; спрей и карточка; уровень аккаунта не тронут' ($jv.SkinID -eq (G 'skinb000') -and $jv.ChromaID -eq (G 'chromab2') -and -not $jv.PSObject.Properties['CharmID'] -and @($j.Sprays)[0].SprayID -eq (G 'spray002') -and $j.Identity.PlayerCardID -eq (G 'card0002') -and $j.Identity.AccountLevel -eq 42 -and @($loA.Guns)[0].SkinID -eq (G 'skina000'))
+$je = @($j.ActiveExpressions)
+Check 'набор на лоадаут: скин, цвет, уровень; брелок снят; спрей и карточка; уровень аккаунта не тронут' ($jv.SkinID -eq (G 'skinb000') -and $jv.ChromaID -eq (G 'chromab2') -and @($jv.Attachments).Count -eq 0 -and $je[1].AssetID -eq (G 'spray002') -and $j.Identity.PlayerCardID -eq (G 'card0002') -and $j.Identity.AccountLevel -eq 42 -and $j.Identity.HideAccountLevel -eq $true -and @($loA.Guns)[0].SkinID -eq (G 'skina000'))
+Check 'v3: ActiveExpressions целиком и по порядку; полей v2 нет' ($je.Count -eq 3 -and $je[0].TypeID -eq $tFlex -and $je[2].AssetID -eq (G 'spray009') -and -not $j.PSObject.Properties['Sprays'] -and -not $jv.PSObject.Properties['CharmID'] -and -not $items.Contains('sprays'))
+$jb = Join-SetLoadout $loB (ConvertTo-SetItems $loA)
+Check 'v3: брелок (Attachments) переносится как есть' ((ConvertTo-Json -InputObject @(@($jb.Guns)[0].Attachments) -Compress) -eq (ConvertTo-Json -InputObject @(@($loA.Guns)[0].Attachments) -Compress))
+$old = [pscustomobject]@{ guns = @([pscustomobject]@{ ID = $gV; SkinID = (G 'skinb000'); SkinLevelID = (G 'lvlb0004'); ChromaID = (G 'chromab2'); CharmID = ''; CharmLevelID = ''; CharmInstanceID = '' })
+    sprays = @([pscustomobject]@{ EquipSlotID = (G 'slot0001'); SprayID = (G 'spray002'); SprayLevelID = '' }, [pscustomobject]@{ EquipSlotID = (G 'slot0002'); SprayID = (G 'spray001'); SprayLevelID = '' })
+    identity = [pscustomobject]@{ PlayerCardID = (G 'card0002'); PlayerTitleID = ''; PreferredLevelBorderID = '' } }
+$jo = Join-SetLoadout $loA $old; $joe = @($jo.ActiveExpressions)
+Check 'старый набор (v2): спреи по порядку в слоты-спреи, флекс не тронут, брелок не снят' ($joe[0].AssetID -eq (G 'flex0001') -and $joe[1].AssetID -eq (G 'spray002') -and $joe[2].AssetID -eq (G 'spray001') -and @(@($jo.Guns)[0].Attachments).Count -eq 1 -and @($jo.Guns)[0].SkinID -eq (G 'skinb000')) ($jo | ConvertTo-Json -Depth 6 -Compress)
 $rows = Compare-Loadout $loA $j $script:CosNames
 $rv = $rows | Where-Object { $_.what -eq 'Vandal' }
 Check 'предпросмотр: названия, цвет без переноса строки, уровень' ($rv.old -eq 'Прайм Vandal' -and $rv.new -eq 'Жнец Vandal Вариант 2 · ур. 4') ($rows | ConvertTo-Json -Compress)
 Check 'предпросмотр: брелок, спрей, карточка; Classic не меняется' ($rows.Count -eq 4 -and @($rows | Where-Object { $_.what -eq 'Vandal · брелок' -and $_.old -eq 'Брелок-кот' -and $_.new -eq '' }).Count -eq 1 -and @($rows | Where-Object { $_.what -eq 'Карточка' -and $_.new -eq 'Карта 2' }).Count -eq 1) ($rows | ConvertTo-Json -Compress)
 Check 'нет в справочнике — начало ID' ((Get-ItemName $script:CosNames (G 'zzzzzzzz')) -eq 'zzzzzzzz')
 $body = ConvertTo-LoadoutBody $j
-Check 'тело записи: оружие, спреи, профиль, инкогнито — без Subject/Version' ((($body.Keys) -join ',') -eq 'Guns,Sprays,Identity,Incognito')
+Check 'тело записи v3: лоадаут целиком без Subject/Version' ((($body.Keys) -join ',') -eq 'Guns,ActiveExpressions,Identity,Incognito,DynamicOptions' -and (ConvertTo-Json -InputObject $body -Depth 10 -Compress) -like '*"Attachments":`[`]*') (ConvertTo-Json -InputObject $body -Depth 10 -Compress)
 
 # сохранить: текущий (B) как набор
 $script:lo = $loB
@@ -60,7 +73,7 @@ Check 'do loadout: одна запись, бэкап, отмена' ($r.ok -and 
 $r = Invoke-Do "loadout:$sid"
 Check 'do loadout повторно: уже надет, без записи' ($r.ok -and $script:puts.Count -eq 1 -and $r.message -like '*уже надет')
 $script:lo = $loA; $null = Invoke-Do "loadout:$sid"; $r = Invoke-Do 'undo'
-Check 'do undo после набора: прежний лоадаут записан' ($r.ok -and @($script:lo.Guns)[0].SkinID -eq (G 'skina000') -and @($script:lo.Guns)[0].CharmID -eq (G 'buddy001')) ($r | ConvertTo-Json -Compress)
+Check 'do undo после набора: прежний лоадаут записан' ($r.ok -and @($script:lo.Guns)[0].SkinID -eq (G 'skina000') -and @(@($script:lo.Guns)[0].Attachments)[0].ItemID -eq (G 'buddy001')) ($r | ConvertTo-Json -Compress)
 $script:putFail = 'Удаленный сервер возвратил ошибку: (400) Недопустимый запрос.'; $script:puts = @()
 $r = Invoke-Do "loadout:$sid"
 Check 'Riot отклонил (нет предмета) — понятная ошибка, лоадаут прежний' (-not $r.ok -and $r.message -like 'Riot не принял набор*' -and @($script:lo.Guns)[0].SkinID -eq (G 'skina000')) ($r | ConvertTo-Json -Compress)

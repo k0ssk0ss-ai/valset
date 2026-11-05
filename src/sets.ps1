@@ -1,4 +1,4 @@
-﻿# sets.ps1 — «Скины»: наборы косметики аккаунта (скины оружия с цветом и уровнем, брелоки, спреи, карточка, титул, рамка).
+﻿# sets.ps1 — «Скины»: наборы косметики аккаунта (скины оружия с цветом и уровнем, брелоки, спреи и флексы, карточка, титул, рамка).
 # Сохранить текущее как набор → надеть набор (предпросмотр «было → станет», бэкап, отмена через last-action.json).
 # Набор можно привязать к агенту: при включённом «Менять скины при выборе агента» (config.setsAuto, по умолчанию выкл)
 # приложение по событию выбора агента (RiotEvents.cs, без опроса) зовёт `do loadoutauto` — надеваем набор этого агента.
@@ -43,48 +43,65 @@ function Test-SetName([string]$name) {
 }
 
 # ── Лоадаут ↔ набор ─────────────────────────────────────────────────────────
+# Лоадаут v3 (loadout.ps1): брелоки — Attachments у оружия (формат элемента не измерен — копируем как есть,
+# сравниваем по JSON); спреи и флексы — ActiveExpressions, упорядоченные слоты (список целиком, порядок сохраняем).
+# Старые наборы (v2): sprays → спреи по порядку в слоты-спреи текущего списка; брелоки v2 (Charm*) не переносятся.
 
-# Из лоадаута — только то, что входит в набор (уровень аккаунта, «скрыть уровень» и т. п. не трогаем).
+$ExprSpray = 'd5f120f8-ff8c-4aac-92ea-f2b5acbe9475'   # TypeID спрея (AssetID найден в valorant-api /sprays)
+$ExprFlex = '03a572de-4234-31ed-d344-ababa488f981'    # TypeID флекса (/flex)
+$ZeroGuid = '00000000-0000-0000-0000-000000000000'
+
+# Копия через JSON: без общих ссылок с исходником.
+function Copy-Json($o) { if ($null -eq $o) { return $null }; ConvertTo-Json -InputObject $o -Depth 10 -Compress | ConvertFrom-Json }
+function Get-JsonKey($o) { ConvertTo-Json -InputObject @(@($o) | Where-Object { $null -ne $_ }) -Depth 10 -Compress }
+
+# Из лоадаута — только то, что входит в набор (уровень аккаунта, «скрыть уровень», инкогнито не трогаем).
 function ConvertTo-SetItems($lo) {
     [ordered]@{
         guns = @(foreach ($g in @($lo.Guns)) { if ($g.ID) {
             [ordered]@{ ID = "$($g.ID)"; SkinID = "$($g.SkinID)"; SkinLevelID = "$($g.SkinLevelID)"; ChromaID = "$($g.ChromaID)"
-                        CharmInstanceID = "$($g.CharmInstanceID)"; CharmID = "$($g.CharmID)"; CharmLevelID = "$($g.CharmLevelID)" } } })
-        sprays = @(foreach ($x in @($lo.Sprays)) { if ($x.EquipSlotID) { [ordered]@{ EquipSlotID = "$($x.EquipSlotID)"; SprayID = "$($x.SprayID)"; SprayLevelID = "$($x.SprayLevelID)" } } })
+                        Attachments = @(@($g.Attachments) | Where-Object { $null -ne $_ }) } } })
+        expressions = @(foreach ($x in @($lo.ActiveExpressions)) { if ($x) { [ordered]@{ TypeID = "$($x.TypeID)"; AssetID = "$($x.AssetID)" } } })
         identity = [ordered]@{ PlayerCardID = "$($lo.Identity.PlayerCardID)"; PlayerTitleID = "$($lo.Identity.PlayerTitleID)"; PreferredLevelBorderID = "$($lo.Identity.PreferredLevelBorderID)" }
     }
 }
 
 function Set-Prop($o, [string]$k, $v) { $o | Add-Member -NotePropertyName $k -NotePropertyValue $v -Force }
+# Есть ли поле: набор из файла — объект, только что собранный — словарь.
+function Test-Key($o, [string]$k) { if ($o -is [Collections.IDictionary]) { $o.Contains($k) } else { $null -ne $o -and $null -ne $o.PSObject.Properties[$k] } }
 
-# Текущий лоадаут + набор → новый лоадаут (копия; текущий не меняется). Пустое поле набора — «нет» (брелок снят).
+# Набор старого формата (v2: sprays, Charm*, без expressions).
+function Test-SetV2($set) { -not (Test-Key $set 'expressions') -and (Test-Key $set 'sprays') }
+
+# Текущий лоадаут + набор → новый лоадаут (копия; текущий не меняется). Пустой Attachments набора — брелок снят.
 function Join-SetLoadout($cur, $set) {
-    $new = ConvertTo-Json -InputObject $cur -Depth 10 -Compress | ConvertFrom-Json
+    $new = Copy-Json $cur
     $guns = @{}; foreach ($g in @($new.Guns)) { $guns["$($g.ID)".ToLowerInvariant()] = $g }
     foreach ($sg in @($set.guns)) {
         $g = $guns["$($sg.ID)".ToLowerInvariant()]
         if (-not $g) { continue }   # оружия нет в лоадауте (новое или убранное) — пропускаем
         foreach ($k in 'SkinID', 'SkinLevelID', 'ChromaID') { if ($sg.$k) { Set-Prop $g $k $sg.$k } }
-        if ($sg.CharmID) { foreach ($k in 'CharmInstanceID', 'CharmID', 'CharmLevelID') { Set-Prop $g $k $sg.$k } }
-        else { foreach ($k in 'CharmInstanceID', 'CharmID', 'CharmLevelID') { $g.PSObject.Properties.Remove($k) } }
+        if (Test-Key $sg 'Attachments') { Set-Prop $g 'Attachments' @(@($sg.Attachments) | Where-Object { $null -ne $_ } | ForEach-Object { Copy-Json $_ }) }
     }
-    $sp = @{}; foreach ($x in @($new.Sprays)) { $sp["$($x.EquipSlotID)".ToLowerInvariant()] = $x }
-    $add = @()
-    foreach ($ss in @($set.sprays)) {
-        $x = $sp["$($ss.EquipSlotID)".ToLowerInvariant()]
-        $lv = if ($ss.SprayLevelID) { $ss.SprayLevelID } else { $null }
-        if ($x) { Set-Prop $x 'SprayID' $ss.SprayID; Set-Prop $x 'SprayLevelID' $lv }
-        else { $add += [pscustomobject]@{ EquipSlotID = $ss.EquipSlotID; SprayID = $ss.SprayID; SprayLevelID = $lv } }
+    if ((Test-Key $set 'expressions') -and @($set.expressions).Count) {
+        Set-Prop $new 'ActiveExpressions' @(foreach ($x in @($set.expressions)) { [pscustomobject]@{ TypeID = "$($x.TypeID)"; AssetID = "$($x.AssetID)" } })
+    } elseif (Test-SetV2 $set) {
+        # v2 → v3: спреи набора по порядку в слоты-спреи текущего списка; флексы и лишние спреи — как есть
+        $q = New-Object Collections.Queue
+        foreach ($x in @($set.sprays)) { if ($x.SprayID) { $q.Enqueue("$($x.SprayID)") } }
+        foreach ($x in @($new.ActiveExpressions)) { if ($q.Count -and "$($x.TypeID)" -eq $ExprSpray) { Set-Prop $x 'AssetID' $q.Dequeue() } }
     }
-    if ($add) { Set-Prop $new 'Sprays' (@($new.Sprays) + $add) }
     if (-not $new.Identity) { Set-Prop $new 'Identity' ([pscustomobject]@{}) }
     foreach ($k in 'PlayerCardID', 'PlayerTitleID', 'PreferredLevelBorderID') { if ($set.identity.$k) { Set-Prop $new.Identity $k $set.identity.$k } }
     $new
 }
 
-# Тело записи — как у клиента: оружие, спреи, профиль, инкогнито (Subject/Version — только в ответе).
+# Тело записи — лоадаут целиком, как у клиента (Guns, ActiveExpressions, Identity, Incognito, DynamicOptions и всё,
+# что Riot добавит), кроме Subject/Version — они только в ответе.
 function ConvertTo-LoadoutBody($lo) {
-    [ordered]@{ Guns = @($lo.Guns); Sprays = @($lo.Sprays); Identity = $lo.Identity; Incognito = [bool]$lo.Incognito }
+    $b = [ordered]@{ Guns = @($lo.Guns); ActiveExpressions = @($lo.ActiveExpressions); Identity = $lo.Identity; Incognito = [bool]$lo.Incognito }
+    foreach ($p in $lo.PSObject.Properties) { if ($p.Name -notin 'Subject', 'Version' -and -not $b.Contains($p.Name)) { $b[$p.Name] = $p.Value } }
+    $b
 }
 
 # Подпись скина: цвет (у вариантов в названии) или скин, плюс уровень, если не первый.
@@ -96,6 +113,19 @@ function Get-SkinLabel($names, $g) {
     if ($lv -gt 1) { "$n · $(L 'ур.' 'lvl') $lv" } else { $n }
 }
 
+# Подпись брелока: первый ID внутри Attachments, известный справочнику (брелок или его уровень), иначе «брелок».
+function Get-AttachLabel($names, $att) {
+    $a = @(@($att) | Where-Object { $null -ne $_ })
+    if (-not $a.Count) { return '' }
+    foreach ($m in [regex]::Matches((Get-JsonKey $a), '\w{8}-\w{4}-\w{4}-\w{4}-\w{12}')) {
+        $v = $names.Names[$m.Value.ToLowerInvariant()]
+        if ($v) { return $v }
+    }
+    L 'брелок' 'buddy'
+}
+
+function Get-ExprName($names, $x) { if (-not $x -or -not $x.AssetID -or "$($x.AssetID)" -eq $ZeroGuid) { '' } else { Get-ItemName $names $x.AssetID } }
+
 # Что поменяется: [{ what, old, new }] с названиями предметов (нет в справочнике — начало ID).
 function Compare-Loadout($cur, $new, $names) {
     $rows = New-Object Collections.ArrayList
@@ -104,13 +134,15 @@ function Compare-Loadout($cur, $new, $names) {
     foreach ($g in @($new.Guns)) {
         $o = $cg["$($g.ID)".ToLowerInvariant()]; $w = Get-ItemName $names $g.ID
         if ("$($o.SkinID)|$($o.SkinLevelID)|$($o.ChromaID)" -ne "$($g.SkinID)|$($g.SkinLevelID)|$($g.ChromaID)") { & $row $w (Get-SkinLabel $names $o) (Get-SkinLabel $names $g) }
-        if ("$($o.CharmID)|$($o.CharmLevelID)" -ne "$($g.CharmID)|$($g.CharmLevelID)") { & $row "$w · $(L 'брелок' 'buddy')" (Get-ItemName $names $o.CharmID) (Get-ItemName $names $g.CharmID) }
+        if ((Get-JsonKey $o.Attachments) -ne (Get-JsonKey $g.Attachments)) { & $row "$w · $(L 'брелок' 'buddy')" (Get-AttachLabel $names $o.Attachments) (Get-AttachLabel $names $g.Attachments) }
     }
-    $cs = @{}; foreach ($x in @($cur.Sprays)) { $cs["$($x.EquipSlotID)".ToLowerInvariant()] = $x }
-    $i = 0
-    foreach ($x in @($new.Sprays)) {
-        $i++; $o = $cs["$($x.EquipSlotID)".ToLowerInvariant()]
-        if ("$($o.SprayID)" -ne "$($x.SprayID)") { & $row "$(L 'Спрей' 'Spray') $i" (Get-ItemName $names $o.SprayID) (Get-ItemName $names $x.SprayID) }
+    $ce = @($cur.ActiveExpressions); $ne = @($new.ActiveExpressions); $cnt = @{}
+    for ($i = 0; $i -lt [Math]::Max($ce.Count, $ne.Count); $i++) {
+        $o = if ($i -lt $ce.Count) { $ce[$i] }; $x = if ($i -lt $ne.Count) { $ne[$i] }
+        $t = "$(if ($x) { $x.TypeID } else { $o.TypeID })"
+        $cnt[$t] = 1 + [int]$cnt[$t]
+        $w = if ($t -eq $ExprSpray) { L 'Спрей' 'Spray' } elseif ($t -eq $ExprFlex) { L 'Флекс' 'Flex' } else { L 'Жест' 'Expression' }
+        if ("$($o.TypeID)|$($o.AssetID)" -ne "$($x.TypeID)|$($x.AssetID)") { & $row "$w $($cnt[$t])" (Get-ExprName $names $o) (Get-ExprName $names $x) }
     }
     foreach ($k in @(@('PlayerCardID', (L 'Карточка' 'Player card')), @('PlayerTitleID', (L 'Титул' 'Title')), @('PreferredLevelBorderID', (L 'Рамка уровня' 'Level border')))) {
         if ("$($cur.Identity.($k[0]))" -ne "$($new.Identity.($k[0]))") { & $row $k[1] (Get-ItemName $names $cur.Identity.($k[0])) (Get-ItemName $names $new.Identity.($k[0])) }
@@ -138,7 +170,7 @@ function Invoke-SetSave([string]$name) {
     if (-not $old -and $sets.Count -ge $SetsMax) { throw (L "Наборов уже $SetsMax — удали ненужный." "Already $SetsMax sets — delete one first.") }
     $id = if ($old) { $old.id } else { [Guid]::NewGuid().ToString('N').Substring(0, 8) }
     $e = [ordered]@{ id = $id; name = $name; agent = $(if ($old) { "$($old.agent)" } else { '' }); puuid = $s.Puuid; saved = (Get-Stamp)
-                     guns = $items.guns; sprays = $items.sprays; identity = $items.identity }
+                     guns = $items.guns; expressions = $items.expressions; identity = $items.identity }
     Save-UndoFiles @($SetsPath)
     Save-Sets @(@($sets | Where-Object { $_.id -ne $id }) + $e)
     Log "набор сохранён: $name ($(Short $s.Puuid), оружия $(@($items.guns).Count))"
@@ -247,6 +279,7 @@ function Get-ListLoadoutPreview([string]$id) {
         $cur = Get-Loadout $s; $names = Get-CosmeticNames
         $rows = Compare-Loadout $cur (Join-SetLoadout $cur $set) $names
         $info = "$(L 'Набор' 'Set') «$($set.name)»$(if ($set.agent) { " · $(Get-AgentName $names $set.agent)" })"
+        if (Test-SetV2 $set) { $info += "`n" + (L 'Набор старого формата: брелоки из него не меняются — надень и сохрани заново.' 'Old-format set: its buddies are not applied — apply and save it again.') }
         if ($set.puuid -and $set.puuid -ne $s.Puuid) { $info += "`n" + (L "Сохранён на другом аккаунте ($(Get-AccountLabel $set.puuid)) — Riot примет только предметы, которые есть здесь." "Saved on another account ($(Get-AccountLabel $set.puuid)) — Riot accepts only items owned here.") }
         @([ordered]@{ info = $info; account = (Get-AccountLabel $s.Puuid); same = (-not $rows.Count) }) + @($rows)
     } catch { @([ordered]@{ error = $_.Exception.Message }) }

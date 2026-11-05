@@ -1,4 +1,4 @@
-# Решения и замеры
+﻿# Решения и замеры
 
 ## Где что хранится (проверено на реальных данных, 2026-10-05)
 
@@ -87,17 +87,29 @@
 - **Шкала качества**: при снимке графики незнакомое значение `*Quality` (не из проверенных) → предупреждение «проверь в игре».
 
 - **Скины: наборы косметики** (2026-11-05, 2.1.0, src/sets.ps1 + src/loadout.ps1 + src/app/PagesSets.cs) — план п. 0, п. 2.
-  Набор = скины оружия (скин, цвет, уровень), брелоки (с CharmInstanceID — свой у каждого аккаунта), спреи по слотам,
-  карточка, титул, рамка уровня; уровень аккаунта и «скрыть уровень» не трогаем. Надеть = свежий GET → поверх него набор →
-  PUT целиком (Guns, Sprays, Identity, Incognito — как тело клиента; Subject/Version только в ответе). Перед записью —
+  Набор = скины оружия (скин, цвет, уровень), брелоки (Attachments оружия как есть), спреи и флексы (ActiveExpressions
+  списком по порядку), карточка, титул, рамка уровня; уровень аккаунта, «скрыть уровень», инкогнито — из текущего.
+  Надеть = свежий GET → поверх него набор → PUT целиком (лоадаут v3 без Subject/Version: Guns, ActiveExpressions,
+  Identity, Incognito, DynamicOptions и любые новые поля). Перед записью —
   бэкап loadouts\backups (30 шт.) и точка отмены вида `loadout` (прежний лоадаут целиком). Чужой предмет — Riot
   отклоняет весь запрос (400/403/409/422 → «Riot не принял набор…, ничего не изменено»). Имя набора в действии панели —
   base64url (без пробелов/кавычек в командной строке запасного пути через cmd). Названия — valorant-api.com, кэш
   cache\names.json неделю на язык; нет сети — старый кэш, иначе начало ID.
-  Эндпоинты (неофициальные, как у ValoVault): GET/PUT `https://pd.{shard}.a.pvp.net/personalization/v2/players/{puuid}/playerloadout`;
+  Эндпоинты (неофициальные, как у ValoVault): GET/PUT `https://pd.{shard}.a.pvp.net/personalization/v3/players/{puuid}/playerloadout`;
   выбор агента — GET `https://glz-{region}-1.{shard}.a.pvp.net/pregame/v1/players/{puuid}` (404 — не в выборе) и
   `…/pregame/v1/matches/{id}` (AllyTeam.Players[].CharacterID / CharacterSelectionState = locked). Регион/шард и версия
   клиента — из ShooterGame.log (glz-адрес, «CI server version»), иначе папка аккаунта / valorant-api.com/v1/version.
+- **Лоадаут v3 вместо v2** (замер 2026-11-05, EU, release-13.09-shipping-18-5804228, только GET): v2 → 404 (панель
+  падала на «Сохранить набор»: `do loadoutsave: ошибка: (404)`), v3 → 200. Форма v3: Subject, Version (929), Guns[21]
+  {ID, SkinID, SkinLevelID, ChromaID, Attachments[]} — Charm* полей нет, брелоки в Attachments; ActiveExpressions[4]
+  [{TypeID, AssetID}] вместо Sprays — упорядоченные слоты; TypeID `d5f120f8-ff8c-4aac-92ea-f2b5acbe9475` — спрей
+  (AssetID найден в valorant-api /sprays), `03a572de-4234-31ed-d344-ababa488f981` — флекс (/flex); Identity
+  {PlayerCardID, PlayerTitleID, AccountLevel, PreferredLevelBorderID, HideAccountLevel}; Incognito; DynamicOptions {}.
+  Решение: брелоки — Attachments копируем как есть и сравниваем по JSON (на аккаунте замера брелоков нет, форма
+  элемента неизвестна; подпись — первый ID внутри, известный справочнику, иначе «брелок»); ActiveExpressions — список
+  целиком. Старые наборы (sprays): спреи по порядку в слоты-спреи текущего списка, брелоки v2 не переносятся (в
+  предпросмотре — подсказка пересохранить). Кэш названий — версия 2 (флексы, уровни брелоков), старый качается заново.
+  Проверено вживую: сохранение (21 оружие, 4 жеста), предпросмотр «уже надет», названия флексов/граффити.
   Автосмена (config.setsAuto, по умолчанию выкл): событие — сообщение RMS `/riot-messaging-service/v1/message/ares-pregame/pregame/v1/matches/<id>`
   по тому же WAMP (OnJsonApiEvent), что и вход/игра, без опроса; приложение зовёт `do loadoutauto`, ядро решает
   (Get-AutoSetChoice: включено, агент зафиксирован, у агента есть набор, в этом матче ещё не надевали — loadouts\auto.json)
@@ -191,10 +203,11 @@
 - Подписи «Голосовой чат» (`VoiceVolume`), значения сглаживания 0–3, порядок вариантов статистики 0–3.
 - Другие показатели статистики (задержки CPU/GPU и т. п.) — внутренние имена неизвестны.
 
-- Скины (2.1.0, всё вживую не проверено): формат тела PUT playerloadout (без Subject/Version), коды отказа за чужой
+- Скины (2.1.0; вживую проверены только GET v3 и сохранение): формат тела PUT v3 (без Subject/Version, с DynamicOptions),
+  форма элемента Attachments (брелок), коды отказа за чужой
   предмет (считаем 400/403/409/422), приходит ли сообщение RMS ares-pregame в OnJsonApiEvent локального клиента,
   поле CharacterSelectionState = "locked", виден ли набор в текущем матче, если надет в выборе агента; брелок из набора
-  другого аккаунта (свой CharmInstanceID) — скорее всего отказ.
+  другого аккаунта (свой ID экземпляра внутри Attachments?) — скорее всего отказ.
 
 ## Следующие шаги (на 2026-10-06)
 

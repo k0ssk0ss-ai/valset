@@ -1,13 +1,16 @@
 ﻿# loadout.ps1 — косметика аккаунта на серверах Riot (для наборов, sets.ps1): адрес региона, чтение и запись лоадаута,
 # выбор агента (pregame), названия предметов с valorant-api.com (кэш на неделю, без сети — последние скачанные, иначе ID).
 # Эндпоинты (не официальные, как у ValoVault и трекеров):
-#   GET/PUT https://pd.{shard}.a.pvp.net/personalization/v2/players/{puuid}/playerloadout
+#   GET/PUT https://pd.{shard}.a.pvp.net/personalization/v3/players/{puuid}/playerloadout  (v2 с 13.09 — 404)
+#     v3: Guns[{ID,SkinID,SkinLevelID,ChromaID,Attachments[]}] (брелоки — в Attachments), ActiveExpressions[{TypeID,AssetID}]
+#     (спреи и флексы, упорядоченные слоты), Identity, Incognito, DynamicOptions; Sprays и Charm* больше нет.
 #   GET https://glz-{region}-1.{shard}.a.pvp.net/pregame/v1/players/{puuid}  → MatchID (404 — не в выборе агента)
 #   GET https://glz-{region}-1.{shard}.a.pvp.net/pregame/v1/matches/{matchId} → AllyTeam.Players[].CharacterID / CharacterSelectionState
 # Владение предметами проверяет сам Riot: чужой скин в наборе — запрос отклоняется целиком, лоадаут не меняется.
 
 $NamesCache = Join-Path $Root 'cache\names.json'
 $NamesTtlDays = 7
+$NamesVer = 2   # 2 — с флексами и уровнями брелоков (лоадаут v3); старый кэш скачивается заново
 $ValApi = 'https://valorant-api.com/v1'
 $ShardOf = @{ na = 'na'; latam = 'na'; br = 'na'; eu = 'eu'; ap = 'ap'; kr = 'kr'; pbe = 'pbe' }
 
@@ -49,13 +52,13 @@ function Get-GameHeaders($s, $rt) {
 
 function Get-Loadout($s) {
     $rt = Get-RiotRoute $s
-    Invoke-Cloud { Invoke-RestMethod "$($rt.Pd)/personalization/v2/players/$($s.Puuid)/playerloadout" -Headers (Get-GameHeaders $s $rt) -TimeoutSec 15 } $s
+    Invoke-Cloud { Invoke-RestMethod "$($rt.Pd)/personalization/v3/players/$($s.Puuid)/playerloadout" -Headers (Get-GameHeaders $s $rt) -TimeoutSec 15 } $s
 }
 
 # Запись целиком (как делает клиент); ответ — лоадаут после записи.
 function Send-LoadoutPut($s, [string]$body) {
     $rt = Get-RiotRoute $s
-    Invoke-Cloud { Invoke-RestMethod "$($rt.Pd)/personalization/v2/players/$($s.Puuid)/playerloadout" -Method Put -Headers (Get-GameHeaders $s $rt) `
+    Invoke-Cloud { Invoke-RestMethod "$($rt.Pd)/personalization/v3/players/$($s.Puuid)/playerloadout" -Method Put -Headers (Get-GameHeaders $s $rt) `
         -Body ([Text.Encoding]::UTF8.GetBytes($body)) -ContentType 'application/json' -TimeoutSec 15 } $s
 }
 
@@ -85,7 +88,7 @@ function Get-PregameAgent($s) {
 
 # ── Названия предметов ───────────────────────────────────────────────────────
 
-# Скачать названия (оружие со скинами/цветами/уровнями, брелоки, спреи, карточки, титулы, рамки, агенты) на языке интерфейса.
+# Скачать названия (оружие со скинами/цветами/уровнями, брелоки с уровнями, спреи, флексы, карточки, титулы, рамки, агенты) на языке интерфейса.
 function Get-NamesFromApi([string]$lang) {
     $q = "?language=$(if ($lang -eq 'en') { 'en-US' } else { 'ru-RU' })"
     $get = { param($p) (Invoke-RestMethod "$ValApi/$p$(if ($p.Contains('?')) { $q.Replace('?', '&') } else { $q })" -TimeoutSec 30).data }
@@ -98,13 +101,14 @@ function Get-NamesFromApi([string]$lang) {
             $i = 0; foreach ($l in @($k.levels)) { $i++; if ($l.uuid) { $lv["$($l.uuid)"] = $i } }
         }
     }
-    foreach ($b in & $get 'buddies') { $n["$($b.uuid)"] = "$($b.displayName)" }
+    foreach ($b in & $get 'buddies') { $n["$($b.uuid)"] = "$($b.displayName)"; foreach ($l in @($b.levels)) { if ($l.uuid) { $n["$($l.uuid)"] = "$($b.displayName)" } } }
     foreach ($x in & $get 'sprays') { $n["$($x.uuid)"] = "$($x.displayName)" }
+    foreach ($x in & $get 'flex') { $n["$($x.uuid)"] = "$($x.displayName)" }
     foreach ($x in & $get 'playercards') { $n["$($x.uuid)"] = "$($x.displayName)" }
     foreach ($x in & $get 'playertitles') { $n["$($x.uuid)"] = $(if ($x.titleText) { "$($x.titleText)" } else { "$($x.displayName)" }) }
     foreach ($x in & $get 'levelborders') { $n["$($x.uuid)"] = $(if ($x.displayName) { "$($x.displayName)" } else { "$(L 'рамка' 'border') $($x.startingLevel)" }) }
     $ag = @(foreach ($a in & $get 'agents?isPlayableCharacter=true') { [ordered]@{ id = "$($a.uuid)".ToLowerInvariant(); name = "$($a.displayName)" } }) | Sort-Object { $_.name }
-    [ordered]@{ lang = $lang; at = (Get-Stamp); names = $n; levels = $lv; agents = @($ag) }
+    [ordered]@{ v = $NamesVer; lang = $lang; at = (Get-Stamp); names = $n; levels = $lv; agents = @($ag) }
 }
 
 # Названия: из памяти → из кэша (моложе недели, тот же язык) → из сети → из старого кэша → пусто (покажем ID).
@@ -112,7 +116,7 @@ function Get-CosmeticNames {
     if ($script:CosNames -and $script:CosNames.lang -eq $script:Lang) { return $script:CosNames }
     $raw = $null
     if (Test-Path $NamesCache) { try { $raw = Get-Content $NamesCache -Raw -Encoding UTF8 | ConvertFrom-Json } catch {} }
-    $fresh = $raw -and $raw.lang -eq $script:Lang -and $(try { ([DateTime]::Now - [DateTime]$raw.at).TotalDays -lt $NamesTtlDays } catch { $false })
+    $fresh = $raw -and $raw.v -eq $NamesVer -and $raw.lang -eq $script:Lang -and $(try { ([DateTime]::Now - [DateTime]$raw.at).TotalDays -lt $NamesTtlDays } catch { $false })
     if (-not $fresh) {
         try {
             $o = Get-NamesFromApi $script:Lang
