@@ -79,7 +79,7 @@ static class Share {
         if (same) { b.Children.Add(Ui.Note(L.T("Уже так — менять нечего.", "Already like this — nothing to change."))); return; }
         if (n == 0) b.Children.Add(Ui.Note(L.T("Отличия только служебные (профили прицела, агентские бинды и т. п.)", "Only internal differences (crosshair profiles, agent binds, etc.)")));
         b.Children.Add(Ui.Note(Kind == "loadout"
-            ? L.T("Перед записью — бэкап; «Отменить» — сразу. Посреди матча — виден со следующего матча.", "A backup first; “Undo” right away. Mid-match it shows from the next match.")
+            ? L.T("Перед записью — бэкап; «Отменить» — сразу. В матче — сразу (посреди матча — со следующего); «Коллекция» в игре покажет старое до перезапуска игры.", "A backup first; “Undo” right away. Applies to matches right away (mid-match — from the next one); the in-game Collection shows the old one until the game restarts.")
             : Kind == "pro"
             ? L.T("На время: после игры вернутся исходные; «Отменить» — сразу.", "For now: originals come back after the game; “Undo” works right away.")
             : L.T("Насовсем, перед записью — бэкап; «Отменить» — сразу или позже в «Бэкапах».", "Permanent, with a backup first; “Undo” right away or later in Backups.")));
