@@ -23,6 +23,7 @@ static class Pages {
             case "preview": return Share.Title();
             case "sets": return L.T("Скины", "Skins");
             case "setagent": return L.T("Агент для набора", "Agent for the set");
+            case "skins": case "skinsgun": return Skins.Title(page);
             case "help": return L.T("Справка", "Help");
         }
         return "VALSET";
@@ -41,6 +42,8 @@ static class Pages {
             case "preview": Share.Preview(b); break;
             case "sets": Sets.Page(b); break;
             case "setagent": Sets.Agents(b); break;
+            case "skins": Skins.Page(b); break;
+            case "skinsgun": Skins.Gun(b); break;
             case "help": Help(b); break;
         }
     }
@@ -145,6 +148,10 @@ static class Pages {
         b.Children.Add(Ui.Toggle(L.T("Автоперенос", "Auto-apply"), s.AutoApply, on => { s.AutoApply = on; Ctl.DoAction(Set("autoApply", on), false); }));
         b.Children.Add(Ui.Toggle(L.T("Уведомления", "Notifications"), s.Notify, on => { s.Notify = on; Ctl.DoAction(Set("notify", on), false); }));
         b.Children.Add(Ui.Toggle(L.T("Значок у клиента", "Badge on the client"), s.Badge, on => { s.Badge = on; Ctl.DoAction(Set("badge", on), false); }));
+        if (OverlayWin.FsMode < 0) OverlayWin.ReadFsMode();
+        b.Children.Add(Ui.Toggle(L.T("Кнопка поверх игры", "Button over the game"), OverlayWin.Enabled(), on => { s.Overlay = on; Ctl.DoAction(Set("overlay", on), false); }));
+        if (OverlayWin.FsMode == 0) b.Children.Add(Ui.Note(L.T("Работает в режиме „Оконный полноэкранный“ (сейчас в игре — „Полноэкранный“). В меню игры — Ctrl+Alt+S: «Все скины».",
+                                                                "Works in “Windowed Fullscreen” (the game is in “Fullscreen” now). In the game menu — Ctrl+Alt+S: All skins.")));
         b.Children.Add(Ui.Toggle(L.T("Автозапуск", "Start with Windows"), Config.IsAutostart(), on => { Config.SetAutostart(on); Ctl.DoAction(Set("app", on), false); }));
 
         var lang = new Grid { Margin = new Thickness(10, 8, 10, 4) };

@@ -1,4 +1,4 @@
-// Panel.cs — панель: оболочка, навигация по страницам, позиция (у часов или рядом со значком у клиента).
+// Panel.cs — панель: оболочка, навигация по страницам, позиция (у часов, рядом со значком у клиента или с кнопкой поверх игры).
 using System;
 using System.Collections.Generic;
 using System.Windows;
@@ -10,7 +10,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Threading;
 
 class PanelWin : Window {
-    const double Shadow = 14, CardW = 340, Gap = 12, ListMax = 400;
+    const double Shadow = 14, CardW = 340, Gap = 12, ListMax = 400, SkinsMax = 520;
     public const string Home = "home";
     readonly Border card = new Border();
     readonly Stack<string> nav = new Stack<string>();
@@ -18,6 +18,7 @@ class PanelWin : Window {
     DateTime hiddenAt = DateTime.MinValue;
     System.Drawing.Rectangle? anchor;   // значок у клиента, пиксели экрана; null — у часов
     public string Page = Home;
+    public bool ResetScroll;            // следующая перерисовка — с начала списка (вкладка, поиск)
 
     public PanelWin() {
         WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent;
@@ -45,6 +46,14 @@ class PanelWin : Window {
         hiddenAt = DateTime.Now;
         if (!Ctl.Busy) Ctl.ResultMsg = null;
         Hide();
+        Img.Clear();   // картинки «Всех скинов» — из памяти; на диске остаются
+    }
+
+    // «Все скины»: кнопка поверх игры (at — её место) или Ctrl+Alt+S. Открыта на скинах — закрыть.
+    public void ShowSkins(System.Drawing.Rectangle? at) {
+        if (IsVisible && Page.StartsWith("skins")) { HidePanel(); return; }
+        if (!IsVisible) ShowPanel(at);
+        if (Page != "skins") Go("skins");
     }
 
     public void ShowPanel() { ShowPanel(null); }
@@ -71,7 +80,7 @@ class PanelWin : Window {
     // ── навигация ──
     public void Go(string page) {
         if (page == Page) return;
-        nav.Push(Page); Page = page;
+        nav.Push(Page); Page = page; ResetScroll = true;
         if (!Ctl.Busy) Ctl.ResultMsg = null;
         Lists.ResetView();
         Refresh();
@@ -128,7 +137,9 @@ class PanelWin : Window {
     // ── содержимое ──
     void Build() {
         double keep = 0;
-        if (sv != null && card.Child != null) keep = sv.VerticalOffset;
+        if (sv != null && card.Child != null && !ResetScroll) keep = sv.VerticalOffset;
+        ResetScroll = false;
+        Img.BeginPage();
         var outer = new StackPanel();
         var body = new StackPanel();
         if (Page == Home) Pages.Home(body);
@@ -138,7 +149,8 @@ class PanelWin : Window {
             outer.Children.Add(Ui.Sep(8, 6));
             Pages.Body(Page, body);
         }
-        sv = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, MaxHeight = ListMax, Content = body };
+        sv = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, MaxHeight = Page.StartsWith("skins") ? SkinsMax : ListMax, Content = body };
+        var me = sv; sv.ScrollChanged += (s, e) => Img.Scan(me);   // картинки — только видимые
         outer.Children.Add(sv);
         card.Child = outer;
         if (keep > 0) { sv.UpdateLayout(); sv.ScrollToVerticalOffset(keep); }

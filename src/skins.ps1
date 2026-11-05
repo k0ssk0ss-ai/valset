@@ -41,7 +41,7 @@ function Get-CatalogFromApi([string]$lang) {
                 $ch = @($k.chromas); $i = 0
                 $icon = @($k.displayIcon, $(if ($ch.Count) { $ch[0].displayIcon }), @($k.levels)[0].displayIcon) | Where-Object { $_ } | Select-Object -First 1
                 [ordered]@{ id = "$($k.uuid)".ToLowerInvariant(); name = ("$($k.displayName)" -replace '\s*[\r\n]+\s*', ' ').Trim(); icon = "$icon"
-                    lv = @(foreach ($l in @($k.levels)) { "$($l.uuid)".ToLowerInvariant() })
+                    lv = @(foreach ($l in @($k.levels)) { "$($l.uuid)".ToLowerInvariant() })   # по порядку: номер уровня = место в списке
                     ch = @(foreach ($c in $ch) { [ordered]@{ id = "$($c.uuid)".ToLowerInvariant(); name = (Get-ChromaLabel "$($c.displayName)" ($i++)); icon = "$(if ($c.displayIcon) { $c.displayIcon } else { $c.fullRender })"; sw = "$($c.swatch)" } }) } } }) }
     })
     $flat = { param($list, $nameOf, $iconOf) @(foreach ($x in $list) { if ($x.uuid) { [ordered]@{ id = "$($x.uuid)".ToLowerInvariant(); name = "$(& $nameOf $x)"; icon = "$(& $iconOf $x)" } } }) }
@@ -100,10 +100,10 @@ function Get-OwnedItems($s) {
 # Скин из каталога → строка списка: только свои уровни и цвета. $null — скина нет на аккаунте.
 function ConvertTo-OwnedSkin($w, $k, $own, $g) {
     $isDef = $k.id -eq $w.def
-    $lv = @(@($k.lv) | Where-Object { $isDef -or $own.Contains($_) })
+    $n = 0
+    $lv = @(foreach ($l in @($k.lv)) { $n++; if ($isDef -or $own.Contains($l) -or ($g -and "$($g.SkinLevelID)" -eq $l)) { [ordered]@{ id = $l; n = $n } } })
     $on = $g -and "$($g.SkinID)" -eq $k.id
     if (-not $lv.Count -and -not $on) { return $null }
-    if ($on -and -not $lv.Count) { $lv = @("$($g.SkinLevelID)".ToLowerInvariant()) }
     $i = 0
     $ch = @(foreach ($c in @($k.ch)) { if (($i++) -eq 0 -or $isDef -or $own.Contains($c.id) -or ($on -and "$($g.ChromaID)" -eq $c.id)) { $c } })
     [ordered]@{ cat = 'skin'; w = $w.id; id = $k.id; name = $k.name; icon = $k.icon; on = [bool]$on; def = $isDef; lv = $lv; ch = $ch

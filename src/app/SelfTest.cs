@@ -3,7 +3,7 @@ using System;
 using System.Windows.Threading;
 
 static class SelfTest {
-    static readonly string[] Pagelist = { "apply", "save", "diff", "pros", "share", "sets", "accounts", "backups", "settings", "help" };
+    static readonly string[] Pagelist = { "apply", "save", "diff", "pros", "share", "sets", "skins", "accounts", "backups", "settings", "help" };
     static int step;
     static DispatcherTimer t;
 

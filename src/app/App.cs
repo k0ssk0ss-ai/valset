@@ -22,8 +22,10 @@ static class Program {
         bool created;
         var single = new Mutex(true, "Local\\valset-app" + Inst, out created);
         if (!created) { SendToFirst(arg.Length > 0 ? arg : "valset:open"); return 0; }
-        // У клиента Riot самоподписанный сертификат; ходим только на 127.0.0.1.
-        ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, e) => { var r = s as HttpWebRequest; return r == null || r.RequestUri.Host == "127.0.0.1"; };
+        // У клиента Riot самоподписанный сертификат — его принимаем только на 127.0.0.1; остальные адреса (картинки
+        // media.valorant-api.com, Img.cs) — обычная проверка. TLS 1.2 — exe без TargetFramework иначе берёт старые протоколы.
+        ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, e) => { var r = s as HttpWebRequest; return e == System.Net.Security.SslPolicyErrors.None || r == null || r.RequestUri.Host == "127.0.0.1"; };
+        ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
         var stop = new EventWaitHandle(false, EventResetMode.ManualReset, "Local\\valset-app-stop" + Inst);
         var app = new Application();
         app.DispatcherUnhandledException += (s, e) => { Dbg.Log("ИСКЛЮЧЕНИЕ: " + e.Exception); e.Handled = true; };
@@ -77,6 +79,7 @@ static class Ctl {
     public static Tray Tray;
     public static PanelWin Panel;
     public static BadgeWin Badge;
+    public static OverlayWin Overlay;
     public static RiotEvents Events;
 
     public static State Cur = new State();
@@ -92,17 +95,20 @@ static class Ctl {
     public static void Init(Application app, string arg) {
         App = app; Ui = app.Dispatcher;
         new Thread(Worker) { IsBackground = true, Name = "core" }.Start();
-        Tray = new Tray(); Panel = new PanelWin(); Badge = new BadgeWin();
+        Tray = new Tray(); Panel = new PanelWin(); Badge = new BadgeWin(); Overlay = new OverlayWin();
         Changed += () => {
             try { Tray.Update(); } catch (Exception e) { Dbg.Log("tray: " + e); }
             try { Panel.Refresh(); } catch (Exception e) { Dbg.Log("panel: " + e); }
             try { Badge.Update(); } catch (Exception e) { Dbg.Log("badge: " + e); }
+            try { Overlay.Update(); } catch (Exception e) { Dbg.Log("overlay: " + e); }
             Mem.TrimSoon();
         };
         Events = new RiotEvents();
         Events.LoggedIn += () => Ui.BeginInvoke(new Action(OnLogin));
         Events.ClientChanged += up => Ui.BeginInvoke(new Action(() => { RefreshState(); Raise(); }));
-        Events.GameChanged += running => Ui.BeginInvoke(new Action(Raise));
+        Events.GameChanged += running => Ui.BeginInvoke(new Action(() => { if (running) OverlayWin.ReadFsMode(); Raise(); }));
+        // меню / выбор агента / матч (присутствие): кнопка поверх игры; в меню режим экрана перечитываем — его могли сменить
+        Events.LoopChanged += st => Ui.BeginInvoke(new Action(() => { Dbg.Log("игрок: " + st); if (st == "MENUS") OverlayWin.ReadFsMode(); try { Overlay.Update(); } catch (Exception e) { Dbg.Log("overlay: " + e); } }));
         Events.GameClosed += tok => Ui.BeginInvoke(new Action(() => OnGameClosed(tok)));
         Events.Pregame += mid => Ui.BeginInvoke(new Action(() => OnPregame(mid)));
         Tray.Update();
@@ -248,6 +254,7 @@ static class Ctl {
         exiting = true;
         try { if (Events != null) Events.Stop(); } catch { }
         try { Badge.Dispose(); } catch { }
+        try { Overlay.Dispose(); } catch { }
         try { Tray.Dispose(); } catch { }
         App.Shutdown();
     }

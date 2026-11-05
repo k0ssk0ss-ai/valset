@@ -1,4 +1,4 @@
-// Native.cs — вызовы Win32, нужные трею и значку у клиента.
+// Native.cs — вызовы Win32, нужные трею, значку у клиента и кнопке поверх игры.
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -13,6 +13,7 @@ static class Native {
     public const int GWL_EXSTYLE = -20, GWL_HWNDPARENT = -8;
     public const int WS_EX_TOOLWINDOW = 0x80, WS_EX_NOACTIVATE = 0x08000000;
     public const uint SWP_NOSIZE = 1, SWP_NOZORDER = 4, SWP_NOACTIVATE = 0x10;
+    public const uint EVENT_SYSTEM_FOREGROUND = 3;
     public const uint EVENT_SYSTEM_MINIMIZESTART = 0x16, EVENT_SYSTEM_MINIMIZEEND = 0x17;
     public const uint EVENT_OBJECT_DESTROY = 0x8001, EVENT_OBJECT_SHOW = 0x8002, EVENT_OBJECT_HIDE = 0x8003, EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
 
@@ -31,6 +32,9 @@ static class Native {
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr64(IntPtr h, int idx, IntPtr v);
     [DllImport("user32.dll")] public static extern IntPtr SetWinEventHook(uint min, uint max, IntPtr mod, WinEventProc proc, uint pid, uint thread, uint flags);
     [DllImport("user32.dll")] public static extern bool UnhookWinEvent(IntPtr hook);
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern bool RegisterHotKey(IntPtr h, int id, uint mods, uint vk);
+    [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr h, int id);
     [DllImport("user32.dll")] public static extern bool DestroyIcon(IntPtr h);
     [DllImport("psapi.dll")] public static extern bool EmptyWorkingSet(IntPtr h);
 

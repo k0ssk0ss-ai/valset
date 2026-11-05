@@ -33,7 +33,7 @@ $b = $sk | Where-Object { $_.id -eq (G 'skinb000') }
 Check 'скины: только свои (стандартный, надетый, купленные; чужого нет)' ($sk.Count -eq 3 -and -not ($sk | Where-Object { $_.id -eq (G 'skinz000') }) -and ($sk | Where-Object { $_.id -eq (G 'skind000') }).def) (Get-ListJson 'skins')
 Check 'скины: свои уровни и цвета (базовый — всегда)' (@($b.lv).Count -eq 2 -and (@($b.ch) | ForEach-Object { $_.id }) -join ',' -eq "$(G 'chromab0'),$(G 'chromab2')")
 $a = $sk | Where-Object { $_.id -eq (G 'skina000') }
-Check 'скины: надетое отмечено' ($a.on -and $a.curLv -eq (G 'lvla0001') -and -not $b.on)
+Check 'скины: надетое отмечено' ($a.on -and $a.curLv -eq (G 'lvla0001') -and (@($b.lv) | ForEach-Object { $_.n }) -join ',' -eq '1,2' -and -not $b.on)
 Check 'скины: оружие, слоты, предметы' (@($l | Where-Object { $_.cat -eq 'weapon' }).Count -eq 1 -and @($l[0].slots).Count -eq 3 -and $l[0].slots[0].type -eq 'flex' -and
     @($l | Where-Object { $_.cat -eq 'spray' }).Count -eq 2 -and @($l | Where-Object { $_.cat -eq 'card' }).Count -eq 2 -and @($l | Where-Object { $_.cat -eq 'buddy' }).Count -eq 1)
 

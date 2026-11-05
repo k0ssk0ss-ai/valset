@@ -26,7 +26,7 @@ static class Ui {
         return b;
     }
 
-    static void Hover(Border b, uint bg, uint hover, bool enabled, Action click) {
+    public static void Hover(Border b, uint bg, uint hover, bool enabled, Action click) {
         if (!enabled) return;
         b.Cursor = Cursors.Hand;
         b.MouseEnter += (s, e) => b.Background = Br(hover);

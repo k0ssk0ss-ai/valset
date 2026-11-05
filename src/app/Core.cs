@@ -68,8 +68,8 @@ static class Json {
 
 // Ответ `valset state`.
 class State {
-    public bool Client, Game, IsMain, Have, Temp, Pending, AutoApply, AskAuto, Notify, Badge, SetsAuto, Own = true;
-    public bool? Same;
+    public bool Client, Game, IsMain, Have, Temp, Pending, AutoApply, AskAuto, Notify, Badge, SetsAuto, OverlayHint, Own = true;
+    public bool? Same, Overlay;   // Overlay: null — по режиму экрана
     public int Diff;
     public string Account = "", Puuid = "", Suggested = "", Lang = "", Error = "";
     public List<Dictionary<string, object>> DiffList = new List<Dictionary<string, object>>();
@@ -80,7 +80,7 @@ class State {
         s.Client = Json.Bool(d, "client"); s.Game = Json.Bool(d, "game"); s.IsMain = Json.Bool(d, "isMain");
         s.Have = Json.Bool(d, "have"); s.Temp = Json.Bool(d, "temp"); s.Pending = Json.Bool(d, "pending");
         s.AutoApply = Json.Bool(d, "autoApply"); s.AskAuto = Json.Bool(d, "askAuto");s.Notify = Json.Bool(d, "notify"); s.Badge = Json.Bool(d, "badge"); s.SetsAuto = Json.Bool(d, "setsAuto");
-        s.Same = Json.NBool(d, "same"); s.Diff = Json.Int(d, "diff");
+        s.Same = Json.NBool(d, "same"); s.Overlay = Json.NBool(d, "overlay"); s.OverlayHint = Json.Bool(d, "overlayHint"); s.Diff = Json.Int(d, "diff");
         s.Account = Json.Str(d, "account"); s.Puuid = Json.Str(d, "puuid"); s.Suggested = Json.Str(d, "suggested");
         s.Lang = Json.Str(d, "lang"); s.Error = Json.Str(d, "error");
         s.DiffList = Json.Dicts(Json.Get(d, "diffList"));

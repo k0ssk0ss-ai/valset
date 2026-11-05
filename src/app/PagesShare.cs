@@ -1,12 +1,12 @@
 // PagesShare.cs — «Код для друга» и предпросмотр перед записью: вставка кода (кнопка, ссылка valset:code/<код>)
-// и примерка про (список «Про», ссылка valset:pro/<ник>), набор косметики (PagesSets.cs, вид loadout). Пишет только кнопка в предпросмотре — ссылка сама ничего не применяет.
+// и примерка про (список «Про», ссылка valset:pro/<ник>), набор косметики (PagesSets.cs, вид loadout), один предмет («Все скины», PagesSkins.cs, вид skin). Пишет только кнопка в предпросмотре — ссылка сама ничего не применяет.
 using System;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 
 static class Share {
-    public static string Kind = "", Arg = "";   // предпросмотр: code | pro | loadout и сам код / ник / id набора
+    public static string Kind = "", Arg = "";   // предпросмотр: code | pro | loadout | skin и сам код / ник / id набора / предмет
 
     static string Id() { return Kind + ":" + Arg; }   // одно и то же для `list` (предпросмотр) и `do` (запись)
 
@@ -55,7 +55,7 @@ static class Share {
 
     // ── Предпросмотр ──
     public static string Title() {
-        return Kind == "pro" ? L.T("Примерить ", "Try on ") + Arg : Kind == "loadout" ? L.T("Надеть набор", "Put on the set") : L.T("Вставить код", "Paste code");
+        return Kind == "pro" ? L.T("Примерить ", "Try on ") + Arg : Kind == "loadout" ? L.T("Надеть набор", "Put on the set") : Kind == "skin" ? L.T("Надеть", "Put on") : L.T("Вставить код", "Paste code");
     }
 
     public static void Preview(StackPanel b) {
@@ -78,14 +78,14 @@ static class Share {
         if (!ok) return;
         if (same) { b.Children.Add(Ui.Note(L.T("Уже так — менять нечего.", "Already like this — nothing to change."))); return; }
         if (n == 0) b.Children.Add(Ui.Note(L.T("Отличия только служебные (профили прицела, агентские бинды и т. п.)", "Only internal differences (crosshair profiles, agent binds, etc.)")));
-        b.Children.Add(Ui.Note(Kind == "loadout"
+        b.Children.Add(Ui.Note(Kind == "loadout" || Kind == "skin"
             ? L.T("Перед записью — бэкап; «Отменить» — сразу. В матче — сразу (посреди матча — со следующего); «Коллекция» в игре покажет старое до перезапуска игры.", "A backup first; “Undo” right away. Applies to matches right away (mid-match — from the next one); the in-game Collection shows the old one until the game restarts.")
             : Kind == "pro"
             ? L.T("На время: после игры вернутся исходные; «Отменить» — сразу.", "For now: originals come back after the game; “Undo” works right away.")
             : L.T("Насовсем, перед записью — бэкап; «Отменить» — сразу или позже в «Бэкапах».", "Permanent, with a backup first; “Undo” right away or later in Backups.")));
         var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 4) };
         string id = Id();
-        var yes = Ui.Btn(Kind == "pro" ? L.T("Примерить", "Try on") : Kind == "loadout" ? L.T("Надеть", "Put on") : L.T("Записать", "Apply"), 13, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, !Ctl.Busy,
+        var yes = Ui.Btn(Kind == "pro" ? L.T("Примерить", "Try on") : Kind == "loadout" || Kind == "skin" ? L.T("Надеть", "Put on") : L.T("Записать", "Apply"), 13, 0xFFFFFF, 0x3D8BFD, 0x5A9DFE, !Ctl.Busy,
                          () => { Ctl.Panel.Back(); Ctl.DoAction(id, false); }, 32, 6);
         yes.MinWidth = 110;
         var no = Ui.Btn(L.T("Отмена", "Cancel"), 13, 0xE0E0E0, 0x3A3A3A, 0x484848, true, () => Ctl.Panel.Back(), 32, 6);

@@ -15,6 +15,7 @@ static class Sets {
 
     public static void Page(StackPanel b) {
         var s = Ctl.Cur;
+        b.Children.Add(Ui.Row(L.T("Все скины", "All skins"), L.T("что есть на аккаунте, с картинками — надеть по одному", "what the account owns, with pictures — put on one by one"), "", 0, () => Ctl.Panel.Go("skins")));
         b.Children.Add(Ui.Toggle(L.T("Менять скины при выборе агента", "Switch skins on agent select"), s.SetsAuto,
             on => { s.SetsAuto = on; Ctl.DoAction("set:setsAuto=" + (on ? "on" : "off"), false); }));
         b.Children.Add(Ui.Note(L.T("Зафиксируешь агента — надену его набор, он будет в этом матче. Набор, надетый посреди матча, виден со следующего.",
@@ -85,6 +86,9 @@ static class Sets {
         naming = false; name.Text = "";
         Ctl.DoAction("loadoutsave:" + B64(t), false);   // имя — base64url: без пробелов и кавычек в командной строке
     }
+
+    // «Сохранить как набор» со страницы «Все скины».
+    public static void StartNaming() { naming = true; if (Ctl.Panel.Page != "sets") Ctl.Panel.Go("sets"); else Ctl.Panel.Refresh(); }
 
     static string B64(string t) { return Convert.ToBase64String(Encoding.UTF8.GetBytes(t)).TrimEnd('=').Replace('+', '-').Replace('/', '_'); }
 
