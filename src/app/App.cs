@@ -246,6 +246,7 @@ static class Ctl {
             if (kind == "pro" && val.Length > 0 && val.IndexOfAny(new[] { ' ', '"', '&', '|', '<', '>', '^', '%' }) < 0) { Share.Open("pro", val); return; }
         }
         a = a.ToLowerInvariant();
+        if (a == "skins") { Panel.ShowSkins(null); return; }   // valset:skins — «Все скины»
         if (Array.IndexOf(Actions, a) >= 0) DoAction(a, true);
         else Panel.ShowPanel();
     }
