@@ -95,6 +95,9 @@ src\crosshair.ps1  crosshair profiles: “for now” — only yours, “permanen
 src\backups.ps1    account rollback and my settings history
 src\pros.ps1       “Pro settings”: try a pro's settings for now (list — pros.json in this repo)
 src\share.ps1      “Share code”: my settings as one line (VALSET2:…), paste preview and write
+src\sets.ps1       “Skins”: cosmetic sets (save, preview, put on, bind to an agent, auto on agent lock-in)
+src\loadout.ps1    Riot loadout: region/shard, GET/PUT playerloadout, agent select, item names (valorant-api.com, cached)
+src\cloud.ps1      requests to Riot with retries: growing pause, token lifetime, fresh token from the client
 src\accounts.ps1   accounts by Riot ID, main account, status
 src\agent.ps1      config, toasts, login check (`valset watch`)
 src\app.ps1, src\app\*.cs   tray app (C#, built on your PC)
