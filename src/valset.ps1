@@ -3,10 +3,10 @@
 
   valset             меню: стрелки или цифры (ярлык «VALSET» в Пуске); новое окно заменяет старое
   valset pros / more консольное меню сразу на этом экране
-  valset list <pros|accounts|backups|history|diff|code:КОД|pro:НИК> списки для панели приложения (одна строка JSON)
+  valset list <pros|accounts|backups|history|diff|code:КОД|pro:НИК|loadouts|loadout:ID> списки для панели приложения (одна строка JSON)
   valset lib         (для приложения) только загрузить функции: Invoke-Core state|list|do|watch → строка JSON, без exit
   valset state       (для приложения) состояние одной строкой JSON
-  valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo|gfxsave|share|code:КОД|pro:НИК|restore:ID|history:ID|set:КЛЮЧ=ЗНАЧЕНИЕ|account:PUUID:ДЕЙСТВИЕ — без вопросов, ответ JSON
+  valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo|gfxsave|share|code:КОД|pro:НИК|restore:ID|history:ID|set:КЛЮЧ=ЗНАЧЕНИЕ|account:PUUID:ДЕЙСТВИЕ|loadout:… — без вопросов, ответ JSON
   valset save        запомнить настройки текущего аккаунта как мои (-BindsOnly — только бинды)
   valset gfxsave     запомнить только графику (можно при запущенной игре)
   valset apply       перенести мои настройки на текущий аккаунт (всё; -BindsOnly — только бинды)
@@ -76,6 +76,7 @@ if (Test-Path $GameLog) {
 }
 
 . (Join-Path $PSScriptRoot 'ui.ps1')
+. (Join-Path $PSScriptRoot 'cloud.ps1')
 . (Join-Path $PSScriptRoot 'keys.ps1')
 . (Join-Path $PSScriptRoot 'graphics.ps1')
 . (Join-Path $PSScriptRoot 'schema.ps1')
@@ -89,6 +90,8 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'menu.ps1')
 . (Join-Path $PSScriptRoot 'pros.ps1')
 . (Join-Path $PSScriptRoot 'share.ps1')
+. (Join-Path $PSScriptRoot 'loadout.ps1')
+. (Join-Path $PSScriptRoot 'sets.ps1')
 . (Join-Path $PSScriptRoot 'more.ps1')
 . (Join-Path $PSScriptRoot 'do.ps1')
 . (Join-Path $PSScriptRoot 'doextra.ps1')
@@ -189,21 +192,6 @@ function Compress-Pref([string]$json) {
 }
 
 function Get-Headers($s) { @{ Authorization = "Bearer $($s.Token)"; 'X-Riot-Entitlements-JWT' = $s.Entitlement } }
-
-# Запрос к облаку: сбой сети или 5xx — ещё раз через 1,5 с (запись — целиком, повтор безопасен).
-# 403 от Cloudflare (страница «you have been blocked», замер 2026-10-11, проходит сама за ~20 мин) — понятной ошибкой.
-function Invoke-Cloud([scriptblock]$call) {
-    for ($i = 0; ; $i++) {
-        try { return (& $call) } catch {
-            $code = 0; try { $code = [int]$_.Exception.Response.StatusCode } catch {}
-            if ($code -eq 403 -and "$($_.ErrorDetails.Message)" -match 'cloudflare|have been blocked') {
-                throw (L 'Riot временно не пускает к облаку настроек (защита Cloudflare). Обычно проходит само за ~20 минут — повтори позже; игра в это время тоже не сохраняет настройки.' 'Riot is temporarily blocking the settings cloud (Cloudflare). It usually clears in ~20 minutes — try again later; the game cannot save settings meanwhile either.')
-            }
-            if ($i -ge 1 -or ($code -ge 400 -and $code -lt 500)) { throw }
-            Start-Sleep -Milliseconds 1500
-        }
-    }
-}
 
 function Test-GameRunning { [bool](Get-Process $GameProc -ErrorAction SilentlyContinue) }
 

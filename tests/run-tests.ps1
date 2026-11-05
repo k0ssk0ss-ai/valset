@@ -188,12 +188,7 @@ try {
     $fp = Join-Path $tmp 'safe\a.json'
     Write-FileSafe $fp 'один'; Write-FileSafe $fp 'два'
     Check 'запись через временный файл: новый и замена' ((Get-Content $fp -Raw -Encoding UTF8) -eq 'два' -and -not (Test-Path "$fp.tmp"))
-    $script:n = 0
-    $r = Invoke-Cloud { $script:n++; if ($script:n -lt 2) { throw 'сеть моргнула' }; 'ок' }
-    Check 'сбой сети — один повтор' ($r -eq 'ок' -and $script:n -eq 2)
-    $script:n = 0
-    try { Invoke-Cloud { $script:n++; throw 'лежит' } } catch {}
-    Check 'не больше одного повтора' ($script:n -eq 2)
+    . "$PSScriptRoot\test-cloud.ps1"   # повторы запросов к Riot
     function Start-GfxWait {}   # без фонового процесса
     Request-CloudAfterExit 'p1aaaaaaaa' 'apply'; Request-CloudAfterExit 'p2aaaaaaaa' 'pro:TenZ'; Request-CloudAfterExit 'p1aaaaaaaa' 'binds'
     $cq = @(Get-Content $CloudQueue -Encoding UTF8)

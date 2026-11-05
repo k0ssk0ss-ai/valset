@@ -14,7 +14,7 @@ function Assert-Written($s, [string]$json, [string]$what) {
 }
 
 function Read-CloudSettings($s) {
-    $r = Invoke-Cloud { Invoke-RestMethod "$PrefUrl/getPreference/Ares.PlayerSettings" -Headers (Get-Headers $s) -TimeoutSec 15 }
+    $r = Invoke-Cloud { Invoke-RestMethod "$PrefUrl/getPreference/Ares.PlayerSettings" -Headers (Get-Headers $s) -TimeoutSec 15 } $s
     if (-not $r.data) { throw (L 'Облако вернуло пустые настройки (аккаунт ни разу не заходил в Valorant?).' 'The cloud returned empty settings (has this account never played VALORANT?).') }
     $json = Expand-Pref $r.data
     Register-Actions $json
@@ -39,7 +39,7 @@ function Set-Settings($s, [string]$json) {
     Clear-SettingsCache   # и до записи: упадёт посередине — старому кэшу верить нельзя
     $body = @{ type = 'Ares.PlayerSettings'; data = (Compress-Pref $json) } | ConvertTo-Json -Compress
     Invoke-Cloud { Invoke-RestMethod "$PrefUrl/savePreference" -Method Put -Headers (Get-Headers $s) `
-        -Body $body -ContentType 'application/json' -TimeoutSec 15 | Out-Null }
+        -Body $body -ContentType 'application/json' -TimeoutSec 15 | Out-Null } $s
     Clear-SettingsCache
 }
 
