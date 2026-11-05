@@ -1,4 +1,4 @@
-// Pages.cs — страницы панели: Главная, Применить, Сохранить, Настройки, Справка (код для друга — PagesShare.cs).
+// Pages.cs — страницы панели: Главная, Применить, Сохранить, Настройки, Справка (код для друга — PagesShare.cs, скины — PagesSets.cs).
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -21,6 +21,8 @@ static class Pages {
             case "settings": return L.T("Настройки", "Settings");
             case "share": return L.T("Код для друга", "Share code");
             case "preview": return Share.Title();
+            case "sets": return L.T("Скины", "Skins");
+            case "setagent": return L.T("Агент для набора", "Agent for the set");
             case "help": return L.T("Справка", "Help");
         }
         return "VALSET";
@@ -37,6 +39,8 @@ static class Pages {
             case "settings": Settings(b); break;
             case "share": Share.Page(b); break;
             case "preview": Share.Preview(b); break;
+            case "sets": Sets.Page(b); break;
+            case "setagent": Sets.Agents(b); break;
             case "help": Help(b); break;
         }
     }
@@ -72,6 +76,7 @@ static class Pages {
         if (s.Diff > 0) g.Children.Add(NavItem(L.T("Что отличается", "What differs"), "diff"));
         g.Children.Add(NavItem(L.T("Про", "Pros"), "pros"));
         g.Children.Add(NavItem(L.T("Код для друга", "Share code"), "share"));
+        g.Children.Add(NavItem(L.T("Скины", "Skins"), "sets"));
         g.Children.Add(NavItem(L.T("Аккаунты", "Accounts"), "accounts"));
         g.Children.Add(NavItem(L.T("Бэкапы", "Backups"), "backups"));
         g.Children.Add(NavItem(L.T("Настройки", "Settings"), "settings"));
@@ -182,6 +187,7 @@ static class Pages {
             new[] { "На чужом аккаунте настройки ставятся на время: после игры вернутся исходные.", "On someone else's account settings are temporary: originals return after the game." },
             new[] { "Про: настройки про-игрока примеряются на время, потом можно отменить.", "Pros: a pro's settings are a temporary try-on, you can undo it." },
             new[] { "Код для друга: «Поделиться» копирует код твоих настроек; друг вставляет его у себя и сначала видит, что изменится.", "Share code: “Share” copies a code of your settings; your friend pastes it and first sees what changes." },
+            new[] { "Скины: сохрани текущие скины, брелоки, спреи, карточку, титул и рамку как набор и надевай одним нажатием; набор можно привязать к агенту.", "Skins: save your current skins, buddies, sprays, card, title and border as a set and put it on in one click; a set can be bound to an agent." },
             new[] { "Любое действие отменяется сразу («Готово · Отменить») или позже в Бэкапах.", "Any action can be undone right away (\"Done · Undo\") or later in Backups." },
             new[] { "Цвет значка: зелёный — твои, жёлтый — есть действие, синий — игра, серый — клиента нет.", "Icon colour: green — yours, amber — action needed, blue — game, grey — no client." }
         };

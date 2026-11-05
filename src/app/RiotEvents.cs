@@ -12,6 +12,7 @@ class RiotEvents {
     public event Action LoggedIn;              // вход в аккаунт (и при подключении к уже открытому клиенту)
     public event Action<bool> GameChanged;     // игра запущена / закрыта (сразу)
     public event Action<string> GameClosed;    // через 3 с после выхода из игры; токен игры или null
+    public event Action<string> Pregame;       // выбор агента: что-то поменялось (сообщение RMS ares-pregame); id матча
 
     public volatile bool ClientUp;
     public volatile bool GameRunning;
@@ -110,6 +111,9 @@ class RiotEvents {
                     } else if (m.Contains("\"uri\":\"/product-session/v1/external-sessions/")) {
                         if (m.Contains("\"eventType\":\"Create\"")) { gameSeen = true; HoldToken(); SetGame(true); }   // игра запущена
                         else if (m.Contains("\"eventType\":\"Delete\"") && gameSeen) { gameSeen = false; AfterGame(); }   // и закрыта (в т. ч. выходом из аккаунта)
+                    } else if (m.Contains("/ares-pregame/pregame/v1/matches/")) {   // выбор агента: выбрал, зафиксировал, сменил кто-то из команды
+                        var pm = System.Text.RegularExpressions.Regex.Match(m, "/ares-pregame/pregame/v1/matches/([0-9a-fA-F-]{36})");
+                        if (pm.Success) { try { var h = Pregame; if (h != null) h(pm.Groups[1].Value); } catch { } }
                     }
                     dirty = true;
                 }

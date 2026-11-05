@@ -95,7 +95,7 @@ static class Ui {
 
     // Итог действия: «Готово · Отменить» (или «…», пока идёт). null — показывать нечего.
     public static UIElement Result() {
-        if (Ctl.Busy) { var w = Tb("…", 14, 0x9A9A9A, null); w.Margin = new Thickness(0, 10, 0, 0); return w; }
+        if (Ctl.Busy) { var w = Ctl.BusyStatus.Length > 0 ? Tb("…  " + Ctl.BusyStatus, 12.5, 0xE0A100, null) : Tb("…", 14, 0x9A9A9A, null); w.Margin = new Thickness(0, 10, 0, 0); return w; }
         if (Ctl.ResultMsg == null) return null;
         var sp = new StackPanel { Margin = new Thickness(0, 10, 0, 4) };
         sp.Children.Add(Tb(Ctl.ResultMsg, 12.5, 0xE0E0E0, null));

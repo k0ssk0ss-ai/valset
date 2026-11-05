@@ -104,6 +104,7 @@ static class Ctl {
         Events.ClientChanged += up => Ui.BeginInvoke(new Action(() => { RefreshState(); Raise(); }));
         Events.GameChanged += running => Ui.BeginInvoke(new Action(Raise));
         Events.GameClosed += tok => Ui.BeginInvoke(new Action(() => OnGameClosed(tok)));
+        Events.Pregame += mid => Ui.BeginInvoke(new Action(() => OnPregame(mid)));
         Tray.Update();
         RefreshState();
         Events.Start();
@@ -156,10 +157,49 @@ static class Ctl {
         RefreshState();
     }
 
+    // Выбор агента (событие клиента, без опроса): ядро смотрит, зафиксирован ли агент, и надевает его набор (sets.ps1).
+    // По матчу — пока ядро не скажет done (агент зафиксирован); события во время вызова — ещё один вызов после него.
+    static string pregameDone = "", pregameAgain = null;
+    static bool pregameBusy;
+    static void OnPregame(string match) {
+        if (!Cur.SetsAuto || match == pregameDone) return;
+        if (pregameBusy) { pregameAgain = match; return; }
+        pregameBusy = true; pregameAgain = null;
+        Post(() => {
+            var d = Json.Parse(Core.Run("do loadoutauto", null, 90000));
+            Ui.BeginInvoke(new Action(() => {
+                pregameBusy = false;
+                if (d != null && Json.Bool(d, "done")) pregameDone = match;
+                if (d != null && Json.Bool(d, "applied") && !Busy) {
+                    ResultOk = Json.Bool(d, "ok"); ResultUndo = Json.Bool(d, "undo"); ResultMsg = Json.Str(d, "message");
+                    Lists.Reset(); Raise();
+                }
+                string again = pregameAgain; pregameAgain = null;
+                if (again != null) OnPregame(again);
+            }));
+        });
+    }
+
+    // Пока идёт действие — строка состояния ядра (повторы запросов к Riot, cloud.ps1): ядро в памяти приложения
+    // пишет её в переменную процесса VALSET_STATUS. Таймер работает только пока Busy.
+    public static string BusyStatus = "";
+    static DispatcherTimer statusTimer;
+    static void WatchStatus() {
+        if (statusTimer == null) {
+            statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+            statusTimer.Tick += (s, e) => {
+                string t = Busy ? (Environment.GetEnvironmentVariable("VALSET_STATUS") ?? "") : "";
+                if (!Busy) statusTimer.Stop();
+                if (t != BusyStatus) { BusyStatus = t; Raise(); }
+            };
+        }
+        BusyStatus = ""; statusTimer.Start();
+    }
+
     // Действие из панели/тоста. show — показать панель с результатом.
     public static void DoAction(string act, bool show) {
         if (Busy) return;
-        Busy = true; ResultMsg = null;
+        Busy = true; ResultMsg = null; WatchStatus();
         if (show) Panel.ShowPanel();
         Raise();
         Post(() => {
