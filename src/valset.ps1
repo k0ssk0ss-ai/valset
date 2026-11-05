@@ -3,10 +3,10 @@
 
   valset             меню: стрелки или цифры (ярлык «VALSET» в Пуске); новое окно заменяет старое
   valset pros / more консольное меню сразу на этом экране
-  valset list <pros|accounts|backups|history|diff|code:КОД|pro:НИК|loadouts|loadout:ID|skins|skin:СПЕЦ> списки для панели приложения (одна строка JSON)
+  valset list <pros|accounts|backups|history|diff|code:КОД|pro:НИК|loadouts|loadout:ID|skins|skin:СПЕЦ|collections|collection:ID|coll:ID> списки для панели приложения (одна строка JSON)
   valset lib         (для приложения) только загрузить функции: Invoke-Core state|list|do|watch → строка JSON, без exit
   valset state       (для приложения) состояние одной строкой JSON
-  valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo|gfxsave|share|code:КОД|pro:НИК|restore:ID|history:ID|set:КЛЮЧ=ЗНАЧЕНИЕ|account:PUUID:ДЕЙСТВИЕ|loadout:…|skin:… — без вопросов, ответ JSON
+  valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo|gfxsave|share|code:КОД|pro:НИК|restore:ID|history:ID|set:КЛЮЧ=ЗНАЧЕНИЕ|account:PUUID:ДЕЙСТВИЕ|loadout:…|skin:…|coll:ID — без вопросов, ответ JSON
   valset save        запомнить настройки текущего аккаунта как мои (-BindsOnly — только бинды)
   valset gfxsave     запомнить только графику (можно при запущенной игре)
   valset apply       перенести мои настройки на текущий аккаунт (всё; -BindsOnly — только бинды)
@@ -93,6 +93,7 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'loadout.ps1')
 . (Join-Path $PSScriptRoot 'sets.ps1')
 . (Join-Path $PSScriptRoot 'skins.ps1')
+. (Join-Path $PSScriptRoot 'collections.ps1')
 . (Join-Path $PSScriptRoot 'more.ps1')
 . (Join-Path $PSScriptRoot 'do.ps1')
 . (Join-Path $PSScriptRoot 'doextra.ps1')

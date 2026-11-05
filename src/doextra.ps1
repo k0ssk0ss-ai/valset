@@ -9,7 +9,7 @@ $SetBools = [ordered]@{ notify = 'Уведомления|Notifications'; autoApp
                         overlay = 'Кнопка поверх игры|Button over the game'; overlayHint = 'Подсказка про кнопку поверх игры|Overlay button hint' }
 
 function Test-ExtraAction([string]$a) {
-    $a -in 'gfxsave', 'share', 'loadoutauto' -or $a -match '^(loadout(save|bind|del)?|skin):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
+    $a -in 'gfxsave', 'share', 'loadoutauto' -or $a -match '^(loadout(save|bind|del)?|skin|coll):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
 }
 
 function Write-UndoExtra([string]$kind, $data) {
@@ -144,10 +144,11 @@ function Invoke-DoExtra([string]$action, $r) {
         '^share$'        { Invoke-DoShare $r }
         '^loadoutauto$'  { Invoke-DoLoadoutAuto $r }   # наборы косметики — sets.ps1
         '^loadout:(.+)$' { Invoke-SetApply $Matches[1] }
-        '^loadoutsave:(.+)$' { Invoke-SetSave (ConvertFrom-B64Url $Matches[1]) }
+        '^loadoutsave:([^:]+)(?::(.+))?$' { Invoke-SetSave (ConvertFrom-B64Url $Matches[1]) "$($Matches[2])" }   # :<коллекция> — набор из коллекции
         '^loadoutbind:([^:]+):(.+)$' { Invoke-SetBind $Matches[1] $Matches[2] }
         '^loadoutdel:(.+)$' { Invoke-SetDelete $Matches[1] }
         '^skin:(.+)$'    { Invoke-SkinApply $Matches[1] }   # «Все скины» — skins.ps1
+        '^coll:(.+)$'    { Invoke-CollApply $Matches[1] }   # коллекция — collections.ps1
         '^code:(.+)$'    { Invoke-DoCode $Matches[1] }
         '^pro:(.+)$'     { Invoke-DoPro $Matches[1] $r }
         '^restore:(.+)$' { Invoke-DoRestore $Matches[1] }

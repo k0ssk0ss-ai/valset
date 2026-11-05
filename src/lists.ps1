@@ -72,9 +72,9 @@ function Get-ListDiff { ConvertTo-DiffItems (Get-MenuState 6>$null).DiffList }
 
 function Get-ListJson([string]$kind) {
     # предпросмотр: code:<код> — вставка кода для друга (share.ps1), pro:<ник> — примерка про (pros.ps1)
-    $items = if ($kind -match '^code:(.+)$') { Get-ListCode $Matches[1] } elseif ($kind -match '^pro:(.+)$') { Get-ListProPreview $Matches[1] } elseif ($kind -match '^loadout:(.+)$') { Get-ListLoadoutPreview $Matches[1] } elseif ($kind -match '^skin:(.+)$') { Get-ListSkinPreview $Matches[1] } else { switch ($kind) {
+    $items = if ($kind -match '^code:(.+)$') { Get-ListCode $Matches[1] } elseif ($kind -match '^pro:(.+)$') { Get-ListProPreview $Matches[1] } elseif ($kind -match '^loadout:(.+)$') { Get-ListLoadoutPreview $Matches[1] } elseif ($kind -match '^skin:(.+)$') { Get-ListSkinPreview $Matches[1] } elseif ($kind -match '^collection:(.+)$') { Get-ListCollection $Matches[1] } elseif ($kind -match '^coll:(.+)$') { Get-ListCollPreview $Matches[1] } else { switch ($kind) {
         'pros' { Get-ListPros } 'accounts' { Get-ListAccounts } 'backups' { Get-ListBackups }
-        'history' { Get-ListHistory } 'diff' { Get-ListDiff } 'loadouts' { Get-ListLoadouts } 'agents' { Get-ListAgents } 'skins' { Get-ListSkins }
+        'history' { Get-ListHistory } 'diff' { Get-ListDiff } 'loadouts' { Get-ListLoadouts } 'agents' { Get-ListAgents } 'skins' { Get-ListSkins } 'collections' { Get-ListCollections }
         default { throw (L "неизвестный список: $kind" "unknown list: $kind") }
     } }
     ConvertTo-Json -InputObject @($items) -Depth 5 -Compress

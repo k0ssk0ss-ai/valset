@@ -161,10 +161,11 @@ function New-LoadoutBackup($s, [string]$json) {
 }
 
 # `do loadoutsave:<имя base64url>` — текущий лоадаут как набор; то же имя — набор обновляется (агент остаётся).
-function Invoke-SetSave([string]$name) {
+# `loadoutsave:<имя>:<коллекция>` — набор только из своих скинов коллекции (collections.ps1).
+function Invoke-SetSave([string]$name, [string]$theme = '') {
     $name = Test-SetName $name
     $s = Connect-Session
-    $items = ConvertTo-SetItems (Get-Loadout $s)
+    $items = if ($theme) { Get-CollSetItems $s $theme } else { ConvertTo-SetItems (Get-Loadout $s) }
     $sets = @(Read-Sets)
     $old = $sets | Where-Object { "$($_.name)" -eq $name } | Select-Object -First 1
     if (-not $old -and $sets.Count -ge $SetsMax) { throw (L "Наборов уже $SetsMax — удали ненужный." "Already $SetsMax sets — delete one first.") }
@@ -288,6 +289,7 @@ function Get-ListLoadoutPreview([string]$id) {
         $info = "$(L 'Набор' 'Set') «$($set.name)»$(if ($set.agent) { " · $(Get-AgentName $names $set.agent)" })"
         if (Test-SetV2 $set) { $info += "`n" + (L 'Набор старого формата: брелоки из него не меняются — надень и сохрани заново.' 'Old-format set: its buddies are not applied — apply and save it again.') }
         if ($set.puuid -and $set.puuid -ne $s.Puuid) { $info += "`n" + (L "Сохранён на другом аккаунте ($(Get-AccountLabel $set.puuid)) — Riot примет только предметы, которые есть здесь." "Saved on another account ($(Get-AccountLabel $set.puuid)) — Riot accepts only items owned here.") }
-        @([ordered]@{ info = $info; account = (Get-AccountLabel $s.Puuid); same = (-not $rows.Count) }) + @($rows)
+        $pics = @(); try { $pics = @(Get-SetPics $set) } catch { Log "картинки набора: $($_.Exception.Message)" }   # без каталога — без картинок
+        @([ordered]@{ info = $info; account = (Get-AccountLabel $s.Puuid); same = (-not $rows.Count); pics = $pics }) + @($rows)
     } catch { @([ordered]@{ error = $_.Exception.Message }) }
 }

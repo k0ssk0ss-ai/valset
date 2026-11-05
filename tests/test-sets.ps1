@@ -24,10 +24,11 @@ function New-Lo($skin, $lvl, $chroma, $buddy, $spray, $card) {
 $loA = New-Lo (G 'skina000') (G 'lvla0001') (G 'chromaa0') (G 'buddy001') (G 'spray001') (G 'card0001')
 $loB = New-Lo (G 'skinb000') (G 'lvlb0004') (G 'chromab2') $null (G 'spray002') (G 'card0002')
 $script:lo = $loA; $script:puts = @(); $script:putFail = $null; $script:pre = $null
-$fnKeep = @{}; foreach ($f in 'Get-Loadout', 'Send-LoadoutPut', 'Get-PregameAgent') { $fnKeep[$f] = (Get-Item "Function:\$f").ScriptBlock }
+$fnKeep = @{}; foreach ($f in 'Get-Loadout', 'Send-LoadoutPut', 'Get-PregameAgent', 'Get-SkinCatalog') { $fnKeep[$f] = (Get-Item "Function:\$f").ScriptBlock }
 function Get-Loadout($s) { ConvertTo-Json -InputObject $script:lo -Depth 10 -Compress | ConvertFrom-Json }
 function Send-LoadoutPut($s, [string]$body) { $script:puts += $body; if ($script:putFail) { throw $script:putFail }; $script:lo = $body | ConvertFrom-Json; $script:lo }
 function Get-PregameAgent($s) { $script:pre }
+function Get-SkinCatalog { [pscustomobject]@{ weapons = @(); sprays = @(); flex = @(); cards = @([pscustomobject]@{ id = (G 'card0002'); name = 'Карта 2'; icon = 'https://media.valorant-api.com/c2.png' }) } }   # картинки набора
 function B64([string]$t) { [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($t)).TrimEnd('=').Replace('+', '-').Replace('/', '_') }
 
 Write-Host 'наборы косметики'
@@ -66,7 +67,7 @@ Check 'list agents: из справочника' ((Parse-Arr (Get-ListJson 'agen
 # предпросмотр и надевание на A
 $script:lo = $loA; $script:puts = @()
 $lp = Parse-Arr (Get-ListJson "loadout:$sid")
-Check 'list loadout: предпросмотр без записи' ($lp[0].info -like 'Набор «Мой набор»*' -and $lp[0].same -eq $false -and $lp.Count -eq 5 -and $script:puts.Count -eq 0) (Get-ListJson "loadout:$sid")
+Check 'list loadout: предпросмотр без записи' ($lp[0].info -like 'Набор «Мой набор»*' -and $lp[0].same -eq $false -and $lp.Count -eq 5 -and @($lp[0].pics).Count -eq 1 -and $lp[0].pics[0].t -eq 'card' -and $script:puts.Count -eq 0) (Get-ListJson "loadout:$sid")
 $bkT = [DateTime]::Now.AddSeconds(-1)
 $r = Invoke-Do "loadout:$sid"
 Check 'do loadout: одна запись, бэкап, отмена' ($r.ok -and $r.undo -and $script:puts.Count -eq 1 -and $r.message -like 'Набор «Мой набор» надет: 4*' -and @(Get-ChildItem $LoadoutBackupDir -Filter *.json | Where-Object { $_.LastWriteTime -gt $bkT }).Count -eq 1) ($r | ConvertTo-Json -Compress)
