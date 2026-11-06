@@ -55,6 +55,8 @@ right now (apply, save, restore originals) — usually 1–3 items. Everything e
   Fullscreen, or Ctrl+Alt+S in the game menu): everything your account owns, with pictures; pick one — see what changes —
   put it on (backup + undo). The Collections tab groups skins by collection (bundle): preview all its weapons, put on
   every owned skin of a collection at once, or save it as a set.
+- **Report a bug** (bottom of the tray panel): copies diagnostics (versions, last log lines; Riot IDs, PUUIDs, your
+  Windows user name and tokens masked) to the clipboard and opens a new GitHub issue form — paste them there.
 
 ## Safety — honestly
 
@@ -102,6 +104,7 @@ src\share.ps1      “Share code”: my settings as one line (VALSET2:…), past
 src\sets.ps1       “Skins”: cosmetic sets (save, preview, put on, bind to an agent, auto on agent lock-in)
 src\skins.ps1      “All skins”: owned items by category (valorant-api catalog by game version, entitlements), put one on
 src\collections.ps1  “All skins” → Collections: skins by collection (valorant-api themes), put on a collection, set pictures
+src\report.ps1     “Report a bug”: diagnostics text with private data masked (`valset do report`)
 src\loadout.ps1    Riot loadout: region/shard, GET/PUT playerloadout, agent select, item names (valorant-api.com, cached)
 src\cloud.ps1      requests to Riot with retries: growing pause, token lifetime, fresh token from the client
 src\accounts.ps1   accounts by Riot ID, main account, status
