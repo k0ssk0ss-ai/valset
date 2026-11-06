@@ -30,7 +30,7 @@ param(
     [int]$Interval = 3
 )
 $ErrorActionPreference = 'Stop'
-$Version = '2.0.0'
+$Version = '2.1.0'
 $script:Fancy = $Command -notin 'watch', 'gfxwait', 'state', 'do', 'list', 'lib'   # скрытые режимы — без оформления
 $script:Quiet = $Command -in 'state', 'do', 'list', 'lib'   # stdout этих команд — ровно одна строка JSON: журнал на экран не пишем
 $script:Lib = $Command -eq 'lib'   # режим библиотеки: только функции (приложение держит ядро в своём runspace, зовёт Invoke-Core), без exit и вопросов

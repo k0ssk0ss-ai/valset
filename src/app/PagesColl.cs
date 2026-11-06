@@ -82,7 +82,7 @@ static class Colls {
         string bn = Json.Str(info, "bn");
         UIElement hero = null;   // баннера нет — на сцене первый свой скин коллекции
         if (bn.Length == 0) for (int i = 1; i < l.Count && hero == null; i++) if (Json.Bool(l[i], "own")) hero = Img.Make(Json.Str(l[i], "icon"), 300, 80);
-        b.Children.Add(Stage.Make(168, bn, hero, L.T("КОЛЛЕКЦИЯ", "COLLECTION"), false, Stage.Info(Name, sub), ctl));
+        b.Children.Add(Stage.Make(168, bn, hero, L.T("Коллекция", "Collection"), false, Stage.Info(Name, sub), ctl));
         if (put == 0) b.Children.Add(Ui.Note(own > 0 ? L.T("Свои скины этой коллекции — на оружии, которого нет в лоадауте", "Your skins from this collection are for weapons not in the loadout")
                                                      : L.T("Из этой коллекции на аккаунте ничего нет — только посмотреть", "Nothing from this collection on the account — view only")));
         else if (own < n) b.Children.Add(Ui.Note(L.T("Тусклые — для справки, надеть нельзя", "Dim ones are for reference, can't be put on")));
