@@ -522,6 +522,7 @@ Check 'state: чужой аккаунт — предлагает apply' ($stO.pu
     . "$PSScriptRoot\test-sets.ps1"   # наборы косметики
     . "$PSScriptRoot\test-skins.ps1"  # «Все скины»
     . "$PSScriptRoot\test-collections.ps1"  # «Коллекции»
+    . "$PSScriptRoot\test-report.ps1"  # «Сообщить об ошибке»
     # откат аккаунта из бэкапа
     $bk2 = New-Backup $script:sess '{"floatSettings":[{"settingEnum":"EAresFloatSettingName::MouseSensitivity","value":0.31}]}'
     $id2 = [IO.Path]::GetFileNameWithoutExtension($bk2)

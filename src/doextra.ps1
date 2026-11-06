@@ -9,7 +9,7 @@ $SetBools = [ordered]@{ notify = 'Уведомления|Notifications'; autoApp
                         overlay = 'Кнопка поверх игры|Button over the game'; overlayHint = 'Подсказка про кнопку поверх игры|Overlay button hint' }
 
 function Test-ExtraAction([string]$a) {
-    $a -in 'gfxsave', 'share', 'loadoutauto' -or $a -match '^(loadout(save|bind|del)?|skin|coll):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
+    $a -in 'gfxsave', 'share', 'report', 'loadoutauto' -or $a -match '^(loadout(save|bind|del)?|skin|coll):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
 }
 
 function Write-UndoExtra([string]$kind, $data) {
@@ -142,6 +142,7 @@ function Invoke-DoExtra([string]$action, $r) {
             L 'Графика сохранена' 'Graphics saved'
         }
         '^share$'        { Invoke-DoShare $r }
+        '^report$'       { Invoke-DoReport $r }   # диагностика для сообщения об ошибке — report.ps1
         '^loadoutauto$'  { Invoke-DoLoadoutAuto $r }   # наборы косметики — sets.ps1
         '^loadout:(.+)$' { Invoke-SetApply $Matches[1] }
         '^loadoutsave:([^:]+)(?::(.+))?$' { Invoke-SetSave (ConvertFrom-B64Url $Matches[1]) "$($Matches[2])" }   # :<коллекция> — набор из коллекции

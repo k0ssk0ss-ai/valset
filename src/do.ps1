@@ -107,7 +107,7 @@ function Invoke-Do([string]$action) {
     try {
         $writes = 'apply', 'binds', 'applyperm', 'save', 'savebinds', 'untemp'
         if ($action -notin ($writes + 'undo') -and -not (Test-ExtraAction $action)) { throw (L "неизвестное действие: $action" "unknown action: $action") }
-        if ($action -notin 'undo', 'share', 'loadoutauto') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
+        if ($action -notin 'undo', 'share', 'report', 'loadoutauto') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
         $msg = $null
         switch ($action) {
             { $_ -in 'apply', 'binds', 'applyperm' } {

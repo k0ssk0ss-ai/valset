@@ -97,6 +97,7 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'more.ps1')
 . (Join-Path $PSScriptRoot 'do.ps1')
 . (Join-Path $PSScriptRoot 'doextra.ps1')
+. (Join-Path $PSScriptRoot 'report.ps1')
 . (Join-Path $PSScriptRoot 'lists.ps1')
 . (Join-Path $PSScriptRoot 'core.ps1')
 . (Join-Path $PSScriptRoot 'app.ps1')
