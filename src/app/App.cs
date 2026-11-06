@@ -224,6 +224,8 @@ static class Ctl {
                         try { Clipboard.SetText(code); }
                         catch (Exception e) { Dbg.Log("буфер: " + e.Message); ResultOk = false; ResultMsg = L.T("Не удалось положить код в буфер обмена — попробуй ещё раз", "Could not copy the code to the clipboard — try again"); }
                     }
+                    string text = Json.Str(d, "text");   // «Сообщить об ошибке»: диагностика в буфер, форма issue — в браузере
+                    if (ResultOk && act == "report" && text.Length > 0) { string err = BugReport.Open(text); if (err != null) { ResultOk = false; ResultMsg = err; } }
                 }
                 Raise();
                 if (show && !Panel.IsVisible) Panel.ShowPanel();

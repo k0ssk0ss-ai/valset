@@ -26,6 +26,7 @@ static class Icons {
             case "backups": return "M3,12 A9,9 0 1 0 6,5.3 L3,8 M3,3 V8 H8 M12,7 V12 L15,14";
             case "settings": return C(12, 12, 3) + "M12,3 V5 M12,19 V21 M3,12 H5 M19,12 H21 M5.6,5.6 L7,7 M17,17 L18.4,18.4 M5.6,18.4 L7,17 M17,7 L18.4,5.6" + C(12, 12, 7);
             case "help": return C(12, 12, 9) + "M9.5,9.5 A2.5,2.5 0 1 1 12,12 V13.5 M12,17 V17.2";
+            case "report": return "M5,21 V4 M5,4 H17 L14.5,8 L17,12 H5";
             case "back": return "M15,5 L8,12 L15,19";
             case "search": return C(11, 11, 6) + "M20,20 L15.5,15.5";
             case "chev": return "M9,6 L15,12 L9,18";

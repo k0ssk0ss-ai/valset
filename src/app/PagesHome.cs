@@ -139,9 +139,24 @@ static class PagesHome {
         var h = Ui.Tb(L.T("Справка", "Help"), 11, Ui.T3, null); h.Cursor = System.Windows.Input.Cursors.Hand;
         h.MouseEnter += (a, e) => h.Foreground = Ui.Br(Ui.T1); h.MouseLeave += (a, e) => h.Foreground = Ui.Br(Ui.T3);
         h.MouseLeftButtonUp += (a, e) => P.Go("help");
-        g.Children.Add(h);
+        var left = new StackPanel { Orientation = Orientation.Horizontal };
+        left.Children.Add(h); left.Children.Add(Report());
+        g.Children.Add(left);
         var v = Ui.MonoTb("VALSET" + (s.Ver.Length > 0 ? " " + s.Ver : ""), 11, Ui.T3); Grid.SetColumn(v, 1); g.Children.Add(v);
         return new Border { Child = g, BorderBrush = Ui.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(16, 8, 16, 12) };
+    }
+
+    // «Сообщить об ошибке» — тихая ссылка в подвале: диагностика (без личного) в буфер, форма issue на GitHub — в браузере.
+    static UIElement Report() {
+        var ic = Icons.Make("report", Ui.T3); ic.Width = 12; ic.Height = 12; ic.Margin = new Thickness(0, 0, 5, 0);
+        var t = Ui.Tb(L.T("Сообщить об ошибке", "Report a bug"), 11, Ui.T3, null);
+        var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(16, 0, 0, 0), Cursor = System.Windows.Input.Cursors.Hand, Background = Brushes.Transparent };
+        r.Children.Add(ic); r.Children.Add(t);
+        var path = (System.Windows.Shapes.Path)((Canvas)((Viewbox)ic).Child).Children[0];
+        r.MouseEnter += (a, e) => { t.Foreground = Ui.Br(Ui.T1); path.Stroke = Ui.Br(Ui.T1); };
+        r.MouseLeave += (a, e) => { t.Foreground = Ui.Br(Ui.T3); path.Stroke = Ui.Br(Ui.T3); };
+        r.MouseLeftButtonUp += (a, e) => Ctl.DoAction("report", false);
+        return r;
     }
 
     // Один раз после установки: включить автоперенос? Ответ (любой) больше не спрашивается; меняется в «Настройках».
