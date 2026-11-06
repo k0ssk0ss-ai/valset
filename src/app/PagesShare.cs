@@ -80,7 +80,7 @@ static class Share {
         if (same) { b.Children.Add(Ui.Note(L.T("Уже так — менять нечего.", "Already like this — nothing to change."))); return; }
         if (n == 0) b.Children.Add(Ui.Note(L.T("Отличия только служебные (профили прицела, агентские бинды и т. п.)", "Only internal differences (crosshair profiles, agent binds, etc.)")));
         b.Children.Add(Ui.Note(Kind == "loadout" || Kind == "skin" || Kind == "coll"
-            ? L.T("Перед записью — бэкап; «Отменить» — сразу. В матче — сразу (посреди матча — со следующего); «Коллекция» в игре покажет старое до перезапуска игры.", "A backup first; “Undo” right away. Applies to matches right away (mid-match — from the next one); the in-game Collection shows the old one until the game restarts.")
+            ? L.T("Перед записью — бэкап; «Отменить» — сразу. Скины матча и стрельбища игра читает при входе: надето посреди них — виден после перезахода (смена агента в стрельбище скины не обновляет); «Коллекция» в игре покажет старое до перезапуска игры.", "A backup first; “Undo” right away. The game reads match and range skins on entry: put on mid-way, they show after re-entering (switching agents in the range does not refresh them); the in-game Collection shows the old one until the game restarts.")
             : Kind == "pro"
             ? L.T("На время: после игры вернутся исходные; «Отменить» — сразу.", "For now: originals come back after the game; “Undo” works right away.")
             : L.T("Насовсем, перед записью — бэкап; «Отменить» — сразу или позже в «Бэкапах».", "Permanent, with a backup first; “Undo” right away or later in Backups.")));
