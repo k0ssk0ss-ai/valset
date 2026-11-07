@@ -40,11 +40,11 @@ function Write-State($st) {
         else            { Write-StateLine (L 'Аккаунт' 'Account') (L 'клиент Riot закрыт' 'Riot Client closed') 'Yellow' (L 'открой его и войди' 'open it and log in') }
     } else {
         Write-StateLine (L 'Аккаунт' 'Account') "$($st.Name)$(if ($st.IsMain) { L ' · основной' ' · main' })" 'White'
-        if ($st.Synced.Count) { Write-StateLine (L 'Из игры' 'From game') "√ $(L 'сохранено в твои' 'saved to yours'): $(Format-Changed $st.Synced)" 'Green' (L 'вернуть — «Ещё» → «Бэкапы»' 'undo — “More” → “Backups”') }
-        if (-not $st.Have)  { Write-StateLine (L 'Настройки' 'Settings') (L 'твои настройки ещё не запомнены' 'your settings are not saved yet') 'Yellow' (L '→ «Сохранить»' '→ “Save”') }
+        if ($st.Synced.Count) { Write-StateLine (L 'Из игры' 'From game') "√ $(L 'сохранено в твои' 'saved to yours'): $(Format-Changed $st.Synced)" 'Green' (L 'отменить: «Ещё» → «Бэкапы»' 'undo: “More” → “Backups”') }
+        if (-not $st.Have)  { Write-StateLine (L 'Настройки' 'Settings') (L 'твои настройки ещё не сохранены' 'your settings are not saved yet') 'Yellow' (L '→ «Сохранить»' '→ “Save”') }
         elseif ($st.Error)  { Write-StateLine (L 'Настройки' 'Settings') (L 'не удалось проверить' 'could not check') 'Red' $st.Error }
         elseif ($st.Same)   { Write-StateLine (L 'Настройки' 'Settings') (L '√ совпадают с твоими' '√ match yours') 'Green' }
-        elseif ($st.IsMain) { Write-StateLine (L 'Настройки' 'Settings') "‼ $(L 'поменялись в игре' 'changed in game') ($($st.Diff))" 'Yellow' (L '→ «Сохранить» (вернуть прежние — «Ещё» → «Перенести мои»)' '→ “Save” (to revert — “More” → “Apply mine”)') }
+        elseif ($st.IsMain) { Write-StateLine (L 'Настройки' 'Settings') "‼ $(L 'поменялись в игре' 'changed in game') ($($st.Diff))" 'Yellow' (L '→ «Сохранить» (вернуть прежние: «Ещё» → «Перенести мои»)' '→ “Save” (to revert: “More” → “Apply mine”)') }
         else                { Write-StateLine (L 'Настройки' 'Settings') "‼ $(L 'не твои: отличий' 'not yours: differences') $($st.Diff)" 'Yellow' (L '→ «Перенести мои настройки»' '→ “Apply my settings”') }
     }
     if ($st.Session -and (Test-Temp $st.Session.Puuid)) {
@@ -56,7 +56,7 @@ function Write-State($st) {
     $c = $st.Cfg
     if ($c.notify -or $c.autoApply) {
         $text = "$(L 'уведомления' 'notifications') $(if ($c.notify) { L 'вкл' 'on' } else { L 'выкл' 'off' }) · $(L 'автоперенос' 'auto-apply') $(if ($c.autoApply) { L 'вкл' 'on' } else { L 'выкл' 'off' })"
-        $hint = if (-not $st.Agent) { L 'не запущен — включи заново в «Ещё»' 'not running — turn it on again in “More”' } elseif ($c.autoApply) { L 'переносит сам на любой аккаунт, кроме основного' 'applies by itself to any account except main' } else { L 'подскажет, если настройки разошлись' 'tells you when settings differ' }
+        $hint = if (-not $st.Agent) { L 'не запущен, включи заново в «Ещё»' 'not running, turn it on again in “More”' } elseif ($c.autoApply) { L 'переносит сам на любой аккаунт, кроме основного' 'applies by itself to any account except main' } else { L 'подскажет, если настройки не совпали' 'tells you when settings differ' }
         Write-StateLine (L 'Помощник' 'Helper') $text $(if ($st.Agent) { 'Green' } else { 'Yellow' }) $hint
     }
     if ($st.GfxWait -and (Test-Path $CloudQueue)) { Write-StateLine (L 'Перенос' 'Apply') (L 'ждёт выхода из игры' 'waiting for game exit') 'Yellow' (L 'запишется сам' 'will be written automatically') }
@@ -94,11 +94,11 @@ function Get-MenuItems($st) {
         # на основном примеряешь чужое (про) — не предлагать запомнить его как твоё
         if ($ok -and (-not $st.Have -or ($st.IsMain -and -not $st.Same -and -not (Test-Temp $st.Session.Puuid)))) { New-SaveEntry }
         if ($ok -and $st.Have -and -not $st.IsMain -and -not $st.Same) { New-ApplyEntry $st }
-        if ($st.Diff -and $st.DiffList.Count) { New-MenuEntry (L 'Что отличается' 'What differs') "$($st.DiffList.Count) $(L 'настр.: на аккаунте → твои' 'settings: on account → yours')" 'diff' }
+        if ($st.Diff -and $st.DiffList.Count) { New-MenuEntry (L 'Что отличается' 'What differs') "$($st.DiffList.Count) $(L (Get-Plural $st.DiffList.Count 'настройка' 'настройки' 'настроек') 'settings'): $(L 'на аккаунте → твои' 'on account → yours')" 'diff' }
     )
     # всё в порядке — действий нет, статус сверху это уже сказал: только «Ещё» и «Выход»
     @(
-        if ($now) { New-MenuSep (L 'СЕЙЧАС' 'NOW'); $now; New-MenuSep '' }
+        if ($now) { New-MenuSep (L 'Сейчас' 'Now'); $now; New-MenuSep '' }
         New-MenuEntry (L 'Ещё' 'More') (L 'вручную, аккаунты, помощник, бэкапы, справка' 'manual, accounts, helper, backups, help') 'more'
         New-MenuEntry (L 'Выход' 'Exit') '' 'exit'
     )
@@ -108,14 +108,14 @@ function Get-MenuItems($st) {
 function Invoke-MenuAction([string]$id, $st) {
     switch ($id) {
         'client'    { Open-RiotClient; return $false }
-        'apply'     { Write-Screen (L 'ПЕРЕНОС МОИХ НАСТРОЕК' 'APPLY MY SETTINGS'); Invoke-Apply }
-        'binds'     { Write-Screen (L 'ПЕРЕНОС: ТОЛЬКО БИНДЫ' 'APPLY: BINDS ONLY'); Invoke-Apply -BindsOnly }
-        'applyperm' { Write-Screen (L 'ПЕРЕНОС НАСОВСЕМ' 'APPLY PERMANENTLY'); Invoke-Apply -Permanent }
-        'untemp'    { Write-Screen (L 'ВЕРНУТЬ ИСХОДНЫЕ' 'RESTORE ORIGINALS'); $null = Invoke-RestoreTemp $st.Session }
-        'save'      { Write-Screen (L 'ЗАПОМНИТЬ КАК МОИ' 'SAVE AS MINE'); Invoke-Save }
-        'savebinds' { Write-Screen (L 'ЗАПОМНИТЬ: ТОЛЬКО БИНДЫ' 'SAVE: BINDS ONLY'); Invoke-SaveBinds }
-        'gfxsave'   { Write-Screen (L 'ЗАПОМНИТЬ: ТОЛЬКО ГРАФИКУ' 'SAVE: GRAPHICS ONLY'); Invoke-SaveGraphics }
-        'diff'      { Show-DiffList $st.DiffList "$(L 'ЧТО ОТЛИЧАЕТСЯ' 'WHAT DIFFERS') · $($st.Name)"; return $false }
+        'apply'     { Write-Screen (L 'Перенести мои настройки' 'Apply my settings'); Invoke-Apply }
+        'binds'     { Write-Screen (L 'Перенести: только бинды' 'Apply: binds only'); Invoke-Apply -BindsOnly }
+        'applyperm' { Write-Screen (L 'Перенести насовсем' 'Apply permanently'); Invoke-Apply -Permanent }
+        'untemp'    { Write-Screen (L 'Вернуть исходные' 'Restore originals'); $null = Invoke-RestoreTemp $st.Session }
+        'save'      { Write-Screen (L 'Сохранить как мои' 'Save as mine'); Invoke-Save }
+        'savebinds' { Write-Screen (L 'Сохранить: только бинды' 'Save: binds only'); Invoke-SaveBinds }
+        'gfxsave'   { Write-Screen (L 'Сохранить: только графику' 'Save: graphics only'); Invoke-SaveGraphics }
+        'diff'      { Show-DiffList $st.DiffList "$(L 'Что отличается' 'What differs') · $($st.Name)"; return $false }
         'more'      { return (Show-More $st) }
         'pros'      { return (Show-Pros) }
         'accounts'  { Show-Accounts; return $false }
@@ -123,19 +123,19 @@ function Invoke-MenuAction([string]$id, $st) {
         'history'   { Show-History; return $false }
         'help'      { Show-Help; return $false }
         'auto-on'   {
-            Write-Screen (L 'АВТОПЕРЕНОС' 'AUTO-APPLY')
+            Write-Screen (L 'Автоперенос' 'Auto-apply')
             Set-Config 'autoApply' $true
-            Write-Ok (L 'Включён. Запускай Valorant как обычно — при входе в аккаунт настройки перенесутся сами' 'On. Launch VALORANT as usual — your settings are applied when you log in')
-            Write-Note (L 'основной аккаунт не трогается; помощник стартует вместе с Windows (~5 МБ памяти)' 'the main account is never touched; the helper starts with Windows (~5 MB of memory)')
+            Write-Ok (L 'Включён. Запускай VALORANT как обычно, настройки перенесутся сами при входе в аккаунт' 'On. Launch VALORANT as usual, your settings are applied when you log in')
+            Write-Note (L 'Основной аккаунт не меняется. Помощник запускается вместе с Windows' 'The main account is never changed. The helper starts with Windows')
         }
-        'auto-off'  { Write-Screen (L 'АВТОПЕРЕНОС' 'AUTO-APPLY'); Set-Config 'autoApply' $false; Write-Ok (L 'Выключен. Переносить — вручную из этого меню' 'Off. Apply manually from this menu') }
+        'auto-off'  { Write-Screen (L 'Автоперенос' 'Auto-apply'); Set-Config 'autoApply' $false; Write-Ok (L 'Выключен. Переноси вручную из этого меню' 'Off. Apply manually from this menu') }
         'notify-on' {
-            Write-Screen (L 'УВЕДОМЛЕНИЯ' 'NOTIFICATIONS')
+            Write-Screen (L 'Уведомления' 'Notifications')
             Set-Config 'notify' $true
-            Send-Toast 'VALSET' (L 'Уведомления включены — так они будут выглядеть.' 'Notifications are on — this is how they look.')
-            Write-Ok (L 'Включены: подскажу, если на аккаунте не твои настройки или на основном они поменялись' 'On: I will tell you when an account has different settings, or yours changed on main')
+            Send-Toast 'VALSET' (L 'Уведомления включены. Так они будут выглядеть.' 'Notifications are on. This is how they look.')
+            Write-Ok (L 'Включены: подскажут, если на аккаунте не твои настройки или на основном они поменялись' 'On: they tell you when an account has different settings, or yours changed on main')
         }
-        'notify-off' { Write-Screen (L 'УВЕДОМЛЕНИЯ' 'NOTIFICATIONS'); Set-Config 'notify' $false; Write-Ok (L 'Выключены' 'Off') }
+        'notify-off' { Write-Screen (L 'Уведомления' 'Notifications'); Set-Config 'notify' $false; Write-Ok (L 'Выключены' 'Off') }
         default     { return $false }
     }
     $true
@@ -148,7 +148,7 @@ function Show-Menu {
     if (-not (Test-Path $ProfilePath) -and -not (Get-HistoryPoints)) { Show-Welcome }
     $lastId = ''
     while ($true) {
-        Clear-Host; Write-Host ''; Write-Host (L '    проверяю аккаунт…' '    checking the account…') -ForegroundColor DarkGray
+        Clear-Host; Write-Host ''; Write-Host (L '    Проверяю аккаунт…' '    Checking the account…') -ForegroundColor DarkGray
         $st = Get-MenuState
         $items = Get-MenuItems $st
         $sel = Get-Suggested $st $items
@@ -171,39 +171,39 @@ function Show-Menu {
 }
 
 function Show-Help {
-    Write-Screen (L 'КАК ЭТО РАБОТАЕТ' 'HOW IT WORKS')
+    Write-Screen (L 'Как это работает' 'How it works')
     $ru = @(
-        '«Мои настройки» — один набор на все аккаунты: бинды, мышь, интерфейс,'
+        '«Мои настройки»: один набор на все аккаунты. Бинды, мышь, интерфейс,'
         'прицел, статистика на экране и графика.'
         ''
-        '  Сохранить           взять настройки с аккаунта, в который вошёл (один раз)'
-        '  Перенести мои       записать их на аккаунт, в который вошёл'
+        '  Сохранить           взять настройки с аккаунта, в который ты вошёл (один раз)'
+        '  Перенести мои       записать их на аккаунт, в который ты вошёл'
         '  Уведомления         подскажут, если на аккаунте не твои настройки или на основном'
         '                      они поменялись в игре'
-        '  Автоперенос         переносит сам при входе в любой аккаунт, кроме основного;'
-        '                      ты просто запускаешь Valorant как обычно'
-        '  На время            так переносится на любой аккаунт, кроме основного и помеченных «мой»:'
-        '                      после игры его исходные возвращаются (через ~3 с, с помощником;'
-        '                      без него — «Вернуть исходные» перед выходом). «Насовсем» — без возврата.'
+        '  Автоперенос         переносит сам при входе в любой аккаунт, кроме основного.'
+        '                      Ты просто запускаешь VALORANT как обычно'
+        '  На время            так настройки переносятся на любой аккаунт, кроме основного и помеченных'
+        '                      «мой»: после игры исходные возвращаются (сами, если работает помощник;'
+        '                      без него нажми «Вернуть исходные» перед выходом). «Насовсем»: без возврата.'
         ''
-        'Уведомления и автоперенос — по желанию, по умолчанию выключены. Для них работает'
-        'помощник в фоне (~5 МБ, стартует с Windows). Он ничего не опрашивает: ждёт, пока Windows'
-        'сообщит, что открыт клиент Riot, а клиент — что ты вошёл или закрыл игру. Тогда сверяет'
-        'настройки через сам клиент — как игра. Больше ничего не читает и не отправляет.'
-        'Выключишь оба — помощник удаляется из автозапуска.'
+        'Уведомления и автоперенос по желанию, по умолчанию выключены. Для них работает'
+        'помощник в фоне, он запускается вместе с Windows. Помощник не следит за тобой: он'
+        'просыпается, когда открывается клиент Riot или ты входишь в аккаунт, и сверяет настройки'
+        'через сам клиент. Он не отправляет твои данные в сторонние сервисы.'
+        'Выключишь оба, и помощник удалится из автозапуска.'
         ''
         'Сохраняешь один раз. Дальше правки, сделанные в игре на твоих аккаунтах, подхватываются'
-        'сами и уходят на остальные. Примерки про — не подхватываются. Откат: «Ещё» → «Бэкапы».'
-        'Основной аккаунт автоперенос не трогает.'
+        'сами и уходят на остальные. Примерки про не подхватываются. Отменить: «Ещё» → «Бэкапы».'
+        'Основной аккаунт автоперенос не меняет.'
         ''
-        'Переносить — до запуска игры: она читает настройки при старте.'
-        'Значок VALSET у часов (трей): цвет — статус, клик — панель с кнопками. Выключается в настройках его окна.'
+        'Переносить нужно до запуска игры: она читает настройки при старте.'
+        'Значок VALSET у часов (трей): цвет показывает статус, клик открывает панель. Выключается в его настройках.'
         'Графика хранится на этом ПК, а не в облаке: после «Сохранить» она сама уходит во все'
-        'аккаунты этого ПК (если игра запущена — сразу после выхода из неё).'
-        'Перед каждой записью — бэкап аккаунта (последние 30): «Ещё» → «Бэкапы».'
-        'Перед каждым изменением твоих настроек — версия (последние 50): «Ещё» → «Бэкапы».'
-        'Прицелы: на время — на аккаунте только твои (его вернутся вместе с исходными);'
-        'насовсем — прицелы аккаунта не стираются, твой добавляется и становится активным (до 15).'
+        'аккаунты этого ПК (если игра запущена, то сразу после выхода из неё).'
+        'Перед каждой записью VALSET делает бэкап аккаунта: «Ещё» → «Бэкапы».'
+        'Перед каждым изменением твоих настроек сохраняется версия: «Ещё» → «Бэкапы».'
+        'Прицелы: на время на аккаунте только твои (его прицелы вернутся вместе с исходными);'
+        'насовсем прицелы аккаунта остаются, твой добавляется и становится активным (до 15).'
     )
     $en = @(
         '“My settings” is one set for all your accounts: binds, mouse, interface,'
@@ -213,34 +213,33 @@ function Show-Help {
         '  Apply mine       write them to the account you are logged into'
         '  Notifications    tell you when an account has different settings, or when your'
         '                   main account''s settings changed in game'
-        '  Auto-apply       applies by itself when you log into any account except the main one;'
-        '                   you just launch VALORANT as usual'
+        '  Auto-apply       applies by itself when you log into any account except the main one.'
+        '                   You just launch VALORANT as usual'
         '  For now          how applying works on any account except the main one and those marked'
-        '                   “mine”: after the game its originals come back (~3 s, with the helper;'
-        '                   without it — “Restore originals” before logout). “Permanently” — no restore.'
+        '                   “mine”: after the game its originals come back (by themselves with the'
+        '                   helper; without it, use “Restore originals” before logout). “Permanently”: no restore.'
         ''
         'Notifications and auto-apply are optional and off by default. They use a background'
-        'helper (~5 MB, starts with Windows). It polls nothing: it waits for Windows to report'
-        'that the Riot Client opened, and for the client to report a login or game exit. Then it'
-        'compares settings through the client itself — like the game does. Nothing else is read'
-        'or sent. Turn both off and the helper is removed from startup.'
+        'helper that starts with Windows. It does not watch you: it wakes up when the Riot Client'
+        'opens or you log in, and compares settings through the client itself. It does not send'
+        'your data to third-party services. Turn both off and the helper is removed from startup.'
         ''
         'You save once. After that, changes you make in game on your accounts are picked up by'
         'themselves and reach the others. Pro try-ons are not. Undo: “More” → “Backups”.'
-        'Auto-apply never touches the main account.'
+        'Auto-apply never changes the main account.'
         ''
         'Apply before launching the game: it reads settings at startup.'
-        'The VALSET tray icon near the clock: colour = status, click = panel with buttons. Turn it off in its window settings.'
+        'The VALSET tray icon near the clock: colour shows status, click opens the panel. Turn it off in its settings.'
         'Graphics live on this PC, not in the cloud: after “Save” they go to all accounts'
-        'on this PC (if the game is running — right after you exit it).'
-        'Before every write — an account backup (last 30): “More” → “Backups”.'
-        'Before every change to your settings — a version (last 50): “More” → “Backups”.'
-        'Crosshairs: for now — only yours on the account (its own come back with the originals);'
-        'permanently — the account''s crosshairs are kept, yours is added and made active (up to 15).'
+        'on this PC (if the game is running, right after you exit it).'
+        'Before every write VALSET makes an account backup: “More” → “Backups”.'
+        'Before every change to your settings a version is kept: “More” → “Backups”.'
+        'Crosshairs: for now, only yours on the account (its own come back with the originals);'
+        'permanently, the account''s crosshairs are kept, yours is added and made active (up to 15).'
     )
     $(if ($script:Lang -eq 'en') { $en } else { $ru }) | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
     Write-Host ''
-    Write-StateLine (L 'Данные' 'Data') $Root 'Gray' (L 'O — открыть папку' 'O — open folder')
+    Write-StateLine (L 'Данные' 'Data') (L 'папка VALSET' 'VALSET folder') 'Gray' (L 'O — открыть папку' 'O — open folder')
     Write-StateLine (L 'Язык' 'Language') (L 'русский' 'English') 'Gray' (L 'L — English' 'L — русский')
     Write-Host ''
     Write-Host (L '    любая клавиша — назад' '    any key — back') -ForegroundColor DarkGray
@@ -260,36 +259,36 @@ function Show-Welcome {
     Write-Banner
     Write-Host ''
     $ru = @(
-        'Привет! VALSET переносит твои настройки VALORANT на любой аккаунт:'
+        'Привет. VALSET переносит твои настройки VALORANT на любой аккаунт:'
         'бинды, мышь, интерфейс, прицел, статистику на экране и графику.'
         ''
         '  1. Открой клиент Riot и войди в свой основной аккаунт.'
-        '  2. «Сохранить» — VALSET возьмёт настройки с него (один раз).'
-        '  3. Входи в другие аккаунты и жми «Перенести мои» — до запуска игры.'
-        '  Дальше правки в игре на твоих аккаунтах подхватываются сами; откат — в истории.'
+        '  2. Нажми «Сохранить», и VALSET возьмёт настройки с него (один раз).'
+        '  3. Входи в другие аккаунты и жми «Перенести мои» до запуска игры.'
+        '  Дальше правки в игре на твоих аккаунтах подхватываются сами. Отменить можно в истории.'
         ''
         'По желанию в меню: уведомления и автоперенос (сам при входе в аккаунт).'
-        'Дальше — значок VALSET у часов; консоль: ярлык «VALSET» в Пуске или команда valset.'
+        'Дальше пользуйся значком VALSET у часов. Консоль: ярлык «VALSET» в Пуске или команда valset.'
         ''
-        'VALSET работает только с клиентом Riot на этом ПК и облаком настроек Riot —'
-        'как сама игра. Игру и её файлы не трогает. Перед каждой записью — бэкап.'
+        'VALSET работает с клиентом Riot на этом ПК и облаком настроек Riot. Игру и её файлы'
+        'он не трогает. Список предметов он загружает из интернета. Перед каждой записью делает бэкап.'
         ''
         'Язык: русский. L — English.'
     )
     $en = @(
-        'Hi! VALSET puts your VALORANT settings on any of your accounts:'
+        'Hi. VALSET puts your VALORANT settings on any of your accounts:'
         'binds, mouse, interface, crosshair, on-screen stats and graphics.'
         ''
         '  1. Open the Riot Client and log into your main account.'
-        '  2. “Save” — VALSET takes the settings from it (once).'
-        '  3. Log into your other accounts and press “Apply mine” — before launching the game.'
+        '  2. Press “Save” and VALSET takes the settings from it (once).'
+        '  3. Log into your other accounts and press “Apply mine” before launching the game.'
         '  After that, changes you make in game on your accounts are picked up; undo is in “More” → “Backups”.'
         ''
         'Optional in the menu: notifications and auto-apply (by itself on login).'
         'Later: the VALSET icon near the clock; console: the “VALSET” shortcut in Start or the valset command.'
         ''
-        'VALSET only talks to the Riot Client on this PC and the Riot settings cloud —'
-        'like the game itself. It never touches the game or its files. A backup before every write.'
+        'VALSET works with the Riot Client on this PC and the Riot settings cloud. It never touches'
+        'the game or its files. It downloads the item list from the internet. A backup before every write.'
         ''
         'Language: English. L — русский.'
     )
