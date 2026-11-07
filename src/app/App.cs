@@ -247,7 +247,7 @@ static class Ctl {
             string kind = a.Substring(0, sl).ToLowerInvariant(), val = a.Substring(sl + 1);
             try { val = Uri.UnescapeDataString(val); } catch { }
             val = val.Trim('/', ' ');
-            if (kind == "code") { string c = Share.Clean(val.IndexOf("VALSET", StringComparison.OrdinalIgnoreCase) >= 0 ? val : "VALSET2:" + val); if (c != null) { Share.Open("code", c); return; } }
+            if (kind == "code") { string c = Share.FromLink(val); if (c != null) { Share.Open("code", c); return; } }
             if (kind == "pro" && val.Length > 0 && val.IndexOfAny(new[] { ' ', '"', '&', '|', '<', '>', '^', '%' }) < 0) { Share.Open("pro", val); return; }
         }
         a = a.ToLowerInvariant();

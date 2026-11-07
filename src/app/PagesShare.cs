@@ -1,4 +1,4 @@
-﻿// PagesShare.cs — «Код для друга» и предпросмотр перед записью: вставка кода (кнопка, ссылка valset:code/<код>)
+﻿// PagesShare.cs — «Код для друга» (переключатель «Добавить надетые скины» → do share:skins) и предпросмотр перед записью: вставка кода (кнопка, ссылка valset:code/<код>)
 // и примерка про (список «Про», ссылка valset:pro/<ник>), набор косметики (PagesSets.cs, вид loadout), один предмет («Все скины», PagesSkins.cs, вид skin). Пишет только кнопка в предпросмотре — ссылка сама ничего не применяет.
 using System;
 using System.Text;
@@ -20,28 +20,43 @@ static class Share {
 
     // Код из текста: от «VALSET» до первого постороннего символа, без пробелов и переносов (их вставляют мессенджеры).
     // Только символы кода — ядро получает его одной строкой аргумента. null — кода нет.
+    // VALSET3 (base64url): перенос внутри кода — точка; ядро пробует код с кусками после неё и без них (вдруг это подпись).
     public static string Clean(string t) {
         t = t ?? "";
         int i = t.IndexOf("VALSET", StringComparison.OrdinalIgnoreCase);
         if (i < 0 || t.Length < i + 8) return null;
+        bool v3 = t[i + 6] == '3', gap = false;
         var sb = new StringBuilder(t.Substring(i, 8));
         for (int k = i + 8; k < t.Length; k++) {
             char c = t[k];
-            if (char.IsWhiteSpace(c)) continue;
-            bool cjk = c >= (char)0x4E00 && c <= (char)0x8DFF, b64 = c < 128 && (char.IsLetterOrDigit(c) || c == '+' || c == '/');
-            if (cjk || b64 || c == '=') sb.Append(c); else break;
+            if (char.IsWhiteSpace(c)) { gap = true; continue; }
+            bool cjk = c >= (char)0x4E00 && c <= (char)0x8DFF, b64 = c < 128 && (char.IsLetterOrDigit(c) || c == '+' || c == '/' || c == '-' || c == '_');
+            if (!(cjk || b64 || c == '=')) break;
+            if (gap && v3) sb.Append('.');
+            gap = false; sb.Append(c);
         }
         return sb.Length > 8 ? sb.ToString() : null;
     }
 
-    // ── Код для друга ──
-    public static void Page(StackPanel b) {
-        b.Children.Add(Ui.Row(L.T("Поделиться", "Share"), L.T("скопировать код твоих настроек", "copy your settings code"), "", 0, () => Ctl.DoAction("share", false)));
-        b.Children.Add(Ui.Row(L.T("Вставить код", "Paste code"), L.T("из буфера обмена; сначала покажу, что изменится", "from the clipboard; shows what changes first"), "", 0, Paste));
-        b.Children.Add(Ui.Note(L.T("В коде: бинды, чувствительность, прицел, HUD и звук. Без графики и без данных аккаунта. У друга должен быть VALSET.",
-                                   "The code holds binds, sensitivity, crosshair, HUD and audio. No graphics, no account data. Your friend needs VALSET.")));
+    // Ссылка valset:code/<код>: префикс можно не писать — иероглифы значат VALSET2, буквы и цифры — VALSET3.
+    public static string FromLink(string val) {
+        val = val ?? "";
+        if (val.IndexOf("VALSET", StringComparison.OrdinalIgnoreCase) >= 0) return Clean(val);
+        foreach (char c in val) if (c >= (char)0x4E00 && c <= (char)0x8DFF) return Clean("VALSET2:" + val);
+        return Clean("VALSET3:" + val);
     }
 
+    // ── Код для друга ──
+    public static bool WithSkins;   // «Добавить надетые скины»: по умолчанию выкл., не запоминается
+
+    public static void Page(StackPanel b) {
+        b.Children.Add(Ui.Row(L.T("Поделиться", "Share"), WithSkins ? L.T("скопировать код настроек и надетых скинов", "copy the code of your settings and worn skins") : L.T("скопировать код твоих настроек", "copy your settings code"),
+                              "", 0, () => Ctl.DoAction(WithSkins ? "share:skins" : "share", false)));
+        b.Children.Add(Ui.Toggle(L.T("Добавить надетые скины", "Add worn skins"), WithSkins, on => { WithSkins = on; Ctl.Panel.Refresh(); }));
+        b.Children.Add(Ui.Row(L.T("Вставить код", "Paste code"), L.T("из буфера обмена; сначала покажу, что изменится", "from the clipboard; shows what changes first"), "", 0, Paste));
+        b.Children.Add(Ui.Note(L.T("В коде: бинды, чувствительность, прицел, HUD и звук. Надетые скины добавятся, только если включить переключатель, и у друга наденутся те, что у него есть. Без графики и без данных аккаунта. У друга должен быть VALSET.",
+                                   "The code holds binds, sensitivity, crosshair, HUD and audio. Worn skins only with the switch on; your friend gets the ones they own. No graphics, no account data. Your friend needs VALSET.")));
+    }
     static void Paste() {
         string t = null;
         try { t = Clean(Clipboard.GetText()); } catch (Exception e) { Dbg.Log("буфер: " + e.Message); }
