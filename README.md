@@ -25,6 +25,12 @@ shortcut or the `valset` command. What the command does is in [install.ps1](inst
 press **Y** when asked to install. Windows may say “Windows protected your PC” (downloaded, unsigned file) —
 “More info” → “Run anyway”. `valset.cmd` is a plain-text PowerShell script: open it in Notepad if in doubt.
 
+**Updates.** On start VALSET asks GitHub once whether a new version is out (at most once per 12 hours; nothing about
+you is sent). If there is one, the panel shows “Version X is out” and an “Update” button: VALSET downloads the new
+`valset.cmd`, checks its SHA-256 against the release and installs it over the old one. Settings, backups and sets stay.
+To turn it off: Settings → “Check for updates” (“Check now” still works). Manual rollback: run `valset.cmd.prev` from
+`%USERPROFILE%\valset` and agree to install.
+
 ## How to use
 
 1. Open the Riot Client and log into your **main** account.
