@@ -6,7 +6,7 @@
   valset list <pros|accounts|backups|history|diff|code:КОД|pro:НИК|loadouts|loadout:ID|skins|skin:СПЕЦ|collections|collection:ID|coll:ID> списки для панели приложения (одна строка JSON)
   valset lib         (для приложения) только загрузить функции: Invoke-Core state|list|do|watch → строка JSON, без exit
   valset state       (для приложения) состояние одной строкой JSON
-  valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo|gfxsave|share|code:КОД|pro:НИК|restore:ID|history:ID|set:КЛЮЧ=ЗНАЧЕНИЕ|account:PUUID:ДЕЙСТВИЕ|loadout:…|skin:…|coll:ID — без вопросов, ответ JSON
+  valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo|gfxsave|share[:skins]|code:КОД|pro:НИК|restore:ID|history:ID|set:КЛЮЧ=ЗНАЧЕНИЕ|account:PUUID:ДЕЙСТВИЕ|loadout:…|skin:…|coll:ID — без вопросов, ответ JSON
   valset save        сохранить настройки текущего аккаунта как мои (-BindsOnly — только бинды)
   valset gfxsave     сохранить только графику (можно при запущенной игре)
   valset apply       перенести мои настройки на текущий аккаунт (всё; -BindsOnly — только бинды)
@@ -90,11 +90,15 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'session.ps1')
 . (Join-Path $PSScriptRoot 'menu.ps1')
 . (Join-Path $PSScriptRoot 'pros.ps1')
+. (Join-Path $PSScriptRoot 'codes.ps1')
+. (Join-Path $PSScriptRoot 'codec.ps1')
+. (Join-Path $PSScriptRoot 'codeparts.ps1')
 . (Join-Path $PSScriptRoot 'share.ps1')
 . (Join-Path $PSScriptRoot 'loadout.ps1')
 . (Join-Path $PSScriptRoot 'sets.ps1')
 . (Join-Path $PSScriptRoot 'skins.ps1')
 . (Join-Path $PSScriptRoot 'collections.ps1')
+. (Join-Path $PSScriptRoot 'shareskins.ps1')
 . (Join-Path $PSScriptRoot 'more.ps1')
 . (Join-Path $PSScriptRoot 'do.ps1')
 . (Join-Path $PSScriptRoot 'doextra.ps1')

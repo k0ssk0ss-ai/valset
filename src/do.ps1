@@ -84,6 +84,7 @@ function Invoke-Undo {
         if ($a.base) { Set-SessionBase $a.puuid $a.base.json $a.base.scope } else { Clear-SessionBase $a.puuid }
         if ($a.temp) { Write-FileSafe (Get-TempPath $a.puuid) $a.temp } else { Clear-Temp $a.puuid }
         Set-AccountState $a.puuid @{ state = ''; checked = (Get-Stamp) }
+        if ($a.PSObject.Properties['loadout'] -and $a.loadout) { Restore-LoadoutUndo ([pscustomobject]@{ data = $a.loadout }) }   # код для друга со скинами
     } else {
         New-HistoryPoint (L 'до «Отменить»' 'before “Undo”')
         if ($a.json) {
@@ -107,7 +108,7 @@ function Invoke-Do([string]$action) {
     try {
         $writes = 'apply', 'binds', 'applyperm', 'save', 'savebinds', 'untemp'
         if ($action -notin ($writes + 'undo') -and -not (Test-ExtraAction $action)) { Stop-Internal "неизвестное действие: $action" }
-        if ($action -notin 'undo', 'share', 'report', 'loadoutauto', 'update') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
+        if ($action -notin 'undo', 'share', 'share:skins', 'report', 'loadoutauto', 'update') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
         $msg = $null
         switch ($action) {
             { $_ -in 'apply', 'binds', 'applyperm' } {

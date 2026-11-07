@@ -1,11 +1,10 @@
 ﻿# share.ps1 — «Код для друга»: мои настройки одной строкой и вставка такого кода на текущий аккаунт (с бэкапом и отменой).
-# Формат VALSET2: + raw deflate(JSON { v: 2, kind: full|binds, profile: {…} }), упакованный по 14 бит в символ —
-# иероглифы CJK U+4E00…U+8DFF (все назначены, нормализация Юникода их не меняет): в 2,3 раза короче base64.
-# Формат тот же, что в 1.0.0: его коды читаются (графика и имя набора из них не берутся), а 1.0.0 читает новые.
+# Формат VALSET3: + base64url (A-Z a-z 0-9 - _, без %-кодировки в ссылке valset:code/<код>) двоичной упаковки
+# (codec.ps1, словари — codes.ps1): бинды, настройки, отличия прицела от стандартного, по желанию надетые скины
+# (shareskins.ps1). На профиле владельца — 192 знака вместо 583 у VALSET2. Раскладка байтов — NOTES.md «Код VALSET3».
 # В коде — только настройки: бинды, чувствительность, один прицел (активный), миникарта, HUD, звук.
 # Нет: имени и PUUID аккаунта, служебных отметок (LastSeen*, HasSeen*, принятые соглашения…), микрофона, графики (она под ПК).
-# Старые коды VALSET1: (base64) тоже читаются.
-
+# Читаются и старые: VALSET2: (deflate JSON по 14 бит в иероглиф, как в 1.0.0) и VALSET1: (base64).
 $ShareSkip = '::(LastSeen|HasSeen|HasAccepted|HasEver|LastAccepted|ContextAware|ShootingRange|MatureContent|Mic|CustomPartyVoice|PushToTalk)'
 $ShareKeys = 'actionMappings', 'axisMappings', 'floatSettings', 'intSettings', 'boolSettings', 'stringSettings'
 $CjkBase = 0x4E00
@@ -105,41 +104,52 @@ function Join-XhDelta($t, $d) {
 
 function Get-XhKey($xh) { Get-JsonKey ([pscustomobject](Get-XhDelta $xh (Get-XhTemplate))) }
 
-# Код моих настроек (profile.json); не запомнены — настроек текущего аккаунта.
-function New-ShareCode([switch]$BindsOnly) {
+# Код моих настроек (profile.json); не запомнены — настроек текущего аккаунта. -Skins — плюс надетое сейчас на аккаунте.
+function New-ShareCode([switch]$BindsOnly, [switch]$Skins) {
     $p = if (Test-Path $ProfilePath) { Read-Profile } else { (Get-Settings (Connect-Session)) | ConvertFrom-Json }
     $prefs = ConvertTo-SharePrefs $p -BindsOnly:$BindsOnly
-    $data = [ordered]@{ v = 2; kind = $(if ($BindsOnly) { 'binds' } else { 'full' }); profile = $prefs }
-    $xh = Get-Crosshairs $prefs
+    $xhd = $null; $xh = Get-Crosshairs $prefs
     if ($xh -and @($xh.profiles).Count) {
-        $data.xh = Get-XhDelta @($xh.profiles)[0] (Get-XhTemplate)
+        $xhd = Get-XhDelta @($xh.profiles)[0] (Get-XhTemplate)
         $prefs.stringSettings = @(@($prefs.stringSettings) | Where-Object { $_.settingEnum -ne $CrosshairEnum })
     }
-    'VALSET2:' + (ConvertTo-Cjk (Compress-Bytes (ConvertTo-Json -InputObject $data -Depth 32 -Compress)))
+    $sk = if ($Skins) { Get-ShareSkinBytes (Connect-Session) } else { $null }
+    'VALSET3:' + (ConvertTo-Url64 (ConvertTo-Code3Bytes ([bool]$BindsOnly) $prefs $xhd $sk))
 }
 
-# Текст с кодом (можно с подписью вокруг, из ссылки valset:code/…, с %-кодировкой) → @{ Kind; Prefs; Gfx }.
+# Текст с кодом (можно с подписью вокруг, из ссылки valset:code/…, с %-кодировкой) → @{ Kind; Prefs; Gfx; Skins }.
+# Skins — байты раздела скинов (shareskins.ps1) или $null.
 function Read-ShareCode([string]$text) {
     $t = "$text".Trim()
     if ($t -match '%[0-9A-Fa-f]{2}') { try { $t = [Uri]::UnescapeDataString($t) } catch {} }
     $i = $t.IndexOf('VALSET', [StringComparison]::OrdinalIgnoreCase)
-    if ($i -ge 0) { $t = $t.Substring($i) } elseif (Test-HasCjk $t) { $t = 'VALSET2:' + $t }   # ссылка без префикса
+    if ($i -ge 0) { $t = $t.Substring($i) }
+    elseif (Test-HasCjk $t) { $t = 'VALSET2:' + $t }   # ссылка без префикса
+    elseif ($t -match '^[A-Za-z0-9_-]{8,}$') { $t = 'VALSET3:' + $t }
     else { throw (L 'Кода VALSET нет. Скопируй его целиком (он начинается с VALSET).' 'No VALSET code. Copy all of it (it starts with VALSET).') }
+    $d = $null; $d3 = $null
     try {
-        if ($t.StartsWith('VALSET2:', [StringComparison]::OrdinalIgnoreCase))     { $d = Expand-Bytes (ConvertFrom-Cjk $t.Substring(8)) | ConvertFrom-Json }
+        if ($t.StartsWith('VALSET3:', [StringComparison]::OrdinalIgnoreCase))     { $d3 = Read-Code3Text $t.Substring(8) }
+        elseif ($t.StartsWith('VALSET2:', [StringComparison]::OrdinalIgnoreCase)) { $d = Expand-Bytes (ConvertFrom-Cjk $t.Substring(8)) | ConvertFrom-Json }
         elseif ($t.StartsWith('VALSET1:', [StringComparison]::OrdinalIgnoreCase)) { $d = Expand-Pref ($t.Substring(8) -replace '\s', '') | ConvertFrom-Json }
-        else { $d = $null }
-    } catch { throw (L 'Код повреждён: скопирован не полностью?' 'The code is damaged: copied only partly?') }
-    if (-not $d -or $d.v -notin 1, 2 -or -not $d.profile) { throw (L 'Код от другой версии VALSET или повреждён.' 'The code is from another VALSET version or damaged.') }
-    $binds = $d.kind -eq 'binds'
-    $prefs = ConvertTo-SharePrefs $d.profile -BindsOnly:$binds
-    if (-not $binds -and $d.xh) {
-        $t = Get-XhTemplate; Join-XhDelta $t $d.xh
-        Set-CrosshairValue $prefs (ConvertTo-CrosshairJson ([ordered]@{ currentProfile = 0; profiles = @($t) }))
+        elseif ($t -match '^VALSET(\d+):' -and [int]$Matches[1] -gt 3) { throw (Get-CodeNewer) }
+    } catch {
+        if ($_.Exception.Message -eq (Get-CodeNewer)) { throw }
+        throw (Get-CodeBad)
     }
-    @{ Kind = $(if ($binds) { 'binds' } else { 'full' }); Prefs = $prefs; Gfx = [bool]($d.gfxIniT -or $d.gfxIni) }
+    if ($d3) {
+        $binds = $d3.BindsOnly; $prof = $d3.Profile; $xh = $d3.Xh; $gfx = $false
+    } else {
+        if (-not $d -or $d.v -notin 1, 2 -or -not $d.profile) { throw (L 'Код от другой версии VALSET или повреждён.' 'The code is from another VALSET version or damaged.') }
+        $binds = $d.kind -eq 'binds'; $prof = $d.profile; $xh = $d.xh; $gfx = [bool]($d.gfxIniT -or $d.gfxIni)
+    }
+    $prefs = ConvertTo-SharePrefs $prof -BindsOnly:$binds
+    if (-not $binds -and $xh) {
+        $x = Get-XhTemplate; Join-XhDelta $x $xh
+        Set-CrosshairValue $prefs (ConvertTo-CrosshairJson ([ordered]@{ currentProfile = 0; profiles = @($x) }))
+    }
+    @{ Kind = $(if ($binds) { 'binds' } else { 'full' }); Prefs = $prefs; Gfx = $gfx; Skins = $(if ($d3) { $d3.Skins }) }
 }
-
 # ── Наложение на аккаунт ─────────────────────────────────────────────────────
 
 # Прицел из кода — активным: такой же уже есть у аккаунта — просто выбрать его, иначе первым (лишние сверх 15 — с конца).
@@ -171,24 +181,36 @@ function Join-SharePrefs($cur, $code) {
 # Подпись «что в коде» для предпросмотра.
 function Format-ShareKind($code) {
     $w = if ($code.Kind -eq 'binds') { L 'только бинды' 'binds only' } else { L 'бинды, чувствительность, прицел, HUD, звук' 'binds, sensitivity, crosshair, HUD, audio' }
+    if ($code.Skins) { $w += L ' и надетые скины' ' and worn skins' }
     if ($code.Gfx) { $w += L ' (графика из старого кода не берётся)' ' (graphics from an old code are skipped)' }
     $w
 }
 
 # `valset list code:<код>` — что изменится на текущем аккаунте. Ошибка — одним элементом { error }.
+# Скины из кода — строками «было → станет», как у набора; не прочитались — строкой в сведениях, остальное переносится.
 function Get-ListCode([string]$text) {
     try {
         $c = Read-ShareCode $text
         $s = Connect-Session
         $cur = (Get-Settings $s) | ConvertFrom-Json
         $new = Join-SharePrefs $cur $c
-        $items = @([ordered]@{ info = "$(L 'В коде' 'In the code'): $(Format-ShareKind $c)"; account = (Get-AccountLabel $s.Puuid); same = [bool](Test-PrefsEqual $cur $new) })
-        $items + @(ConvertTo-DiffItems (Compare-Prefs $cur $new -BindsOnly:($c.Kind -eq 'binds')))
+        $info = [ordered]@{ info = "$(L 'В коде' 'In the code'): $(Format-ShareKind $c)"; account = (Get-AccountLabel $s.Puuid); same = [bool](Test-PrefsEqual $cur $new) }
+        $rows = @(ConvertTo-DiffItems (Compare-Prefs $cur $new -BindsOnly:($c.Kind -eq 'binds')))
+        if ($c.Skins) {
+            try {
+                $p = Get-ShareSkinPlan $s $c.Skins
+                $sr = Compare-Loadout $p.Cur $p.New (Get-CosmeticNames)   # массив одним объектом — без @()
+                $info.info += "`n" + $p.Note; $info['pics'] = $p.Pics; $rows += @($sr)
+                if ($sr.Count) { $info.same = $false }
+            } catch { $info.info += "`n" + (L "Скины из кода не надену: $($_.Exception.Message)" "Skins from the code will not go on: $($_.Exception.Message)") }
+        }
+        @($info) + $rows
     } catch { @([ordered]@{ error = $_.Exception.Message }) }
 }
 
 # `valset do code:<код>` — записать на текущий аккаунт насовсем: бэкап, точка отмены, проверка записи.
 # Чужие настройки — не твои правки в игре: основа сессии = записанное, в эталон они не попадут (на основном — «Сохранить», если нужны).
+# Скины из кода (если есть) — после настроек, через запись набора (Write-LoadoutChange); «Отменить» вернёт и их.
 function Invoke-DoCode([string]$text) {
     $c = Read-ShareCode $text
     $s = Connect-Session
@@ -196,25 +218,46 @@ function Invoke-DoCode([string]$text) {
     $curJson = Get-Settings $s
     $cur = $curJson | ConvertFrom-Json
     $new = Join-SharePrefs $cur $c
-    if (Test-PrefsEqual $cur $new) { return (L 'Настройки уже как в коде' 'Settings already match the code') }
-    $diff = Compare-Prefs $cur $new -BindsOnly:($c.Kind -eq 'binds')   # без @(): пустой массив внутри @() считался бы за 1
-    $n = [Math]::Max(1, $diff.Count)
-    Save-UndoPoint 'account' $s.Puuid $curJson
-    $null = Update-Reference $s $curJson   # твои правки в игре — в эталон до записи, как при переносе
-    $null = New-Backup $s $curJson
-    $newJson = ConvertTo-Json -InputObject $new -Depth 32 -Compress
-    Set-Settings $s $newJson
-    Assert-Written $s $newJson (L 'код' 'code')
-    Set-SessionBase $s.Puuid $newJson 'all'
-    Set-AccountState $s.Puuid @{ state = ''; checked = (Get-Stamp) }
-    Log "код для друга ($($c.Kind)) → $(Get-AccountLabel $s.Puuid): $n изм."
-    L "Настройки из кода перенесены: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Settings from the code applied: $n change$(if ($n -ne 1) { 's' })"
+    $plan = $null; $skErr = ''
+    if ($c.Skins) {
+        try { $plan = Get-ShareSkinPlan $s $c.Skins; if (-not (Compare-Loadout $plan.Cur $plan.New (Get-CosmeticNames)).Count) { $plan = $null } }
+        catch { $skErr = $_.Exception.Message }
+    }
+    $same = Test-PrefsEqual $cur $new
+    $msg = @()
+    if ($same -and -not $plan) { $msg += L 'Настройки уже как в коде' 'Settings already match the code' }
+    if (-not $same) {
+        $diff = Compare-Prefs $cur $new -BindsOnly:($c.Kind -eq 'binds')   # без @(): пустой массив внутри @() считался бы за 1
+        $n = [Math]::Max(1, $diff.Count)
+        Save-UndoPoint 'account' $s.Puuid $curJson
+        $null = Update-Reference $s $curJson   # твои правки в игре — в эталон до записи, как при переносе
+        $null = New-Backup $s $curJson
+        $newJson = ConvertTo-Json -InputObject $new -Depth 32 -Compress
+        Set-Settings $s $newJson
+        Assert-Written $s $newJson (L 'код' 'code')
+        Set-SessionBase $s.Puuid $newJson 'all'
+        Set-AccountState $s.Puuid @{ state = ''; checked = (Get-Stamp) }
+        Log "код для друга ($($c.Kind)) → $(Get-AccountLabel $s.Puuid): $n изм."
+        $msg += L "Настройки из кода перенесены: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Settings from the code applied: $n change$(if ($n -ne 1) { 's' })"
+    }
+    if ($plan) {
+        $ua = $script:UndoAction
+        if (-not $same -and $ua) { Add-UndoLoadout $s.Puuid $plan.Cur; $script:UndoAction = $null }   # одна отмена на оба
+        try {
+            $k = (Write-LoadoutChange $s $plan.Cur $plan.New 'скины из кода').Count
+            $msg += L "Скины надеты: $k $(Get-Plural $k 'изменение' 'изменения' 'изменений')" "Skins on: $k change$(if ($k -ne 1) { 's' })"
+        } catch { $skErr = $_.Exception.Message } finally { $script:UndoAction = $ua }
+    }
+    if ($skErr) { $msg += L "Скины не надеты: $skErr" "Skins not put on: $skErr" }
+    ($msg | ForEach-Object { "$_".TrimEnd('.') }) -join '. '
 }
 
-# `valset do share` — код моих настроек; сам код — в ответе (поле code), в буфер его кладёт приложение.
-function Invoke-DoShare($r, [switch]$BindsOnly) {
-    $code = New-ShareCode -BindsOnly:$BindsOnly
+# `valset do share` / `do share:skins` — код моих настроек (со скинами — плюс надетое сейчас); сам код — в ответе
+# (поле code), в буфер его кладёт приложение.
+function Invoke-DoShare($r, [switch]$BindsOnly, [switch]$Skins) {
+    $code = New-ShareCode -BindsOnly:$BindsOnly -Skins:$Skins
     $r['code'] = $code
-    Log "код для друга: $($code.Length) символов"
-    L 'Код скопирован. Отправь его другу' 'Code copied. Send it to a friend'
+    $n = $code.Length
+    Log "код для друга$(if ($Skins) { ' со скинами' }): $n символов"
+    L "Код скопирован ($n $(Get-Plural $n 'символ' 'символа' 'символов')). Отправь его другу" "Code copied ($n characters). Send it to a friend"
 }

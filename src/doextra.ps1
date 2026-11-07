@@ -1,4 +1,4 @@
-﻿# doextra.ps1 — остальные действия `valset do` для панели: gfxsave, share, code:<код> (share.ps1), pro:<ник>, restore:<id>, history:<id>,
+﻿# doextra.ps1 — остальные действия `valset do` для панели: gfxsave, share[:skins], code:<код> (share.ps1), pro:<ник>, restore:<id>, history:<id>,
 # set:<ключ>=<значение>, account:<puuid>:<действие>, loadout…: (sets.ps1). Каждое пишущее оставляет точку отмены (last-action.json).
 # Виды точек: account / profile — см. do.ps1; history — прежние твои настройки лежат в истории (data = имя папки);
 # files — прежнее содержимое файлов (config.json, accounts.json, loadouts\sets.json); loadout — прежний лоадаут аккаунта.
@@ -9,7 +9,7 @@ $SetBools = [ordered]@{ notify = 'Уведомления|Notifications'; autoApp
                         overlay = 'Кнопка поверх игры|Button over the game'; overlayHint = 'Подсказка про кнопку поверх игры|Overlay button hint'; updateCheck = 'Проверка обновлений|Update check' }
 
 function Test-ExtraAction([string]$a) {
-    $a -in 'gfxsave', 'share', 'report', 'loadoutauto', 'update' -or $a -match '^(loadout(save|bind|del)?|skin|coll):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
+    $a -in 'gfxsave', 'share', 'share:skins', 'report', 'loadoutauto', 'update' -or $a -match '^(loadout(save|bind|del)?|skin|coll):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
 }
 
 function Write-UndoExtra([string]$kind, $data) {
@@ -142,6 +142,7 @@ function Invoke-DoExtra([string]$action, $r) {
             L 'Графика сохранена' 'Graphics saved'
         }
         '^share$'        { Invoke-DoShare $r }
+        '^share:skins$'  { Invoke-DoShare $r -Skins }
         '^report$'       { Invoke-DoReport $r }   # диагностика для сообщения об ошибке — report.ps1
         '^loadoutauto$'  { Invoke-DoLoadoutAuto $r }   # наборы косметики — sets.ps1
         '^update$'       { Invoke-Update }   # скачать, сверить хэш, поставить — update.ps1
