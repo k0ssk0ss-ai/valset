@@ -3,12 +3,25 @@
 # Запускай САМ, от администратора (меняется правило брандмауэра на время работы; в finally оно удаляется).
 # Работает только в стрельбище (последняя карта в ShooterGame.log — RangeV2) — в матче отказывается.
 # Запуск (PowerShell от администратора):  powershell -ExecutionPolicy Bypass -File tools\range-blip.ps1 [-Seconds 4]
-param([int]$Seconds = 4)
+param([int]$Seconds = 4, [switch]$CustomGame)   # -CustomGame: разрешить «Свою игру» (проверяется по API; в очередях — отказ)
 $ErrorActionPreference = 'Stop'
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Host 'Нужен PowerShell от администратора.'; exit 1 }
 $log = Join-Path $env:LOCALAPPDATA 'VALORANT\Saved\Logs\ShooterGame.log'
 $map = Select-String -Path $log -Pattern 'Map Name: (\w+)' | Select-Object -Last 1
-if (-not $map -or $map.Matches[0].Groups[1].Value -ne 'RangeV2') { Write-Host 'Последняя карта не RangeV2 — отказ (только стрельбище).'; exit 1 }
+$isRange = $map -and $map.Matches[0].Groups[1].Value -eq 'RangeV2'
+if (-not $isRange) {
+    $ok = $false
+    if ($CustomGame) {
+        . (Join-Path (Split-Path $PSScriptRoot -Parent) 'src\valset.ps1') lib
+        try {
+            $s = Connect-Session; $rt = Get-RiotRoute $s; $h = Get-GameHeaders $s $rt
+            $p = Invoke-RestMethod "$($rt.Glz)/core-game/v1/players/$($s.Puuid)" -Headers $h -TimeoutSec 6
+            $m = Invoke-RestMethod "$($rt.Glz)/core-game/v1/matches/$($p.MatchID)" -Headers $h -TimeoutSec 6
+            $ok = ($m.ProvisioningFlow -eq 'CustomGame')
+        } catch {}
+    }
+    if (-not $ok) { Write-Host 'Не стрельбище (и не «Своя игра» с ключом -CustomGame) — отказ.'; exit 1 }
+}
 $exe = Get-Process -Name 'VALORANT-Win64-Shipping' -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $exe) { Write-Host 'Игра не запущена.'; exit 1 }
 $prog = $exe.Path
