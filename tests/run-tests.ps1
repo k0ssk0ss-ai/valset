@@ -64,8 +64,8 @@ try {
     Check 'FPS — текст и график'          ((Format-PrefValue 'EAresIntSettingName::PlayerPerfShowFrameRate' 3) -eq 'текст и график')
     Check 'музыка — в процентах'          ((Format-PrefValue 'EAresFloatSettingName::AllMusicOverallVolume' 0.4) -eq '40%')
     Check 'голосовой чат — в процентах'   ((Format-PrefValue 'EAresIntSettingName::VoiceVolume' 75) -eq '75%')
-    Check 'нет значения → стандарт'       ((Format-PrefValue 'EAresIntSettingName::VoiceVolume' $null) -eq 'стандарт')
-    Check 'способность C названа «Способность 1»' ((Get-ActionLabel 'Activate_GrenadeAbility') -like 'Способность 1*')
+    Check 'нет значения → стандарт'       ((Format-PrefValue 'EAresIntSettingName::VoiceVolume' $null) -eq 'стандартный')
+    Check 'способность C названа «Умение C»' ((Get-ActionLabel 'Activate_GrenadeAbility') -eq 'Умение C')
     Write-Host 'графика: запись в папку аккаунта'
     $acc = Join-Path $tmp 'acc'
     New-Item -ItemType Directory -Force "$acc\Windows", "$acc\WindowsClient" | Out-Null
@@ -134,14 +134,14 @@ try {
     Check 'в эталоне прицелов нет — у аккаунта остаются' ((Merge-Crosshairs $acc $none) -eq 2 -and @((Get-Crosshairs $none).profiles).Count -eq 2)
     $ref = & $mk @('A', 'B') 1; $acc = & $mk @('B') 0 'другой'
     $null = Merge-Crosshairs $acc $ref
-    Check 'одноимённый чужой — с пометкой (акк)' ((@((Get-Crosshairs $ref).profiles | ForEach-Object profileName) -join ',') -eq 'A,B,B (акк)')
+    Check 'одноимённый чужой — с пометкой (акк)' ((@((Get-Crosshairs $ref).profiles | ForEach-Object profileName) -join ',') -eq 'A,B,B (аккаунт)')
     $ref = & $mk @(1..13 | ForEach-Object { "r$_" }) 0; $acc = & $mk @('x1', 'x2', 'x3', 'x4') 0
     $t1 = & $mk @('A', 'B', 'C') 0; $t2 = & $mk @('Z') 0
     Check 'на время: только твои прицелы' ((Join-Crosshairs $t1 $t2 $true) -eq 0 -and @((Get-Crosshairs $t2).profiles).Count -eq 1)
     Check 'насовсем: прицелы аккаунта сохранены' ((Join-Crosshairs $t1 (& $mk @('Z') 0) $false) -eq 3)
     Check 'лимит 15: дописано 2 из 4' ((Merge-Crosshairs $acc $ref) -eq 2 -and $script:CrosshairDropped -eq 2 -and @((Get-Crosshairs $ref).profiles).Count -eq 15)
     $d = Compare-Prefs (& $mk @('A') 0) (& $mk @('A', 'B') 1)
-    Check 'предпросмотр: «Прицелы 1 шт. → 2 шт.»' (@($d | Where-Object { $_.What -eq 'Прицелы' -and $_.Old -like '1 шт.*' -and $_.New -like '2 шт.*«B»' }).Count -eq 1)
+    Check 'предпросмотр: «Прицелы 1 прицел → 2 прицела»' (@($d | Where-Object { $_.What -eq 'Прицелы' -and $_.Old -like '1 прицел*' -and $_.New -like '2 прицела*«B»' }).Count -eq 1)
 
     Write-Host 'помощник'
     $cfg = Get-Config

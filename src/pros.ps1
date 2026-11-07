@@ -138,7 +138,7 @@ function Show-Pros {
             'back'   { return $false }
             'search' {
                 Write-Screen (L 'Настройки про' 'Pro settings')
-                $q = (Read-Host (L '    Ник (Enter, чтобы показать всех)' '    Nick (Enter to show all)')).Trim()
+                $q = (Read-Host (L '    Ник (Enter — все)' '    Nick (Enter — all)')).Trim()
                 $list = if ($q) { @($all | Where-Object { $_.nick -like "*$q*" }) } else { $all }
                 if (-not $list.Count) { Write-Note (L "Не нашёл «$q»" "`“$q`” not found"); $q = ''; $list = $all; Start-Sleep 2 }
                 $pg = 0; continue

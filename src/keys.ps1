@@ -7,9 +7,9 @@ $ActionsPath = Join-Path $Root 'actions.txt'   # внутренние имена
 # Имена, проверенные на реальных данных. Новые valset запоминает сам (Register-Actions).
 # Способности 1/2/3 и ульта — как в настройках игры (C = 1, Q = 2, E = 3), в скобках — стандартная клавиша.
 $ActionLabels = [ordered]@{
-    'Activate_Ability1'       = (L 'Способность 2 (обычно Q)' 'Ability 2 (usually Q)')
-    'Activate_GrenadeAbility' = (L 'Способность 1 (обычно C)' 'Ability 1 (usually C)')
-    'Activate_Ultimate'       = (L 'Ульта (обычно X)' 'Ultimate (usually X)')
+    'Activate_Ability1'       = (L 'Умение Q' 'Ability Q')
+    'Activate_GrenadeAbility' = (L 'Умение C' 'Ability C')
+    'Activate_Ultimate'       = (L 'Ультимейт X' 'Ultimate X')
     'Activate_Primary'        = (L 'Основное оружие' 'Primary weapon')
     'Activate_Secondary'      = (L 'Пистолет' 'Secondary weapon')
     'Activate_Melee'          = (L 'Нож' 'Melee')
@@ -42,7 +42,7 @@ $ConsoleToUnreal = @{
 
 # Только подписи: имя не проверено на реальных данных, поэтому в список правки само не попадает,
 # но получит понятное название, как только встретится в облаке.
-$LabelOnly = @{ 'Activate_Ability2' = (L 'Способность 3 (обычно E)' 'Ability 3 (usually E)') }
+$LabelOnly = @{ 'Activate_Ability2' = (L 'Умение E' 'Ability E') }
 
 function Get-ActionLabel([string]$name) {
     if ($ActionLabels.Contains($name)) { $ActionLabels[$name] }
@@ -58,7 +58,7 @@ function Get-Binding($obj, [string]$name, [int]$idx) {
 }
 
 function Format-Key($m) {
-    if (-not $m) { return (L 'стандарт' 'default') }
+    if (-not $m) { return (L 'стандартный' 'default') }
     $parts = @()
     if ($m.ctrl) { $parts += 'Ctrl' }; if ($m.alt) { $parts += 'Alt' }; if ($m.shift) { $parts += 'Shift' }
     $k = "$($m.key)"

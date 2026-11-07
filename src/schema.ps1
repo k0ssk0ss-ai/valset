@@ -4,7 +4,7 @@
 $Inv = [Globalization.CultureInfo]::InvariantCulture
 
 function Read-Profile {
-    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Сохранить».' 'Your settings are not saved yet — use “Save” first.') }
+    if (-not (Test-Path $ProfilePath)) { throw (L 'Сначала сохрани свои настройки: «Сохранить».' 'Save your settings first: “Save”.') }
     Get-Content $ProfilePath -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 
@@ -30,7 +30,7 @@ $SettingDefs = @(
     New-Setting @{ Label = (L 'Громкость музыки' 'Music volume'); Enum = 'EAresFloatSettingName::AllMusicOverallVolume'; Format = 'pct' }
     New-Setting @{ Label = (L 'Голосовой чат' 'Voice chat'); Enum = 'EAresIntSettingName::VoiceVolume'; Format = 'pct100' }
     New-Setting @{ Label = 'FPS'; Enum = 'EAresIntSettingName::PlayerPerfShowFrameRate'; Opts = $PerfShow }
-    New-Setting @{ Label = (L 'Разброс при стрельбе' 'Firing error'); Enum = 'EAresIntSettingName::PlayerPerfShowFiringErrors'; Opts = $PerfShow }
+    New-Setting @{ Label = (L 'Разброс пуль' 'Firing error'); Enum = 'EAresIntSettingName::PlayerPerfShowFiringErrors'; Opts = $PerfShow }
     New-Setting @{ Label = (L 'Джиттер сети' 'Network jitter'); Enum = 'EAresIntSettingName::PlayerPerfShowNetworkJitter'; Opts = $PerfShow }
     New-Setting @{ Label = (L 'Потеря пакетов' 'Packet loss'); Enum = 'EAresIntSettingName::PlayerPerfShowPacketLossPercentage'; Opts = $PerfShow }
 )

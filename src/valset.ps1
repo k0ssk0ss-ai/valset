@@ -7,8 +7,8 @@
   valset lib         (для приложения) только загрузить функции: Invoke-Core state|list|do|watch → строка JSON, без exit
   valset state       (для приложения) состояние одной строкой JSON
   valset do ДЕЙСТВИЕ (для приложения) apply|binds|applyperm|save|savebinds|untemp|undo|gfxsave|share|code:КОД|pro:НИК|restore:ID|history:ID|set:КЛЮЧ=ЗНАЧЕНИЕ|account:PUUID:ДЕЙСТВИЕ|loadout:…|skin:…|coll:ID — без вопросов, ответ JSON
-  valset save        запомнить настройки текущего аккаунта как мои (-BindsOnly — только бинды)
-  valset gfxsave     запомнить только графику (можно при запущенной игре)
+  valset save        сохранить настройки текущего аккаунта как мои (-BindsOnly — только бинды)
+  valset gfxsave     сохранить только графику (можно при запущенной игре)
   valset apply       перенести мои настройки на текущий аккаунт (всё; -BindsOnly — только бинды)
   valset status      аккаунт, совпадают ли настройки, автоперенос
   valset watch       (служебное) слежение за входом — запускает сторож автопереноса
@@ -171,9 +171,9 @@ function Get-Session {
 }
 
 function Connect-Session {
-    Invoke-Step (L 'Подключение к клиенту Riot' 'Connecting to the Riot Client') {
+    Invoke-Step (L 'Подключаюсь к клиенту Riot' 'Connecting to the Riot Client') {
         $s = Get-Session
-        if (-not $s) { throw $(if (Get-Process 'RiotClientServices' -ErrorAction SilentlyContinue) { L 'Войди в аккаунт в клиенте Riot.' 'Log into an account in the Riot Client.' } else { L 'Клиент Riot не запущен — открой его и войди в аккаунт.' 'The Riot Client is not running — open it and log in.' }) }
+        if (-not $s) { throw $(if (Get-Process 'RiotClientServices' -ErrorAction SilentlyContinue) { L 'Войди в аккаунт в клиенте Riot.' 'Log into an account in the Riot Client.' } else { L 'Клиент Riot не запущен. Открой его и войди в аккаунт.' 'The Riot Client is not running. Open it and log in.' }) }
         $null = Register-Account $s
         $s
     }
@@ -208,11 +208,11 @@ function Get-JsonPart($obj, [string]$key) { ConvertTo-Json -InputObject $obj.$ke
 function Invoke-Save($s) {
     if (-not $s) { $s = Connect-Session }
     if ($script:Fancy -and (Test-Path $ProfilePath)) {
-        $q = if (Test-NotMain $s) { L 'Всё равно запомнить настройки отсюда?' 'Save settings from here anyway?' } else { L "Заменить твои настройки настройками $(Get-AccountLabel $s.Puuid)?" "Replace your settings with those of $(Get-AccountLabel $s.Puuid)?" }
-        if (-not (Confirm-Key $q)) { Write-Note (L 'отменено' 'cancelled'); return }
+        $q = if (Test-NotMain $s) { L 'Всё равно сохранить настройки отсюда?' 'Save settings from here anyway?' } else { L "Заменить твои настройки настройками $(Get-AccountLabel $s.Puuid)?" "Replace your settings with those of $(Get-AccountLabel $s.Puuid)?" }
+        if (-not (Confirm-Key $q)) { Write-Note (L 'Отменено' 'Cancelled'); return }
     }
-    $json = Invoke-Step (L 'Чтение настроек из облака Riot' 'Reading settings from the Riot cloud') { Get-Settings $s }
-    Invoke-Step (L 'Запись на диск' 'Writing to disk') {
+    $json = Invoke-Step (L 'Читаю настройки' 'Reading the settings') { Get-Settings $s }
+    Invoke-Step (L 'Сохраняю на ПК' 'Saving on this PC') {
         $null = $json | ConvertFrom-Json   # проверка, что это валидный JSON
         New-Item -ItemType Directory -Force $Root | Out-Null
         Save-UndoPoint 'profile' $s.Puuid
@@ -221,21 +221,21 @@ function Invoke-Save($s) {
         Write-FileSafe $SourcePath $s.Puuid
         Set-SessionBase $s.Puuid $json   # дальше правки в игре здесь попадут в эталон сами
     }
-    $gfx = Invoke-Step (L 'Снимок графики с этого ПК' 'Snapshot of this PC''s graphics') { Save-Graphics $s.Puuid }
+    $gfx = Invoke-Step (L 'Сохраняю графику' 'Saving graphics') { Save-Graphics $s.Puuid }
     Log "мои настройки запомнены с аккаунта $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' (+ графика)' })"
     $script:LastOp = if ($gfx) { 'gfx' } else { 'done' }
     if ($script:Fancy) {
-        Write-Ok (L "Твои настройки запомнены с аккаунта $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' вместе с графикой' })" "Your settings saved from $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' including graphics' })")
-        if (-not $gfx) { Write-Note (L 'графику не нашёл: этот аккаунт ещё не запускал игру на этом ПК' 'no graphics found: this account has not run the game on this PC yet') }
+        Write-Ok (L "Твои настройки сохранены с аккаунта $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' вместе с графикой' })" "Your settings saved from $(Get-AccountLabel $s.Puuid)$(if ($gfx) { ' including graphics' })")
+        if (-not $gfx) { Write-Note (L 'Графики нет: этот аккаунт ещё не запускал игру на этом ПК' 'No graphics: this account has not run the game on this PC yet') }
     }
     if ($gfx) { Write-QualityNote; Sync-Graphics $s.Puuid }
 }
 
 function Invoke-Apply($s, [switch]$BindsOnly, [switch]$Permanent) {
-    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Сохранить».' 'Your settings are not saved yet — use “Save” first.') }
+    if (-not (Test-Path $ProfilePath)) { throw (L 'Сначала сохрани свои настройки: «Сохранить».' 'Save your settings first: “Save”.') }
     if (-not $s) { $s = Connect-Session }
 
-    $curJson = Invoke-Step (L 'Чтение текущих настроек аккаунта' 'Reading the account''s current settings') { Get-Settings $s }
+    $curJson = Invoke-Step (L 'Читаю настройки аккаунта' 'Reading the account settings') { Get-Settings $s }
     # правки в игре на этом аккаунте — сначала в эталон, иначе перенос их бы затёр
     $synced = Update-Reference $s $curJson
     if ($synced.Count -and $script:Fancy) { Write-Ok "$(L 'В твои настройки добавлено из игры' 'Added to your settings from the game'): $(Format-Changed $synced)" }
@@ -261,23 +261,23 @@ function Invoke-Apply($s, [switch]$BindsOnly, [switch]$Permanent) {
         $diff = Compare-Prefs $cur $new -BindsOnly:$BindsOnly
         if ($script:Fancy) {
             Show-Diff $diff
-            if (-not $diff.Count) { Write-Note (L 'отличия только служебные (профили прицела, агентские бинды и т. п.)' 'only internal differences (crosshair profiles, agent binds, etc.)') }
-            if ($script:CrosshairDropped) { Write-Note (L "в игре максимум $CrosshairMax прицелов: $($script:CrosshairDropped) прицел(а) аккаунта не влезут и пропадут" "the game allows $CrosshairMax crosshairs max: $($script:CrosshairDropped) of this account's crosshair(s) won't fit and will be lost") }
-            if (-not (Confirm-Key (L 'Применить?' 'Apply?'))) { Write-Note (L 'отменено, аккаунт не тронут' 'cancelled, account untouched'); return }
+            if (-not $diff.Count) { Write-Note (L 'Отличий почти нет (мелочи вроде профилей прицела)' 'Almost no differences (small things like crosshair profiles)') }
+            if ($script:CrosshairDropped) { Write-Note (L "В игре максимум $CrosshairMax прицелов, лишние прицелы аккаунта удалятся: $($script:CrosshairDropped)" "The game allows $CrosshairMax crosshairs max, extra crosshairs of this account will be deleted: $($script:CrosshairDropped)") }
+            if (-not (Confirm-Key (L 'Перенести?' 'Apply?'))) { Write-Note (L 'Отменено, аккаунт не изменён' 'Cancelled, account unchanged'); return }
         }
         # Игра держит свою копию настроек и при их смене в игре пишет её в облако целиком — поверх нашей. Ждём выхода.
         if (Test-GameRunning) {
             $script:LastApply = @{ Queued = $true }
             Request-CloudAfterExit $s.Puuid $(if ($BindsOnly) { 'binds' } elseif ($Permanent) { 'perm' } else { 'apply' })
-            if ($script:Fancy) { Write-Note (L 'игра запущена — применю сам, когда закроешь её (в этом же аккаунте)' 'the game is running — will apply once you close it (on this same account)') }
+            if ($script:Fancy) { Write-Note (L 'Игра запущена. Перенесу, когда ты её закроешь (в этом же аккаунте)' 'The game is running. Will apply once you close it (on this same account)') }
             return
         }
         Save-UndoPoint 'account' $s.Puuid $curJson
-        $bk = Invoke-Step (L 'Резервная копия' 'Backup') { New-Backup $s $curJson }
+        $bk = Invoke-Step (L 'Делаю бэкап' 'Backup') { New-Backup $s $curJson }
         if ($temp) { Save-TempOriginal $s.Puuid $curJson }   # до записи: упадёт посередине — исходные всё равно вернутся
         $newJson = ConvertTo-Json -InputObject $new -Depth 32 -Compress
-        Invoke-Step (L 'Запись в облако Riot' 'Writing to the Riot cloud') { Set-Settings $s $newJson }
-        Invoke-Step (L 'Проверка записи' 'Verifying') { Assert-Written $s $newJson (L 'перенос' 'apply') }
+        Invoke-Step (L 'Записываю настройки' 'Writing the settings') { Set-Settings $s $newJson }
+        Invoke-Step (L 'Проверяю запись' 'Verifying') { Assert-Written $s $newJson (L 'перенос' 'apply') }
     }
     Set-SessionBase $s.Puuid $(if ($same) { $curJson } else { $newJson }) $(if ($BindsOnly) { 'binds' } else { 'all' })
 
@@ -294,10 +294,10 @@ function Invoke-Apply($s, [switch]$BindsOnly, [switch]$Permanent) {
     if ($gameRunning -and -not $same) { Log 'игра уже запущена: изменения будут после перезапуска Valorant' }
     if ($script:Fancy) {
         Write-Ok "$what $(L 'на аккаунте' 'on') $(Get-AccountLabel $s.Puuid): $state"
-        if ($kept) { Write-Note (L "прицелы аккаунта не тронуты ($kept шт.), активный — твой" "the account's crosshairs kept ($kept), active one is yours") }
+        if ($kept) { Write-Note (L "Прицелы аккаунта остались ($kept), активный твой" "The account's crosshairs kept ($kept), the active one is yours") }
         if ($gfx -gt 0) { Write-Ok (L 'Графика этого ПК записана' 'This PC''s graphics written') }
-        if ($gfx -lt 0) { Write-Note (L 'графика применится сама, когда закроешь игру' 'graphics will be applied once you close the game') }
-        if ($gameRunning -and -not $same) { Write-Note (L 'игра запущена — облачные настройки появятся после её перезапуска' 'the game is running — cloud settings take effect after restarting it') }
+        if ($gfx -lt 0) { Write-Note (L 'Графика перенесётся сама, когда закроешь игру' 'Graphics will be applied once you close the game') }
+        if ($gameRunning -and -not $same) { Write-Note (L 'Игра запущена: настройки появятся после её перезапуска' 'The game is running: settings take effect after restarting it') }
         if ($temp -and (Test-Temp $s.Puuid)) { Write-TempNote }
     }
 }
@@ -313,15 +313,15 @@ function New-Backup($s, [string]$json) {
 
 # Только графика эталона — с текущего аккаунта. Работает и при запущенной игре: она пишет файлы сразу после смены настроек.
 function Invoke-SaveGraphics($s) {
-    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Сохранить» → всё.' 'Your settings are not saved yet — use “Save → all” first.') }
+    if (-not (Test-Path $ProfilePath)) { throw (L 'Сначала сохрани свои настройки: «Сохранить» → «Всё».' 'Save your settings first: “Save → All”.') }
     if (-not $s) { $s = Connect-Session }
-    $q = if (Test-NotMain $s) { L 'Всё равно запомнить графику отсюда?' 'Save graphics from here anyway?' } else { L "Заменить твою графику графикой аккаунта $(Get-AccountLabel $s.Puuid)?" "Replace your graphics with those of $(Get-AccountLabel $s.Puuid)?" }
-    if ($script:Fancy -and -not (Confirm-Key $q)) { Write-Note (L 'отменено' 'cancelled'); return }
+    $q = if (Test-NotMain $s) { L 'Всё равно сохранить графику отсюда?' 'Save graphics from here anyway?' } else { L "Заменить твою графику графикой аккаунта $(Get-AccountLabel $s.Puuid)?" "Replace your graphics with those of $(Get-AccountLabel $s.Puuid)?" }
+    if ($script:Fancy -and -not (Confirm-Key $q)) { Write-Note (L 'Отменено' 'Cancelled'); return }
     New-HistoryPoint (L 'до «Сохранить → графику»' 'before “Save → graphics”')
-    $ok = Invoke-Step (L 'Снимок графики с этого ПК' 'Snapshot of this PC''s graphics') { Save-Graphics $s.Puuid }
+    $ok = Invoke-Step (L 'Сохраняю графику' 'Saving graphics') { Save-Graphics $s.Puuid }
     if (-not $ok) { throw (L 'Графику не нашёл: этот аккаунт ещё не запускал игру на этом ПК.' 'No graphics found: this account has not run the game on this PC yet.') }
     Log "графика запомнена с аккаунта $(Get-AccountLabel $s.Puuid)"
-    if ($script:Fancy) { Write-Ok "$(L 'Графика запомнена с аккаунта' 'Graphics saved from') $(Get-AccountLabel $s.Puuid)"; Write-QualityNote }
+    if ($script:Fancy) { Write-Ok "$(L 'Графика сохранена с аккаунта' 'Graphics saved from') $(Get-AccountLabel $s.Puuid)"; Write-QualityNote }
     Sync-Graphics $s.Puuid
 }
 
@@ -329,15 +329,15 @@ function Invoke-SaveGraphics($s) {
 function Test-NotMain($s) {
     $main = Get-MainPuuid
     if (-not $script:Fancy -or -not $main -or $main -eq $s.Puuid -or -not (Test-Path $ProfilePath)) { return $false }
-    Write-Note (L "это не основной аккаунт: $(Get-AccountLabel $s.Puuid) (основной — $(Get-AccountLabel $main))" "this is not your main account: $(Get-AccountLabel $s.Puuid) (main — $(Get-AccountLabel $main))")
+    Write-Note (L "Это не основной аккаунт: $(Get-AccountLabel $s.Puuid) (основной: $(Get-AccountLabel $main))" "This is not your main account: $(Get-AccountLabel $s.Puuid) (main: $(Get-AccountLabel $main))")
     $true
 }
 
 # Только бинды текущего аккаунта → в эталон; остальные настройки эталона не трогаются.
 function Invoke-SaveBinds($s) {
-    if (-not (Test-Path $ProfilePath)) { throw (L 'Твои настройки ещё не запомнены — сначала «Сохранить» → всё.' 'Your settings are not saved yet — use “Save → all” first.') }
+    if (-not (Test-Path $ProfilePath)) { throw (L 'Сначала сохрани свои настройки: «Сохранить» → «Всё».' 'Save your settings first: “Save → All”.') }
     if (-not $s) { $s = Connect-Session }
-    $acc = Invoke-Step (L 'Чтение биндов из облака Riot' 'Reading binds from the Riot cloud') { Get-Settings $s | ConvertFrom-Json }
+    $acc = Invoke-Step (L 'Читаю бинды' 'Reading binds') { Get-Settings $s | ConvertFrom-Json }
     $p = Read-Profile
     $new = $p | ConvertTo-Json -Depth 32 | ConvertFrom-Json
     foreach ($k in $BindKeys) { $new | Add-Member -NotePropertyName $k -NotePropertyValue $acc.$k -Force }
@@ -350,29 +350,29 @@ function Invoke-SaveBinds($s) {
     if ($script:Fancy) {
         $null = Test-NotMain $s
         Show-Diff $diff
-        if (-not $diff.Count) { Write-Note (L 'отличия только в агентских биндах или осях' 'differences only in agent binds or axes') }
-        if (-not (Confirm-Key (L "Сохранить бинды аккаунта $(Get-AccountLabel $s.Puuid) как мои?" "Save the binds of $(Get-AccountLabel $s.Puuid) as mine?"))) { Write-Note (L 'отменено' 'cancelled'); return }
+        if (-not $diff.Count) { Write-Note (L 'Отличий почти нет (мелочи вроде биндов агентов)' 'Almost no differences (small things like agent binds)') }
+        if (-not (Confirm-Key (L "Сохранить бинды аккаунта $(Get-AccountLabel $s.Puuid) как мои?" "Save the binds of $(Get-AccountLabel $s.Puuid) as mine?"))) { Write-Note (L 'Отменено' 'Cancelled'); return }
     }
     Save-UndoPoint 'profile' $s.Puuid
     New-HistoryPoint (L 'до «Сохранить → бинды»' 'before “Save → binds”')
     Save-Profile $new
     Log "бинды запомнены с аккаунта $(Get-AccountLabel $s.Puuid) ($($diff.Count) изм.)"
-    if ($script:Fancy) { Write-Ok (L "Бинды запомнены с аккаунта $(Get-AccountLabel $s.Puuid), остальное не тронуто" "Binds saved from $(Get-AccountLabel $s.Puuid), everything else untouched") }
+    if ($script:Fancy) { Write-Ok (L "Бинды сохранены с аккаунта $(Get-AccountLabel $s.Puuid), остальное не изменилось" "Binds saved from $(Get-AccountLabel $s.Puuid), everything else unchanged") }
 }
 
 function Write-QualityNote {
     $odd = Get-QualityOddities
     if (-not $odd) { return }
     Log "незнакомые значения качества: $($odd -join ', ')"
-    if ($script:Fancy) { Write-Note "незнакомые значения качества ($($odd -join ', ')) — Riot могли поменять шкалу, проверь в игре" }
+    if ($script:Fancy) { Write-Note "Незнакомые значения качества ($($odd -join ', ')): Riot мог поменять шкалу, проверь в игре" }
 }
 
 try {
     switch ($Command) {
         'menu'      { if (-not (Invoke-InstallOffer)) { Show-Menu } }
-        'save'      { Write-Screen (L 'ЗАПОМНИТЬ КАК МОИ' 'SAVE AS MINE'); if ($BindsOnly) { Invoke-SaveBinds } else { Invoke-Save } }
-        'gfxsave'   { Write-Screen (L 'ЗАПОМНИТЬ: ГРАФИКУ' 'SAVE: GRAPHICS'); Invoke-SaveGraphics }
-        'apply'     { Write-Screen (L 'ПЕРЕНОС МОИХ НАСТРОЕК' 'APPLY MY SETTINGS'); Invoke-Apply -BindsOnly:$BindsOnly }
+        'save'      { Write-Screen (L 'Сохранить как мои' 'Save as mine'); if ($BindsOnly) { Invoke-SaveBinds } else { Invoke-Save } }
+        'gfxsave'   { Write-Screen (L 'Сохранить графику' 'Save graphics'); Invoke-SaveGraphics }
+        'apply'     { Write-Screen (L 'Перенести мои настройки' 'Apply my settings'); Invoke-Apply -BindsOnly:$BindsOnly }
         'status'    { Write-Banner; Write-State (Get-MenuState) }
         'watch'     { Invoke-Watch -AfterGame:$AfterGame }
         'gfxwait'   { Invoke-GfxWait }

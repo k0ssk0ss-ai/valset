@@ -51,7 +51,7 @@ function Merge-Crosshairs($cur, $new) {
     $added = @()
     foreach ($r in $refs) {
         if ($have.ContainsKey((ConvertTo-CrosshairJson $r))) { continue }
-        foreach ($p in $mine) { if ("$($p.profileName)" -eq "$($r.profileName)") { $p.profileName = "$($p.profileName) $(L '(акк)' '(acc)')" } }
+        foreach ($p in $mine) { if ("$($p.profileName)" -eq "$($r.profileName)") { $p.profileName = "$($p.profileName) $(L '(аккаунт)' '(account)')" } }
         $added += $r
     }
     $all = @($added) + $mine
@@ -128,10 +128,10 @@ function ConvertFrom-CrosshairCode([string]$code, [string]$name) {
 }
 
 function Format-Crosshairs([string]$value) {
-    if (-not $value) { return (L 'стандарт' 'default') }
+    if (-not $value) { return (L 'стандартный' 'default') }
     try {
         $d = $value | ConvertFrom-Json; $ps = @($d.profiles)
         $act = if ([int]$d.currentProfile -lt $ps.Count) { " · «$($ps[[int]$d.currentProfile].profileName)»" } else { '' }
-        "$($ps.Count) $(L 'шт.' 'pcs')$act"
+        "$($ps.Count) $(L (Get-Plural $ps.Count 'прицел' 'прицела' 'прицелов') 'crosshairs')$act"
     } catch { L 'есть' 'present' }
 }

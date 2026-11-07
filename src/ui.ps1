@@ -156,7 +156,7 @@ function Select-Item {
     Write-Host ''
     Write-Host "    $Footer" -ForegroundColor DarkGray
     if (@($Items | Where-Object { $_.Opts })) {
-        Write-Host (L '    ←→ вариант в строке · две цифры сразу: 12 = пункт 1, вариант 2' '    ←→ option in the row · two digits: 12 = item 1, option 2') -ForegroundColor DarkGray
+        Write-Host (L '    ←→ выбрать вариант · две цифры подряд: 12 = пункт 1, вариант 2' '    ←→ pick an option · two digits in a row: 12 = item 1, option 2') -ForegroundColor DarkGray
     }
     # Позиции считаем от конца: если список не влез и терминал прокрутился, верх уехал, а низ — нет.
     $end = [Console]::CursorTop

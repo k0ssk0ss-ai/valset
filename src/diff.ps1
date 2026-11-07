@@ -5,7 +5,7 @@
 function Get-PrefDef([string]$enum) { $SettingDefs | Where-Object { $_.Enum -eq $enum } | Select-Object -First 1 }
 
 function Format-PrefValue([string]$enum, $v) {
-    if ($null -eq $v) { return (L 'стандарт' 'default') }
+    if ($null -eq $v) { return (L 'стандартный' 'default') }
     $d = Get-PrefDef $enum
     if ($d) {
         foreach ($o in $d.Opts) { if (Test-SameValue $o.V $v) { return $o.L } }
@@ -27,7 +27,7 @@ function Compare-Prefs($cur, $new, [switch]$BindsOnly) {
     foreach ($k in $keys) {
         $a, $i = $k -split '\|'
         $o = Format-Key (Get-Binding $cur $a $i); $w = Format-Key (Get-Binding $new $a $i)
-        if ($o -ne $w) { $out.Add([pscustomobject]@{ What = "$(Get-ActionLabel $a)$(if ([int]$i) { L ' · доп.' ' · alt' })"; Old = $o; New = $w }) }
+        if ($o -ne $w) { $out.Add([pscustomobject]@{ What = "$(Get-ActionLabel $a)$(if ([int]$i) { L ' · дополнительная' ' · alt' })"; Old = $o; New = $w }) }
     }
     if ($BindsOnly) { return , $out.ToArray() }
     foreach ($g in 'floatSettings', 'intSettings', 'boolSettings', 'stringSettings') {
@@ -60,7 +60,7 @@ function Test-PrefsEqual($cur, $new) {
 function Show-Diff($list, [int]$max = 12) {
     if (-not $list.Count) { return }
     Write-Host ''
-    Write-Host "    $(L 'изменится' 'will change'): $($list.Count)" -ForegroundColor White
+    Write-Host "    $(L 'Изменится' 'Will change'): $($list.Count)" -ForegroundColor White
     foreach ($d in ($list | Select-Object -First $max)) {
         $what = "$($d.What)"; if ($what.Length -gt 30) { $what = $what.Substring(0, 29) + '…' }
         Write-Host -NoNewline ('      ' + $what.PadRight(31)) -ForegroundColor Gray
@@ -68,7 +68,7 @@ function Show-Diff($list, [int]$max = 12) {
         Write-Host -NoNewline ' → ' -ForegroundColor DarkGray
         Write-Host "$($d.New)" -ForegroundColor Green
     }
-    if ($list.Count -gt $max) { Write-Host "      … $(L 'и ещё' 'and') $($list.Count - $max)$(L '' ' more')" -ForegroundColor DarkGray }
+    if ($list.Count -gt $max) { Write-Host "      … $(L 'И ещё' 'And') $($list.Count - $max)$(L '' ' more')" -ForegroundColor DarkGray }
     Write-Host ''
 }
 
@@ -79,7 +79,7 @@ function Show-DiffList($list, [string]$title) {
     $pages = [Math]::Max(1, [Math]::Ceiling($list.Count / $per)); $p = 0
     while ($true) {
         Write-Screen $title
-        Write-Host ('      ' + (L 'настройка' 'setting').PadRight(31) + (L 'на аккаунте → твои' 'on account → yours')) -ForegroundColor DarkGray
+        Write-Host ('      ' + (L 'Настройка' 'Setting').PadRight(31) + (L 'на аккаунте → твои' 'on account → yours')) -ForegroundColor DarkGray
         foreach ($d in ($list | Select-Object -Skip ($p * $per) -First $per)) {
             $what = "$($d.What)"; if ($what.Length -gt 30) { $what = $what.Substring(0, 29) + '…' }
             Write-Host -NoNewline ('      ' + $what.PadRight(31)) -ForegroundColor Gray
@@ -88,7 +88,7 @@ function Show-DiffList($list, [string]$title) {
             Write-Host "$($d.New)" -ForegroundColor Green
         }
         Write-Host ''
-        $nav = if ($pages -gt 1) { "$(L 'стр.' 'page') $($p + 1)/$pages · ←→ $(L 'листать' 'scroll') · " } else { '' }
+        $nav = if ($pages -gt 1) { "$(L 'Страница' 'Page') $($p + 1)/$pages · ←→ $(L 'листать' 'scroll') · " } else { '' }
         Write-Host "    $($nav)Esc — $(L 'назад' 'back')" -ForegroundColor DarkGray
         $k = Read-KeyOrQuit
         switch ("$($k.Key)") {
