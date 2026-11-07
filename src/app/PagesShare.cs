@@ -75,7 +75,7 @@ static class Share {
 
     public static void Preview(StackPanel b) {
         var l = PagesLists.Load(Id(), b); if (l == null) return;
-        bool ok = true, same = false; int n = 0;
+        bool ok = true, same = false, range = false; int n = 0;
         foreach (var d in l) {
             string err = Json.Str(d, "error"), what = Json.Str(d, "what");
             if (err.Length > 0) {
@@ -85,38 +85,54 @@ static class Share {
                 string o = Json.Str(d, "old"), w = Json.Str(d, "new"); n++;
                 b.Children.Add(Ui.Row(what, (o.Length > 0 ? o : "—") + " → " + (w.Length > 0 ? w : "—"), "", 0, null));
             } else {
-                same = Json.Bool(d, "same");
+                same = Json.Bool(d, "same"); range = Json.Bool(d, "inRange");
                 string acc = Json.Str(d, "account"), info = Json.Str(d, "info");
                 b.Children.Add(Ui.Note(info + (acc.Length > 0 ? "\n" + L.T("Аккаунт: ", "Account: ") + acc : "")));
                 Pics(b, Json.Dicts(Json.Get(d, "pics")));
             }
         }
         if (!ok) return;
+        bool skins = Kind == "loadout" || Kind == "skin" || Kind == "coll";
+        range = range && skins;   // ядро даёт inRange только в стрельбище при запущенной игре
+        string rangeNote = L.T("Ты в стрельбище: игра читает скины при входе. Перезайдём в стрельбище, загрузка карты ~15 с.", "You are in the range: the game reads skins on entry. We re-enter the range, the map loads in ~15 s.");
         if (same) {
             b.Children.Add(Ui.Note(L.T("Уже так надето. Игра могла прочитать старое: она читает скины при входе в матч или стрельбище. Надень ещё раз и зайди заново.", "Already on. The game may have read the old one: it reads skins when you enter a match or the range. Put it on again and re-enter.")));
-            if (Kind == "loadout" || Kind == "skin" || Kind == "coll") {
+            if (skins) {
                 string fid = Id() + "!force";
+                if (range) b.Children.Add(Ui.Note(rangeNote));
+                var sr = new WrapPanel { Margin = new Thickness(0, 4, 0, 4) };
+                if (range) sr.Children.Add(RejoinBtn(fid));
                 var again = Ui.Sec(L.T("Надеть ещё раз", "Put on again"), 13, !Ctl.Busy, () => { Ctl.Panel.Back(); Ctl.DoAction(fid, false); }, 32, 6);
-                again.MinWidth = 150; again.Margin = new Thickness(0, 4, 0, 4);
-                b.Children.Add(again);
+                again.MinWidth = 150; sr.Children.Add(again);
+                b.Children.Add(sr);
             }
             return;
         }
         if (n == 0) b.Children.Add(Ui.Note(L.T("Видимых отличий нет (мелочи вроде профилей прицела)", "No visible differences (small things like crosshair profiles)")));
-        b.Children.Add(Ui.Note(Kind == "loadout" || Kind == "skin" || Kind == "coll"
+        b.Children.Add(Ui.Note(skins
             ? L.T("Перед этим VALSET делает бэкап. «Отменить» работает сразу. Скины видны после входа в матч или стрельбище. Экран «Коллекция» в игре покажет старое до перезапуска игры.", "VALSET makes a backup first. “Undo” works right away. Skins show after you enter a match or the range. The in-game Collection screen shows the old one until the game restarts.")
             : Kind == "pro"
             ? L.T("На время: после игры вернутся исходные настройки. «Отменить» работает сразу.", "For now: originals come back after the game. “Undo” works right away.")
             : L.T("Насовсем. Перед этим VALSET делает бэкап. «Отменить» работает сразу или позже в «Бэкапах».", "Permanent. VALSET makes a backup first. “Undo” works right away or later in Backups.")));
-        var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 4) };
+        if (range) b.Children.Add(Ui.Note(rangeNote));
+        var r = new WrapPanel { Margin = new Thickness(0, 4, 0, 4) };
         string id = Id();
-        var yes = Ui.Pri(Kind == "pro" ? L.T("Примерить", "Try on") : Kind == "loadout" || Kind == "skin" || Kind == "coll" ? L.T("Надеть", "Put on") : L.T("Перенести", "Apply"), 13, !Ctl.Busy,
-                         () => { Ctl.Panel.Back(); Ctl.DoAction(id, false); }, 32, 6);
+        if (range) r.Children.Add(RejoinBtn(id));
+        string yt = Kind == "pro" ? L.T("Примерить", "Try on") : skins ? L.T("Надеть", "Put on") : L.T("Перенести", "Apply");
+        Action go = () => { Ctl.Panel.Back(); Ctl.DoAction(id, false); };
+        var yes = range ? Ui.Sec(yt, 13, !Ctl.Busy, go, 32, 6) : Ui.Pri(yt, 13, !Ctl.Busy, go, 32, 6);   // в стрельбище главная — «Надеть и перезайти»
         yes.MinWidth = 110;
         var no = Ui.Sec(L.T("Отмена", "Cancel"), 13, true, () => Ctl.Panel.Back(), 32, 6);
         no.MinWidth = 80; no.Margin = new Thickness(6, 0, 0, 0);
         r.Children.Add(yes); r.Children.Add(no);
         b.Children.Add(r);
+    }
+
+    // «Надеть и перезайти»: та же запись (act — Id() или Id()+"!force") и перезаход в стрельбище (ядро, range.ps1).
+    static Border RejoinBtn(string act) {
+        var rj = Ui.Pri(L.T("Надеть и перезайти", "Put on and re-enter"), 13, !Ctl.Busy, () => { Ctl.Panel.Back(); Ctl.DoAction(act + "+rejoin", false); }, 32, 6);
+        rj.MinWidth = 150; rj.Margin = new Thickness(0, 0, 6, 0);
+        return rj;
     }
 
     // Картинки набора / коллекции перед «Надеть»: скины — полосой, карточка, спреи и флексы — квадратами (Img.cs, только видимые).
