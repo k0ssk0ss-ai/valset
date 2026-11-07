@@ -25,20 +25,20 @@ function Save-Sets($sets) {
 
 function Find-Set([string]$id) {
     $x = @(Read-Sets) | Where-Object { $_.id -eq $id } | Select-Object -First 1
-    if (-not $x) { throw (L 'Такого набора нет — список обновлён, выбери заново.' 'No such set — the list was refreshed, pick again.') }
+    if (-not $x) { throw (L 'Такого набора нет. Список обновлён, выбери заново.' 'No such set. The list was refreshed, pick again.') }
     $x
 }
 
 # Имя набора из действия панели: base64url (UTF-8) — без пробелов и кавычек в командной строке.
 function ConvertFrom-B64Url([string]$t) {
     $b = $t.Replace('-', '+').Replace('_', '/'); $b += '=' * ((4 - $b.Length % 4) % 4)
-    try { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b)) } catch { throw (L 'Некорректное имя набора.' 'Invalid set name.') }
+    try { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b)) } catch { throw (L 'Недопустимое имя набора.' 'Invalid set name.') }
 }
 
 function Test-SetName([string]$name) {
     $n = ($name -replace '\s+', ' ').Trim()
     if (-not $n) { throw (L 'Назови набор.' 'Name the set.') }
-    if ($n.Length -gt $SetNameMax -or $n -match '[\x00-\x1f"]') { throw (L "Имя набора — до $SetNameMax символов, без кавычек." "Set name — up to $SetNameMax characters, no quotes.") }
+    if ($n.Length -gt $SetNameMax -or $n -match '[\x00-\x1f"]') { throw (L "Имя набора: до $SetNameMax символов, без кавычек." "Set name: up to $SetNameMax characters, no quotes.") }
     $n
 }
 
@@ -110,7 +110,7 @@ function Get-SkinLabel($names, $g) {
     $n = if ($g.ChromaID -and $names.Names["$($g.ChromaID)".ToLowerInvariant()]) { $names.Names["$($g.ChromaID)".ToLowerInvariant()] } else { Get-ItemName $names $g.SkinID }
     $n = ("$n" -replace '\s*[\r\n]+\s*', ' ').Trim()
     $lv = $names.Levels["$($g.SkinLevelID)".ToLowerInvariant()]
-    if ($lv -gt 1) { "$n · $(L 'ур.' 'lvl') $lv" } else { $n }
+    if ($lv -gt 1) { "$n · $(L 'уровень' 'level') $lv" } else { $n }
 }
 
 # Подпись брелока: первый ID внутри Attachments, известный справочнику (брелок или его уровень), иначе «брелок».
@@ -168,7 +168,7 @@ function Invoke-SetSave([string]$name, [string]$theme = '') {
     $items = if ($theme) { Get-CollSetItems $s $theme } else { ConvertTo-SetItems (Get-Loadout $s) }
     $sets = @(Read-Sets)
     $old = $sets | Where-Object { "$($_.name)" -eq $name } | Select-Object -First 1
-    if (-not $old -and $sets.Count -ge $SetsMax) { throw (L "Наборов уже $SetsMax — удали ненужный." "Already $SetsMax sets — delete one first.") }
+    if (-not $old -and $sets.Count -ge $SetsMax) { throw (L "Наборов уже $SetsMax. Удали ненужный." "Already $SetsMax sets. Delete one first.") }
     $id = if ($old) { $old.id } else { [Guid]::NewGuid().ToString('N').Substring(0, 8) }
     $e = [ordered]@{ id = $id; name = $name; agent = $(if ($old) { "$($old.agent)" } else { '' }); puuid = $s.Puuid; saved = (Get-Stamp)
                      guns = $items.guns; expressions = $items.expressions; identity = $items.identity }
@@ -185,7 +185,7 @@ function Invoke-SetApply([string]$id, $s = $null) {
     $cur = Get-Loadout $s
     $n = (Write-LoadoutChange $s $cur (Join-SetLoadout $cur $set) "набор «$($set.name)»").Count
     if (-not $n) { return $(if ($script:ForcedWrite) { L "Набор «$($set.name)» записан заново" "Set `“$($set.name)`” written again" } else { L "Набор «$($set.name)» уже надет" "Set `“$($set.name)`” is already on" }) }
-    L "Набор «$($set.name)» надет: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Set `“$($set.name)`” on: $n change$(if ($n -ne 1) { 's' })"
+    L "Набор «$($set.name)» надет: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений'). Скины видны после входа в матч или стрельбище" "Set `“$($set.name)`” on: $n change$(if ($n -ne 1) { 's' }). Skins show after you enter a match or the range"
 }
 
 # Записать новый лоадаут: точка отмены (в `valset do`), бэкап, PUT. Возвращает строки «было → станет»; пусто — менять нечего.
@@ -212,7 +212,7 @@ function Restore-LoadoutUndo($a) {
 function Invoke-SetBind([string]$id, [string]$agent) {
     $set = Find-Set $id
     $agent = if ($agent -eq 'none') { '' } else { $agent.ToLowerInvariant() }
-    if ($agent -and $agent -notmatch '^[0-9a-f-]{36}$') { throw (L 'Некорректный агент.' 'Invalid agent.') }
+    if ($agent -and $agent -notmatch '^[0-9a-f-]{36}$') { throw (L 'Не удалось выбрать агента.' 'Could not pick the agent.') }
     $sets = @(Read-Sets)
     Save-UndoFiles @($SetsPath)
     foreach ($x in $sets) {
@@ -222,7 +222,7 @@ function Invoke-SetBind([string]$id, [string]$agent) {
     Save-Sets $sets
     if (-not $agent) { return (L "Набор «$($set.name)» отвязан от агента" "Set `“$($set.name)`” unbound from the agent") }
     $an = Get-AgentName (Get-CosmeticNames) $agent
-    L "Набор «$($set.name)» — для агента $an" "Set `“$($set.name)`” — for $an"
+    L "Набор «$($set.name)» для агента $an" "Set `“$($set.name)`” for $an"
 }
 
 function Invoke-SetDelete([string]$id) {
@@ -258,8 +258,8 @@ function Invoke-DoLoadoutAuto($r) {
     Remove-LastAction; $script:UndoAction = 'loadoutauto'
     $r['applied'] = $true
     $an = Get-AgentName (Get-CosmeticNames) $pre.Agent
-    try { $msg = "$an — $(Invoke-SetApply $set.id $s)" }
-    catch { if ((Get-Config).notify) { Send-Toast 'VALSET' "$an — $($_.Exception.Message)" }; throw }
+    try { $msg = "${an}: $(Invoke-SetApply $set.id $s)" }
+    catch { if ((Get-Config).notify) { Send-Toast 'VALSET' "${an}: $($_.Exception.Message)" }; throw }
     if ((Get-Config).notify) { Send-Toast 'VALSET' $msg }
     $msg
 }
@@ -271,7 +271,7 @@ function Get-ListLoadouts {
     @(@(Read-Sets) | Sort-Object { "$($_.name)" } | ForEach-Object {
         $hint = @(
             if ($_.agent) { Get-AgentName $names $_.agent } else { L 'без агента' 'no agent' }
-            "$(L 'оружия' 'weapons') $(@($_.guns).Count)"
+            "$(L 'оружий:' 'weapons:') $(@($_.guns).Count)"
             if ($cs -and $_.puuid -and $_.puuid -ne $cs.Puuid) { "$(L 'с аккаунта' 'from') $(Get-AccountLabel $_.puuid)" }
         ) -join ' · '
         [ordered]@{ id = "$($_.id)"; name = "$($_.name)"; agent = "$($_.agent)"; hint = $hint }
@@ -288,8 +288,8 @@ function Get-ListLoadoutPreview([string]$id) {
         $cur = Get-Loadout $s; $names = Get-CosmeticNames
         $rows = Compare-Loadout $cur (Join-SetLoadout $cur $set) $names
         $info = "$(L 'Набор' 'Set') «$($set.name)»$(if ($set.agent) { " · $(Get-AgentName $names $set.agent)" })"
-        if (Test-SetV2 $set) { $info += "`n" + (L 'Набор старого формата: брелоки из него не меняются — надень и сохрани заново.' 'Old-format set: its buddies are not applied — apply and save it again.') }
-        if ($set.puuid -and $set.puuid -ne $s.Puuid) { $info += "`n" + (L "Сохранён на другом аккаунте ($(Get-AccountLabel $set.puuid)) — Riot примет только предметы, которые есть здесь." "Saved on another account ($(Get-AccountLabel $set.puuid)) — Riot accepts only items owned here.") }
+        if (Test-SetV2 $set) { $info += "`n" + (L 'Это старый набор: брелоки из него не надеваются. Надень их и сохрани набор заново.' 'This is an old set: its buddies are not put on. Put them on and save the set again.') }
+        if ($set.puuid -and $set.puuid -ne $s.Puuid) { $info += "`n" + (L "Сохранён на другом аккаунте ($(Get-AccountLabel $set.puuid)). Надеются только предметы, которые есть здесь." "Saved on another account ($(Get-AccountLabel $set.puuid)). Only items owned here are put on.") }
         $pics = @(); try { $pics = @(Get-SetPics $set) } catch { Log "картинки набора: $($_.Exception.Message)" }   # без каталога — без картинок
         @([ordered]@{ info = $info; account = (Get-AccountLabel $s.Puuid); same = (-not $rows.Count); pics = $pics }) + @($rows)
     } catch { @([ordered]@{ error = $_.Exception.Message }) }

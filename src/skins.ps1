@@ -87,7 +87,7 @@ function Get-SkinCatalog {
         } catch { Log "каталог скинов не скачался: $($_.Exception.Message)" }
     }
     if ($raw -and $raw.lang -eq $lang) { return $raw }
-    throw (L 'Список предметов не скачался с valorant-api.com (нет сети?) — открой позже.' 'The item list did not download from valorant-api.com (no network?) — try later.')
+    throw (L 'Список предметов не загрузился. Проверь сеть и открой позже.' 'The item list did not load. Check the network and try later.')
 }
 
 # ── Что есть на аккаунте ─────────────────────────────────────────────────────
@@ -165,19 +165,19 @@ function Join-SkinLoadout($cur, [string]$spec) {
     $new = Copy-Json $cur
     if ($spec -match "^gun:${G}:${G}:${G}:${G}$") {
         $g = @($new.Guns) | Where-Object { "$($_.ID)" -eq $Matches[1] } | Select-Object -First 1
-        if (-not $g) { throw (L 'Этого оружия нет в лоадауте аккаунта.' 'This weapon is not in the account loadout.') }
+        if (-not $g) { throw (L 'Этого оружия нет в снаряжении аккаунта.' 'This weapon is not in the account loadout.') }
         Set-Prop $g 'SkinID' $Matches[2]; Set-Prop $g 'SkinLevelID' $Matches[3]; Set-Prop $g 'ChromaID' $Matches[4]
     } elseif ($spec -match "^expr:(\d{1,2}):${G}:${G}$") {
         $i = [int]$Matches[1]; $t = $Matches[2].ToLowerInvariant(); $a = $Matches[3]
-        if ($t -notin $EntSpray, $EntFlex) { throw (L 'Неизвестный тип предмета.' 'Unknown item type.') }
+        if ($t -notin $EntSpray, $EntFlex) { throw (L 'Что-то пошло не так, открой список заново.' 'Something went wrong, open the list again.') }
         $ex = @($new.ActiveExpressions)
-        if ($i -ge $ex.Count) { throw (L 'Такого слота нет — список обновлён, выбери заново.' 'No such slot — the list was refreshed, pick again.') }
+        if ($i -ge $ex.Count) { throw (L 'Что-то пошло не так, открой список заново.' 'Something went wrong, open the list again.') }
         Set-Prop $ex[$i] 'TypeID' $t; Set-Prop $ex[$i] 'AssetID' $a
         Set-Prop $new 'ActiveExpressions' $ex
     } elseif ($spec -match "^(card|title):${G}$") {
         if (-not $new.Identity) { Set-Prop $new 'Identity' ([pscustomobject]@{}) }
         Set-Prop $new.Identity $(if ($Matches[1] -eq 'card') { 'PlayerCardID' } else { 'PlayerTitleID' }) $Matches[2]
-    } else { throw (L 'Некорректный предмет.' 'Invalid item.') }
+    } else { throw (L 'Что-то пошло не так, открой список заново.' 'Something went wrong, open the list again.') }
     $new
 }
 
@@ -198,7 +198,7 @@ function Invoke-SkinApply([string]$spec) {
     $rows = Write-LoadoutChange $s $cur (Join-SkinLoadout $cur $spec) "скин $spec"
     if (-not $rows.Count) { return ($(if ($script:ForcedWrite) { L 'Записано заново' 'Written again' } else { L 'Уже надето' 'Already on' })) }
     $r = $rows[0]
-    L "Надето: $($r.what) — $($r.new)" "Put on: $($r.what) — $($r.new)"
+    L "Надето: $($r.what) → $($r.new)" "Put on: $($r.what) → $($r.new)"
 }
 
 # ── «Надето сейчас» на главной панели ────────────────────────────────────────

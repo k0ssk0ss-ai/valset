@@ -40,7 +40,7 @@ function Get-AppReferences {
 
 function Build-App($src) {
     if (-not $src) { $src = Get-AppSources }
-    if (-not $src.Count) { throw (L 'В этой сборке нет исходников приложения (src\app).' 'This build has no app sources (src\app).') }
+    if (-not $src.Count) { throw (L 'Приложение не собрано. Переустанови VALSET.' 'The app is not built. Reinstall VALSET.') }
     if (Test-Path $AppSrcDir) { Remove-Item -LiteralPath $AppSrcDir -Recurse -Force }
     New-Item -ItemType Directory -Force $AppSrcDir | Out-Null
     $files = foreach ($k in ($src.Keys | Sort-Object)) {
@@ -74,7 +74,7 @@ function Stop-App {
 }
 
 function Enable-App {
-    if (-not (Test-Path $InstalledCmd)) { throw (L 'Сначала установи VALSET: valset.cmd install' 'Install VALSET first: valset.cmd install') }
+    if (-not (Test-Path $InstalledCmd)) { throw (L 'Сначала установи VALSET (команда в справке)' 'Install VALSET first (the command is in the help)') }
     $src = Get-AppSources
     $fresh = (Test-Path $AppExe) -and (Test-Path $AppHashPath) -and (([IO.File]::ReadAllText($AppHashPath)).Trim() -eq (Get-AppHash $src))
     if (-not $fresh) {

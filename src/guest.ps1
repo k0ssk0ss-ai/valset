@@ -76,14 +76,14 @@ function Invoke-RestoreTemp($s) {
     if (-not $s) { $s = Connect-Session }
     $p = Get-TempPath $s.Puuid
     if (-not (Test-Path $p)) {
-        if ($script:Fancy) { Write-Note (L 'на этом аккаунте нечего возвращать' 'nothing to restore on this account') }
+        if ($script:Fancy) { Write-Note (L 'На этом аккаунте нечего возвращать' 'Nothing to restore on this account') }
         return $false
     }
     $json = (Get-Content $p -Raw -Encoding UTF8).Trim()
     # сначала забрать в эталон то, что ты поменял в игре с твоими настройками (у примерки про базы нет — не заберётся)
     try { $script:LastSync = Update-Reference $s } catch { Log "эталон: не забрал правки: $($_.Exception.Message)" }
-    Invoke-Step (L 'Возврат исходных настроек' 'Restoring the original settings') { Set-Settings $s $json }
-    Invoke-Step (L 'Проверка записи' 'Verifying') { Assert-Written $s $json (L 'исходные' 'originals') }
+    Invoke-Step (L 'Возвращаю исходные настройки' 'Restoring the original settings') { Set-Settings $s $json }
+    Invoke-Step (L 'Проверяю запись' 'Verifying') { Assert-Written $s $json (L 'исходные' 'originals') }
     Clear-Temp $s.Puuid
     # исходные — твои (основной после примерки про)? Тогда аккаунт снова участвует, иначе — нет.
     if ((Test-Path $ProfilePath) -and (Test-PrefsEqual ($json | ConvertFrom-Json) (Read-Profile))) { Set-SessionBase $s.Puuid $json } else { Clear-SessionBase $s.Puuid }
@@ -98,14 +98,14 @@ function Invoke-RestoreTemp($s) {
 function Write-TempNote {
     $cfg = Get-Config
     if ($null -eq $cfg.tempAuto -and -not (Test-AgentEnabled)) {
-        $ans = Confirm-Key (L 'Возвращать исходные самому после игры? Для этого, пока есть что вернуть, работает помощник в фоне' 'Restore the originals automatically after the game? The background helper runs while there is something to restore')
+        $ans = Confirm-Key (L 'Возвращать исходные настройки после игры автоматически? Для этого будет работать помощник в фоне' 'Restore the originals automatically after the game? The background helper runs while there is something to restore')
         Set-Config 'tempAuto' $ans
         $cfg = Get-Config
     }
     if ($cfg.tempAuto -or $cfg.notify -or $cfg.autoApply) {
-        try { Update-Agent } catch { Write-Note "$(L 'помощник не запустился' 'helper did not start'): $($_.Exception.Message)" }
-        Write-Note (L 'на время: исходные вернутся сами через ~3 с после закрытия игры' 'for now: the originals come back ~3 s after you close the game')
+        try { Update-Agent } catch { Write-Note "$(L 'Помощник не запустился' 'The helper did not start'): $($_.Exception.Message)" }
+        Write-Note (L 'На время: исходные вернутся через пару секунд после закрытия игры' 'For now: the originals come back a few seconds after you close the game')
     } else {
-        Write-Note (L 'на время: перед выходом из аккаунта — меню VALSET → «Вернуть исходные»' 'for now: before logging out — VALSET menu → “Restore originals”')
+        Write-Note (L 'На время: перед выходом из аккаунта открой VALSET → «Вернуть исходные»' 'For now: before logging out, open VALSET → “Restore originals”')
     }
 }

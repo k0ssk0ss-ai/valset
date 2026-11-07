@@ -5,7 +5,7 @@
 $OpenExe = Join-Path $Root 'valset-open-1.exe'   # только для чистки: 1.x ставили сюда защиту хоткея
 
 function Invoke-Install {
-    if ($Self -notlike '*.cmd') { throw (L 'Устанавливается собранный файл: запусти build.ps1, затем dist\valset.cmd install.' 'Install the built file: run build.ps1, then dist\valset.cmd install.') }
+    if ($Self -notlike '*.cmd') { throw (L 'Установи VALSET из скачанного архива.' 'Install VALSET from the downloaded archive.') }
     New-Item -ItemType Directory -Force $Root | Out-Null
     if ($Self -ne $InstalledCmd) { Copy-Item $Self $InstalledCmd -Force }
 
@@ -35,8 +35,8 @@ function Invoke-Install {
     Log "установлено в $($Root): значок в трее, консоль — ярлык и команда valset"
     Write-Ok "$(L 'Установлено в' 'Installed to') $Root"
     if ($appErr) { Write-Note "$(L 'Значок в трее не запустился' 'The tray icon did not start'): $appErr" }
-    else { Write-Note (L 'Значок VALSET — у часов (трей), запускается с Windows. Выключить: в настройках его окна.' 'The VALSET icon is near the clock (tray) and starts with Windows. Turn it off: in its window settings.') }
-    Write-Note (L 'Консоль: ярлык «VALSET» в меню Пуск или команда valset в новом терминале.' 'Console: the “VALSET” shortcut in the Start menu, or run valset in a new terminal.')
+    else { Write-Note (L 'Значок VALSET у часов (трей) запускается вместе с Windows. Выключить можно в его настройках.' 'The VALSET icon near the clock (tray) starts with Windows. You can turn it off in its settings.') }
+    Write-Note (L 'Консоль: ярлык «VALSET» в Пуске или команда valset.' 'Console: the “VALSET” shortcut in Start, or the valset command.')
     # Дальше всё в панели у часов (там же один раз спросит про автоперенос) — открыть её; консоль больше не нужна.
     $script:PanelOpened = $false
     if (-not $appErr -and (Test-AppRunning)) {
@@ -58,11 +58,11 @@ function Invoke-InstallOffer {
     if ($have -eq $Version) { return }
     Clear-Host; Write-Banner; Write-Host ''
     if ($have) {
-        Write-Host (L "    Установлена версия $have, это — $Version." "    Installed: version $have, this file: $Version.") -ForegroundColor Gray
+        Write-Host (L "    Установлена версия $have, в этом файле $Version." "    Installed: version $have, this file: $Version.") -ForegroundColor Gray
         $q = L 'Обновить? Твои настройки и бэкапы останутся' 'Update? Your settings and backups stay'
     } else {
-        Write-Host (L '    Установка: папка %USERPROFILE%\valset, команда valset, ярлык в Пуске, значок у часов.' '    Installs to %USERPROFILE%\valset, adds the valset command, a Start-menu shortcut and a tray icon.') -ForegroundColor Gray
-        Write-Host (L '    Значок запускается с Windows (собирается на этом ПК из исходника); выключается в его окне.' '    The icon starts with Windows (built on this PC from source); turn it off in its window.') -ForegroundColor Gray
+        Write-Host (L '    Установка: папка с данными, ярлык в Пуске, значок у часов.' '    Installs a data folder, a Start-menu shortcut and a tray icon.') -ForegroundColor Gray
+        Write-Host (L '    Значок запускается с Windows.' '    The icon starts with Windows.') -ForegroundColor Gray
         $q = L 'Установить VALSET?' 'Install VALSET?'
     }
     Write-Host ''
@@ -82,7 +82,7 @@ function Invoke-Uninstall {
     $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
     [Environment]::SetEnvironmentVariable('Path', (($userPath -split ';' | Where-Object { $_ -and $_ -ne $Root }) -join ';'), 'User')
     Log 'программа удалена (мои настройки и бэкапы оставлены)'
-    Write-Ok (L "Ярлык, команда и значок в трее убраны. Твои настройки и бэкапы остались в $Root" "Shortcut, command and tray icon removed. Your settings and backups remain in $Root")
-    if ($Self -eq $InstalledCmd) { Write-Note (L 'сам valset.cmd удали вручную, если он больше не нужен' 'delete valset.cmd itself manually if you no longer need it') }
+    Write-Ok (L 'Ярлык, команда и значок в трее убраны. Твои настройки и бэкапы остались на твоём ПК' 'Shortcut, command and tray icon removed. Your settings and backups remain on your PC')
+    if ($Self -eq $InstalledCmd) { Write-Note (L 'Сам valset.cmd удали вручную, если он больше не нужен' 'Delete valset.cmd itself manually if you no longer need it') }
     elseif (Test-Path $InstalledCmd) { Remove-Item -LiteralPath $InstalledCmd }
 }

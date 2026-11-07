@@ -193,7 +193,7 @@ function Update-Agent {
 }
 
 function Enable-Agent {
-    if (-not (Test-Path $InstalledCmd)) { throw (L 'Сначала установи VALSET: valset.cmd install' 'Install VALSET first: valset.cmd install') }
+    if (-not (Test-Path $InstalledCmd)) { throw (L 'Сначала установи VALSET (команда в справке)' 'Install VALSET first (the command is in the help)') }
     if (-not (Test-Path $AgentExe)) {
         Add-Type -TypeDefinition $AgentSrc -OutputAssembly $AgentExe -OutputType WindowsApplication
     }
@@ -252,7 +252,7 @@ function Test-MainDrift($s, [string]$name) {
     Set-AccountState $s.Puuid @{ state = $(if ($dr.Same) { 'same' } else { 'diff' }); diff = $dr.Count; checked = (Get-Stamp); notified = $dr.Sig }
     if ($dr.Same -or $dr.Sig -eq $prev) { return }
     Log "основной $($name): настройки разошлись с твоими ($($dr.Count))"
-    Send-Toast "VALSET · $name" (L "Настройки изменились ($($dr.Count)). Поменял в игре — сохрани." "Settings changed ($($dr.Count)). Changed them in game? Save them.") @(@{ label = (L 'Сохранить' 'Save'); arg = 'save' })
+    Send-Toast "VALSET · $name" (L "Настройки изменились ($($dr.Count)). Если менял их в игре, сохрани." "Settings changed ($($dr.Count)). Changed them in game? Save them.") @(@{ label = (L 'Сохранить' 'Save'); arg = 'save' })
 }
 
 # Эталон обновился из игры — сказать, что именно (вернуть — «Ещё» → «Бэкапы» → «моих настроек»).
@@ -301,7 +301,7 @@ function Invoke-Watch([switch]$AfterGame) {
                 catch { Log "возврат токеном игры, попытка $n ($([int]((Get-Date) - $t0).TotalSeconds) с, стр. $($_.InvocationInfo.ScriptLineNumber): $($_.InvocationInfo.Line.Trim())): $($_.Exception.Message)"; Start-Sleep 5 }
             }
             $msg = if ($ok) { L 'Исходные настройки аккаунта возвращены.' 'The account''s original settings are back.' }
-                   else { L 'Не успел вернуть исходные: ты вышел из аккаунта. Зайди в него и открой VALSET — «Вернуть исходные».' 'Could not restore the originals: you logged out. Log in to it and open VALSET — `“Restore originals`”.' }
+                   else { L 'Исходные настройки не вернулись: ты вышел из аккаунта. Зайди в него и нажми в VALSET «Вернуть исходные».' 'The originals were not restored: you logged out. Log in to it and press “Restore originals” in VALSET.' }
             Send-Toast "VALSET · $(Get-AccountLabel $g.Puuid)" (Add-SyncNote $msg)
         } elseif ($AfterGame -and $g -and (-not $s -or $s.Puuid -ne $g.Puuid)) {
             Send-SyncToast $g (Update-Reference $g)   # вышел из аккаунта прямо из игры — правки всё равно забрать
@@ -326,13 +326,13 @@ function Invoke-Watch([switch]$AfterGame) {
                 $r = $script:LastApply
                 $undoBtn = if (Test-Path $LastActionPath) { @(@{ label = (L 'Отменить' 'Undo'); arg = 'undo' }) } else { @() }
                 if ($cfg.notify -and -not $r.Same) {
-                    if ($r.Temp) { Send-Toast "VALSET · $name" (L "Твои настройки на время: $($r.Count) изм. После игры вернутся исходные." "Your settings for now: $($r.Count) changes. The originals come back after the game.") $undoBtn }
-                    else { Send-Toast "VALSET · $name" (L "Твои настройки перенесены: $($r.Count) изм. Можно играть." "Your settings applied: $($r.Count) changes. Ready to play.") $undoBtn }
+                    if ($r.Temp) { Send-Toast "VALSET · $name" (L "Твои настройки на время: $($r.Count) $(Get-Plural $r.Count 'изменение' 'изменения' 'изменений'). После игры вернутся исходные." "Your settings for now: $($r.Count) changes. The originals come back after the game.") $undoBtn }
+                    else { Send-Toast "VALSET · $name" (L "Твои настройки перенесены: $($r.Count) $(Get-Plural $r.Count 'изменение' 'изменения' 'изменений')." "Your settings applied: $($r.Count) changes.") $undoBtn }
                 }
             } elseif ($cfg.notify) {
                 $dr = Get-AccountDrift $s
                 Set-AccountState $s.Puuid @{ state = $(if ($dr.Same) { 'same' } else { 'diff' }); diff = $dr.Count; checked = (Get-Stamp) }
-                if (-not $dr.Same) { Send-Toast "VALSET · $name" (L "Настройки не твои ($($dr.Count)). Перенеси свои до запуска игры." "Not your settings ($($dr.Count)). Apply yours before launching the game.") @(@{ label = (L 'Применить мои' 'Apply mine'); arg = 'apply' }) }
+                if (-not $dr.Same) { Send-Toast "VALSET · $name" (L "Настройки не твои ($($dr.Count)). Перенеси свои до запуска игры." "Not your settings ($($dr.Count)). Apply yours before launching the game.") @(@{ label = (L 'Перенести мои' 'Apply mine'); arg = 'apply' }) }
             }
             Add-WatchDone $key
         } elseif ($AfterGame -and $hasBase) {

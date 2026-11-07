@@ -47,7 +47,7 @@ $jo = Join-SetLoadout $loA $old; $joe = @($jo.ActiveExpressions)
 Check 'старый набор (v2): спреи по порядку в слоты-спреи, флекс не тронут, брелок не снят' ($joe[0].AssetID -eq (G 'flex0001') -and $joe[1].AssetID -eq (G 'spray002') -and $joe[2].AssetID -eq (G 'spray001') -and @(@($jo.Guns)[0].Attachments).Count -eq 1 -and @($jo.Guns)[0].SkinID -eq (G 'skinb000')) ($jo | ConvertTo-Json -Depth 6 -Compress)
 $rows = Compare-Loadout $loA $j $script:CosNames
 $rv = $rows | Where-Object { $_.what -eq 'Vandal' }
-Check 'предпросмотр: названия, цвет без переноса строки, уровень' ($rv.old -eq 'Прайм Vandal' -and $rv.new -eq 'Жнец Vandal Вариант 2 · ур. 4') ($rows | ConvertTo-Json -Compress)
+Check 'предпросмотр: названия, цвет без переноса строки, уровень' ($rv.old -eq 'Прайм Vandal' -and $rv.new -eq 'Жнец Vandal Вариант 2 · уровень 4') ($rows | ConvertTo-Json -Compress)
 Check 'предпросмотр: брелок, спрей, карточка; Classic не меняется' ($rows.Count -eq 4 -and @($rows | Where-Object { $_.what -eq 'Vandal · брелок' -and $_.old -eq 'Брелок-кот' -and $_.new -eq '' }).Count -eq 1 -and @($rows | Where-Object { $_.what -eq 'Карточка' -and $_.new -eq 'Карта 2' }).Count -eq 1) ($rows | ConvertTo-Json -Compress)
 Check 'нет в справочнике — начало ID' ((Get-ItemName $script:CosNames (G 'zzzzzzzz')) -eq 'zzzzzzzz')
 $body = ConvertTo-LoadoutBody $j
@@ -111,7 +111,7 @@ $r = Invoke-Do 'loadoutauto'
 Check 'loadoutauto: агент ещё не зафиксирован — не done, без записи' ($r.ok -and -not $r.done -and $script:puts.Count -eq 0)
 $script:pre = $p
 $r = Invoke-Do 'loadoutauto'
-Check 'loadoutauto: Sage зафиксирован — набор надет, отменяемо' ($r.ok -and $r.done -and $r.applied -and $r.undo -and $script:puts.Count -eq 1 -and $r.message -like 'Sage — Набор «Мой набор» надет*') ($r | ConvertTo-Json -Compress)
+Check 'loadoutauto: Sage зафиксирован — набор надет, отменяемо' ($r.ok -and $r.done -and $r.applied -and $r.undo -and $script:puts.Count -eq 1 -and $r.message -like 'Sage: Набор «Мой набор» надет*') ($r | ConvertTo-Json -Compress)
 $r = Invoke-Do 'loadoutauto'
 Check 'loadoutauto: тот же матч — второй раз не надевает' ($r.ok -and $r.done -and -not $r.applied -and $script:puts.Count -eq 1)
 $st = Get-StateJson | ConvertFrom-Json
