@@ -48,8 +48,8 @@ class BadgeWin : IDisposable {
         if (Ctl.IsGame() || !s.Client || s.Account.Length == 0) return null;
         if (s.Pending) { color = Ctl.Blue; return "● " + L.T("ждёт выхода из игры", "waiting for game exit"); }
         if (s.Suggested == "untemp") { color = Ctl.Amber; return "! " + L.T("вернуть исходные", "restore originals"); }
-        if (s.Suggested == "save") { color = Ctl.Amber; return "! " + L.T("есть правки — сохранить", "changes — save"); }
-        if (s.Suggested == "apply" || s.Same == false) { color = Ctl.Amber; return "! " + L.T("не твои — применить", "not yours — apply"); }
+        if (s.Suggested == "save") { color = Ctl.Amber; return "! " + L.T("есть правки: сохранить", "changes: save"); }
+        if (s.Suggested == "apply" || s.Same == false) { color = Ctl.Amber; return "! " + L.T("не твои: перенести", "not yours: apply"); }
         if (s.Suggested.Length > 0) return null;
         return "✓ VALSET · " + L.T("настройки твои", "settings are yours");
     }

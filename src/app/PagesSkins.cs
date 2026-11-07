@@ -110,7 +110,7 @@ static class Skins {
     static void Hint(StackPanel b) {
         if (OverlayWin.FsMode != 0 || Ctl.Cur.OverlayHint) return;
         var a = Ui.Ask(L.T("Кнопка поверх игры работает в режиме „Оконный полноэкранный“", "The button over the game works in “Windowed Fullscreen” mode"),
-                       L.T("Сейчас в игре — „Полноэкранный“: окно поверх свернуло бы игру. Сменить: настройки игры → Видео → Режим экрана. А пока — Ctrl+Alt+S в меню игры откроет «Все скины» (игра свернётся, пока открыта панель).",
+                       L.T("Сейчас в игре «Полноэкранный»: окно поверх свернуло бы игру. Смени режим: Настройки игры → Видео → Режим экрана. Или нажми Ctrl+Alt+S в меню игры: откроются «Все скины», игра свернётся.",
                            "The game is in “Fullscreen” now: a window on top would minimize it. Change it: game settings → Video → Display mode. Meanwhile Ctrl+Alt+S in the game menu opens All skins (the game minimizes while the panel is open)."),
                        Ui.Sec(L.T("Понятно", "Got it"), 12, true, () => { Config.SetBool("overlayHint", true); Ctl.Cur.OverlayHint = true; Ctl.Panel.Refresh(); }, 28, 8));
         a.Margin = new Thickness(0, 0, 0, 12); b.Children.Add(a);
@@ -188,14 +188,14 @@ static class Skins {
         bool on = Json.Bool(d, "on"), same = on && selLv == Json.Str(d, "curLv") && selCh == Json.Str(d, "curCh");
         var put = Ui.Pri(L.T("Надеть", "Put on"), 13, !Ctl.Busy, () => Share.Open("skin", "gun:" + gunId + ":" + id + ":" + selLv + ":" + selCh), 32, 8);
         put.Margin = new Thickness(12, 0, 0, 0); put.VerticalAlignment = VerticalAlignment.Bottom;
-        string tag = gunName.ToUpperInvariant() + " · " + (idx + 1) + L.T(" из ", " of ") + n;
+        string tag = gunName + " · " + (idx + 1) + L.T(" из ", " of ") + n;
         return Stage.Make(236, Json.Str(d, "bn"), hero, tag, on, Stage.Info(Short(Json.Str(d, "name")), sub), put, chips.Children.Count > 0 ? chips : null);
     }
 
     // ── брелоки, спреи, флексы, карточки: сетка ──
     static void Tiles(StackPanel b, List<Dictionary<string, object>> l, string cat) {
-        if (cat == "buddy") { var n = Ui.Note(L.T("Брелоки — только посмотреть: как Riot хранит брелок на оружии (лоадаут v3), ещё не измерено — надень брелок в игре",
-                                                  "Buddies are view-only for now: how Riot stores a buddy on a weapon (loadout v3) is not measured yet — equip it in the game")); n.Margin = new Thickness(0, 0, 0, 8); b.Children.Add(n); }
+        if (cat == "buddy") { var n = Ui.Note(L.T("Брелоки пока только для просмотра. Надеть их отсюда нельзя",
+                                                  "Buddies are view-only for now. You can't put them on from here")); n.Margin = new Thickness(0, 0, 0, 8); b.Children.Add(n); }
         if ((cat == "spray" || cat == "flex") && pickId.Length > 0) { Slots(b, l); return; }
         var all = l.FindAll(d => Json.Str(d, "cat") == cat);
         if (all.Count == 0) { b.Children.Add(Ui.Note(L.T("На аккаунте пусто", "Nothing on the account"))); return; }
@@ -215,7 +215,7 @@ static class Skins {
 
     // Спрей/флекс выбран — в какой слот колеса (порядок — как в игре).
     static void Slots(StackPanel b, List<Dictionary<string, object>> l) {
-        b.Children.Add(Stage.GridHead("«" + pickName + "» — " + L.T("в какой слот?", "which slot?"), ""));
+        b.Children.Add(Stage.GridHead(L.T("Выбери слот для «", "Pick a slot for “") + pickName + L.T("»", "”"), ""));
         foreach (var s in Json.Dicts(Json.Get(l[0], "slots"))) {
             int i = Json.Int(s, "i");
             string what = (i + 1) + " · " + (Json.Str(s, "type") == "flex" ? L.T("флекс", "flex") : L.T("спрей", "spray"));

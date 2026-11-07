@@ -10,7 +10,7 @@ static class Pages {
 
     public static string Title(string page) {
         switch (page) {
-            case "apply": return L.T("Применить", "Apply");
+            case "apply": return L.T("Перенести", "Apply");
             case "save": return L.T("Сохранить", "Save");
             case "diff": return L.T("Что отличается", "What differs");
             case "pros": return L.T("Про", "Pros");
@@ -79,8 +79,8 @@ static class Pages {
         b.Children.Add(Ui.Toggle(L.T("Значок у клиента", "Badge on the client"), s.Badge, on => { s.Badge = on; Ctl.DoAction(Set("badge", on), false); }));
         if (OverlayWin.FsMode < 0) OverlayWin.ReadFsMode();
         b.Children.Add(Ui.Toggle(L.T("Кнопка поверх игры", "Button over the game"), OverlayWin.Enabled(), on => { s.Overlay = on; Ctl.DoAction(Set("overlay", on), false); }));
-        if (OverlayWin.FsMode == 0) b.Children.Add(Ui.Note(L.T("Работает в режиме „Оконный полноэкранный“ (сейчас в игре — „Полноэкранный“). В меню игры — Ctrl+Alt+S: «Все скины».",
-                                                                "Works in “Windowed Fullscreen” (the game is in “Fullscreen” now). In the game menu — Ctrl+Alt+S: All skins.")));
+        if (OverlayWin.FsMode == 0) b.Children.Add(Ui.Note(L.T("Работает в режиме «Оконный полноэкранный». Сейчас в игре «Полноэкранный». В меню игры нажми Ctrl+Alt+S: откроются «Все скины».",
+                                                                "Works in “Windowed Fullscreen”. The game is in “Fullscreen” now. In the game menu press Ctrl+Alt+S to open All skins.")));
         b.Children.Add(Ui.Toggle(L.T("Автозапуск", "Start with Windows"), Config.IsAutostart(), on => { Config.SetAutostart(on); Ctl.DoAction(Set("app", on), false); }));
 
         var lang = new Grid { Margin = new Thickness(8, 4, 8, 4) };
@@ -93,8 +93,8 @@ static class Pages {
         b.Children.Add(lang);
 
         b.Children.Add(Ui.Sep(8, 6));
-        b.Children.Add(Ui.Row(L.T("Открыть папку", "Open folder"), "%USERPROFILE%\\valset", "", 0, OpenFolder));
-        b.Children.Add(Ui.Row(L.T("Консоль (запасная)", "Console (fallback)"), "", "", 0, () => { P.HidePanel(); Core.Console(""); }));
+        b.Children.Add(Ui.Row(L.T("Открыть папку с данными", "Open data folder"), "", "", 0, OpenFolder));
+        b.Children.Add(Ui.Row(L.T("Консоль", "Console"), "", "", 0, () => { P.HidePanel(); Core.Console(""); }));
     }
 
     static Border LangBtn(string text, string code, bool active) {
@@ -115,15 +115,15 @@ static class Pages {
     // ── Справка ──
     static void Help(StackPanel b) {
         string[][] t = {
-            new[] { "Сохрани настройки один раз на главном аккаунте — потом применяй их на остальных.", "Save your settings once on the main account, then apply them on the others." },
-            new[] { "Войдёшь в аккаунт — настройки перенесутся сами (если включён автоперенос).", "When you log in, settings are applied automatically (if auto-apply is on)." },
+            new[] { "Сохрани настройки на основном аккаунте. Потом переноси их на остальные.", "Save your settings on the main account. Then apply them on the others." },
+            new[] { "Войдёшь в аккаунт, и настройки перенесутся сами (если включён автоперенос).", "When you log in, settings are applied automatically (if auto-apply is on)." },
             new[] { "Правки в игре на твоих аккаунтах подхватываются и сохраняются после игры.", "In-game changes on your accounts are picked up and saved after the game." },
             new[] { "На чужом аккаунте настройки ставятся на время: после игры вернутся исходные.", "On someone else's account settings are temporary: originals return after the game." },
-            new[] { "Про: настройки про-игрока примеряются на время, потом можно отменить.", "Pros: a pro's settings are a temporary try-on, you can undo it." },
-            new[] { "Код для друга: «Поделиться» копирует код твоих настроек; друг вставляет его у себя и сначала видит, что изменится.", "Share code: “Share” copies a code of your settings; your friend pastes it and first sees what changes." },
-            new[] { "Скины: сохрани текущие скины, брелоки, спреи, карточку, титул и рамку как набор и надевай одним нажатием; набор можно привязать к агенту.", "Skins: save your current skins, buddies, sprays, card, title and border as a set and put it on in one click; a set can be bound to an agent." },
-            new[] { "Любое действие отменяется сразу («Готово · Отменить») или позже в Бэкапах.", "Any action can be undone right away (\"Done · Undo\") or later in Backups." },
-            new[] { "Цвет значка: зелёный — твои, жёлтый — есть действие, синий — игра, серый — клиента нет.", "Icon colour: green — yours, amber — action needed, blue — game, grey — no client." }
+            new[] { "Про: настройки про-игрока ставятся на время, их можно отменить.", "Pros: a pro's settings go on for now, you can undo them." },
+            new[] { "Код для друга: «Поделиться» копирует код твоих настроек. Друг вставит его и сначала увидит, что изменится.", "Share code: “Share” copies a code of your settings. Your friend pastes it and first sees what changes." },
+            new[] { "Скины: сохрани надетое как набор и надевай одним нажатием. Набор можно привязать к агенту.", "Skins: save what you have on as a set and put it on in one click. A set can be bound to an agent." },
+            new[] { "Большинство действий можно отменить сразу или позже в «Бэкапах».", "Most actions can be undone right away or later in Backups." },
+            new[] { "Цвет значка: зелёный, твои настройки; жёлтый, нужно действие; синий, идёт игра; серый, клиента Riot нет.", "Icon colour: green, your settings; amber, action needed; blue, game running; grey, no Riot Client." }
         };
         foreach (var x in t) {
             var tb = Ui.Tb(L.T(x[0], x[1]), 12, Ui.T2, null); tb.Margin = new Thickness(8, 0, 8, 10);

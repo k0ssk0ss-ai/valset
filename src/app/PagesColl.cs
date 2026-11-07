@@ -32,9 +32,9 @@ static class Colls {
         }
         b.Children.Add(Stage.GridHead(q.Length == 0 ? L.T("Коллекции с твоими скинами", "Collections with your skins") : L.T("Найдено", "Found"), shown.ToString()));
         foreach (var c in cards) b.Children.Add(c);
-        if (shown == 0) b.Children.Add(Ui.Note(q.Length == 0 ? L.T("Своих коллекций нет — найди любую поиском", "No collections of your own — search for any") : L.T("Ничего не нашлось", "Nothing found")));
-        if (more > 0) b.Children.Add(Ui.Note(L.T("Ещё " + more + " — уточни поиск", more + " more — refine the search")));
-        if (q.Length == 0 && shown > 0) b.Children.Add(Ui.Note(L.T("Любую другую коллекцию — поиском: посмотреть можно, надеть нельзя", "Any other collection — by search: to look at, not to put on")));
+        if (shown == 0) b.Children.Add(Ui.Note(q.Length == 0 ? L.T("Своих коллекций нет. Найди любую через поиск", "No collections of your own. Search for any") : L.T("Ничего не нашлось", "Nothing found")));
+        if (more > 0) b.Children.Add(Ui.Note(L.T("Ещё " + more + ". Уточни поиск", more + " more. Refine the search")));
+        if (q.Length == 0 && shown > 0) b.Children.Add(Ui.Note(L.T("Другие коллекции ищи через поиск. Их можно только смотреть", "Find other collections by search. They are view-only")));
     }
 
     static Border Card(Dictionary<string, object> d) {
@@ -83,9 +83,9 @@ static class Colls {
         UIElement hero = null;   // баннера нет — на сцене первый свой скин коллекции
         if (bn.Length == 0) for (int i = 1; i < l.Count && hero == null; i++) if (Json.Bool(l[i], "own")) hero = Img.Make(Json.Str(l[i], "icon"), 300, 80);
         b.Children.Add(Stage.Make(168, bn, hero, L.T("Коллекция", "Collection"), false, Stage.Info(Name, sub), ctl));
-        if (put == 0) b.Children.Add(Ui.Note(own > 0 ? L.T("Свои скины этой коллекции — на оружии, которого нет в лоадауте", "Your skins from this collection are for weapons not in the loadout")
-                                                     : L.T("Из этой коллекции на аккаунте ничего нет — только посмотреть", "Nothing from this collection on the account — view only")));
-        else if (own < n) b.Children.Add(Ui.Note(L.T("Тусклые — для справки, надеть нельзя", "Dim ones are for reference, can't be put on")));
+        if (put == 0) b.Children.Add(Ui.Note(own > 0 ? L.T("Твои скины из этой коллекции на оружии, которого нет в твоём наборе оружия", "Your skins from this collection are on weapons you don't have equipped")
+                                                     : L.T("Из этой коллекции на аккаунте ничего нет. Только просмотр", "Nothing from this collection on the account. View only")));
+        else if (own < n) b.Children.Add(Ui.Note(L.T("Тусклые только для просмотра, надеть нельзя", "Dim ones are for reference, can't be put on")));
         for (int i = 1; i < l.Count; i++) Skin(b, l[i]);
     }
 
@@ -110,7 +110,7 @@ static class Colls {
         if (on) { var dot = Ui.Dot(Ui.Acc, 6); dot.Margin = new Thickness(8, 0, 0, 0); head.Children.Add(dot); }
         sp.Children.Add(head);
         string sub = Json.Str(d, "wn") + " · " + (!own ? L.T("нет на аккаунте", "not on the account") : on ? L.T("надет", "on") : L.T("есть", "owned"));
-        if (own && !Json.Bool(d, "gun")) sub += L.T(" · оружия нет в лоадауте", " · weapon not in the loadout");
+        if (own && !Json.Bool(d, "gun")) sub += L.T(" · оружие не выбрано в игре", " · weapon not equipped in game");
         var s = Ui.Tb1(sub, 12, Ui.T2, null); s.Margin = new Thickness(0, 2, 0, 0); sp.Children.Add(s);
         if (lv.Count > 1) {   // уровни: свои — светлые, чужие — тусклые
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
@@ -128,7 +128,7 @@ static class Colls {
                 var im = Img.Make(Json.Str(c, "icon"), 56, 18); if (!cOwn) im.Opacity = Dim;
                 var cell = new Border { Child = im, Padding = new Thickness(4), Margin = new Thickness(0, 0, 6, 0), CornerRadius = new CornerRadius(6), BorderThickness = new Thickness(isSel ? 1.5 : 1),
                                         BorderBrush = isSel ? Ui.Br(Ui.T1) : Ui.Line, Background = Ui.Br(Ui.Bg3), Cursor = Cursors.Hand,
-                                        ToolTip = Json.Str(c, "name") + (cOwn ? "" : L.T(" — нет на аккаунте", " — not on the account")) };
+                                        ToolTip = Json.Str(c, "name") + (cOwn ? "" : L.T(" · нет на аккаунте", " · not on the account")) };
                 cell.MouseLeftButtonUp += (o, e) => { pick[sid] = cid; Ctl.Panel.Refresh(); };
                 row.Children.Add(cell);
             }

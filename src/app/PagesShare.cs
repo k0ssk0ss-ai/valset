@@ -36,9 +36,9 @@ static class Share {
 
     // ── Код для друга ──
     public static void Page(StackPanel b) {
-        b.Children.Add(Ui.Row(L.T("Поделиться", "Share"), L.T("код твоих настроек — в буфер обмена", "your settings code — to the clipboard"), "", 0, () => Ctl.DoAction("share", false)));
+        b.Children.Add(Ui.Row(L.T("Поделиться", "Share"), L.T("скопировать код твоих настроек", "copy your settings code"), "", 0, () => Ctl.DoAction("share", false)));
         b.Children.Add(Ui.Row(L.T("Вставить код", "Paste code"), L.T("из буфера обмена; сначала покажу, что изменится", "from the clipboard; shows what changes first"), "", 0, Paste));
-        b.Children.Add(Ui.Note(L.T("В коде — бинды, чувствительность, прицел, HUD и звук. Без графики и без данных аккаунта. У друга должен быть VALSET.",
+        b.Children.Add(Ui.Note(L.T("В коде: бинды, чувствительность, прицел, HUD и звук. Без графики и без данных аккаунта. У друга должен быть VALSET.",
                                    "The code holds binds, sensitivity, crosshair, HUD and audio. No graphics, no account data. Your friend needs VALSET.")));
     }
 
@@ -47,7 +47,7 @@ static class Share {
         try { t = Clean(Clipboard.GetText()); } catch (Exception e) { Dbg.Log("буфер: " + e.Message); }
         if (t == null) {
             Ctl.ResultOk = false; Ctl.ResultUndo = false;
-            Ctl.ResultMsg = L.T("В буфере обмена нет кода VALSET — скопируй его целиком.", "No VALSET code in the clipboard — copy all of it.");
+            Ctl.ResultMsg = L.T("В буфере обмена нет кода VALSET. Скопируй его целиком.", "No VALSET code in the clipboard. Copy all of it.");
             Ctl.Raise(); return;
         }
         Open("code", t);
@@ -78,24 +78,24 @@ static class Share {
         }
         if (!ok) return;
         if (same) {
-            b.Children.Add(Ui.Note(L.T("Уже так в облаке Riot — менять нечего. Игра могла прочитать старое (стрельбище и матч читают скины при входе): запиши заново и перезайди.", "Already like this in the Riot cloud — nothing to change. The game may have read the old one (range and matches read skins on entry): write again and re-enter.")));
+            b.Children.Add(Ui.Note(L.T("Уже так надето. Игра могла прочитать старое: она читает скины при входе в матч или стрельбище. Надень ещё раз и зайди заново.", "Already on. The game may have read the old one: it reads skins when you enter a match or the range. Put it on again and re-enter.")));
             if (Kind == "loadout" || Kind == "skin" || Kind == "coll") {
                 string fid = Id() + "!force";
-                var again = Ui.Sec(L.T("Записать всё равно", "Write anyway"), 13, !Ctl.Busy, () => { Ctl.Panel.Back(); Ctl.DoAction(fid, false); }, 32, 6);
+                var again = Ui.Sec(L.T("Надеть ещё раз", "Put on again"), 13, !Ctl.Busy, () => { Ctl.Panel.Back(); Ctl.DoAction(fid, false); }, 32, 6);
                 again.MinWidth = 150; again.Margin = new Thickness(0, 4, 0, 4);
                 b.Children.Add(again);
             }
             return;
         }
-        if (n == 0) b.Children.Add(Ui.Note(L.T("Отличия только служебные (профили прицела, агентские бинды и т. п.)", "Only internal differences (crosshair profiles, agent binds, etc.)")));
+        if (n == 0) b.Children.Add(Ui.Note(L.T("Видимых отличий нет (мелочи вроде профилей прицела)", "No visible differences (small things like crosshair profiles)")));
         b.Children.Add(Ui.Note(Kind == "loadout" || Kind == "skin" || Kind == "coll"
-            ? L.T("Перед записью — бэкап; «Отменить» — сразу. Скины матча и стрельбища игра читает при входе: надето посреди них — виден после перезахода (смена агента в стрельбище скины не обновляет); «Коллекция» в игре покажет старое до перезапуска игры.", "A backup first; “Undo” right away. The game reads match and range skins on entry: put on mid-way, they show after re-entering (switching agents in the range does not refresh them); the in-game Collection shows the old one until the game restarts.")
+            ? L.T("Перед этим VALSET делает бэкап. «Отменить» работает сразу. Скины видны после входа в матч или стрельбище. Экран «Коллекция» в игре покажет старое до перезапуска игры.", "VALSET makes a backup first. “Undo” works right away. Skins show after you enter a match or the range. The in-game Collection screen shows the old one until the game restarts.")
             : Kind == "pro"
-            ? L.T("На время: после игры вернутся исходные; «Отменить» — сразу.", "For now: originals come back after the game; “Undo” works right away.")
-            : L.T("Насовсем, перед записью — бэкап; «Отменить» — сразу или позже в «Бэкапах».", "Permanent, with a backup first; “Undo” right away or later in Backups.")));
+            ? L.T("На время: после игры вернутся исходные настройки. «Отменить» работает сразу.", "For now: originals come back after the game. “Undo” works right away.")
+            : L.T("Насовсем. Перед этим VALSET делает бэкап. «Отменить» работает сразу или позже в «Бэкапах».", "Permanent. VALSET makes a backup first. “Undo” works right away or later in Backups.")));
         var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 4) };
         string id = Id();
-        var yes = Ui.Pri(Kind == "pro" ? L.T("Примерить", "Try on") : Kind == "loadout" || Kind == "skin" || Kind == "coll" ? L.T("Надеть", "Put on") : L.T("Записать", "Apply"), 13, !Ctl.Busy,
+        var yes = Ui.Pri(Kind == "pro" ? L.T("Примерить", "Try on") : Kind == "loadout" || Kind == "skin" || Kind == "coll" ? L.T("Надеть", "Put on") : L.T("Перенести", "Apply"), 13, !Ctl.Busy,
                          () => { Ctl.Panel.Back(); Ctl.DoAction(id, false); }, 32, 6);
         yes.MinWidth = 110;
         var no = Ui.Sec(L.T("Отмена", "Cancel"), 13, true, () => Ctl.Panel.Back(), 32, 6);

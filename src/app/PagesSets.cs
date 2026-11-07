@@ -17,14 +17,14 @@ static class Sets {
 
     public static void Page(StackPanel b) {
         var s = Ctl.Cur;
-        b.Children.Add(Ui.Row(L.T("Все скины", "All skins"), L.T("что есть на аккаунте, с картинками — надеть по одному", "what the account owns, with pictures — put on one by one"), "", 0, () => Ctl.Panel.Go("skins")));
+        b.Children.Add(Ui.Row(L.T("Все скины", "All skins"), L.T("всё, что есть на аккаунте, с картинками. Надеть можно по одному", "everything the account owns, with pictures. Put on one at a time"), "", 0, () => Ctl.Panel.Go("skins")));
         b.Children.Add(Ui.Toggle(L.T("Менять скины при выборе агента", "Switch skins on agent select"), s.SetsAuto,
             on => { s.SetsAuto = on; Ctl.DoAction("set:setsAuto=" + (on ? "on" : "off"), false); }));
-        b.Children.Add(Ui.Note(L.T("Зафиксируешь агента — надену его набор, он будет в этом матче. Набор, надетый посреди матча, виден со следующего.",
+        b.Children.Add(Ui.Note(L.T("Выберешь агента, и его набор наденется на этот матч. Набор, надетый посреди матча, виден со следующего.",
                                    "Lock in an agent and its set goes on for that match. A set put on mid-match shows from the next match.")));
         if (naming) NameBox(b);
-        else b.Children.Add(Ui.Row(L.T("Сохранить текущие как набор", "Save current as a set"),
-            L.T("скины с цветом и уровнем, брелоки, спреи и флексы, карточка, титул, рамка", "skins with variant and level, buddies, sprays and flex, card, title, border"), "", 0,
+        else b.Children.Add(Ui.Row(L.T("Сохранить надетое как набор", "Save what you have on as a set"),
+            L.T("скины, брелоки, спреи, флексы, карточка, титул, рамка", "skins, buddies, sprays, flex, card, title, border"), "", 0,
             () => { naming = true; Ctl.Panel.Refresh(); }));
         b.Children.Add(Ui.Sep(6, 6));
         var l = PagesLists.Load("loadouts", b); if (l == null) return;
@@ -35,7 +35,7 @@ static class Sets {
             var box = new StackPanel { Margin = new Thickness(0, 0, 0, 6) };
             box.Children.Add(Ui.Row(nm, Json.Str(d, "hint"), "", 0, () => Share.Open("loadout", id)));
             var wrap = new WrapPanel { Margin = new Thickness(6, 0, 0, 0) };
-            wrap.Children.Add(Small(L.T("Агент…", "Agent…"), () => { agentFor = id; agentForName = nm; agentCur = ag; Ctl.Panel.Go("setagent"); }));
+            wrap.Children.Add(Small(L.T("Агент", "Agent"), () => { agentFor = id; agentForName = nm; agentCur = ag; Ctl.Panel.Go("setagent"); }));
             wrap.Children.Add(Small(L.T("Удалить", "Delete"), () => { Lists.Confirm = key; Ctl.Panel.Refresh(); }));
             box.Children.Add(wrap);
             b.Children.Add(box);
@@ -65,7 +65,7 @@ static class Sets {
         }
         var p = name.Parent as Panel; if (p != null) p.Children.Remove(name);
         if (fromColl.Length > 0 && name.Text.Length == 0) name.Text = fromName.Length > SetNameMax ? fromName.Substring(0, SetNameMax) : fromName;
-        string what = fromColl.Length > 0 ? L.T("Имя набора из коллекции «", "Set name from the “") + fromName + L.T("» — в нём только её оружие", "” collection — only its weapons") : L.T("Имя набора", "Set name");
+        string what = fromColl.Length > 0 ? L.T("Имя набора из коллекции «", "Set name from the “") + fromName + L.T("». В нём только её оружие", "” collection. Only its weapons") : L.T("Имя набора", "Set name");
         var lbl = Ui.Tb(what, 12, Ui.T2, null); lbl.Margin = new Thickness(10, 4, 10, 0);
         b.Children.Add(lbl);
         b.Children.Add(name);
@@ -101,14 +101,14 @@ static class Sets {
         b.Children.Add(Ui.Note(L.T("Набор «", "Set “") + agentForName + L.T("» надевать при выборе агента:", "” goes on when you lock in:")));
         b.Children.Add(Ui.Row(L.T("Без агента", "No agent"), "", agentCur.Length == 0 ? "on" : "", 0, () => Bind("none")));
         var l = PagesLists.Load("agents", b); if (l == null) return;
-        if (l.Count == 0) { b.Children.Add(Ui.Note(L.T("Список агентов не загрузился (нет сети?) — открой позже.", "The agent list did not load (no network?) — open again later."))); return; }
+        if (l.Count == 0) { b.Children.Add(Ui.Note(L.T("Список агентов не загрузился. Проверь сеть и открой позже", "The agent list did not load. Check the network and open again later"))); return; }
         var g = new UniformGrid { Columns = 2 };
         foreach (var d in l) {
             string aid = Json.Str(d, "id");
             g.Children.Add(Ui.Nav(null, Json.Str(d, "name"), aid == agentCur ? Ui.Dot(Ui.Acc, 6) : null, () => Bind(aid)));
         }
         b.Children.Add(g);
-        b.Children.Add(Ui.Note(L.T("У агента один набор: выберешь занятого — у прежнего набора привязка снимется.", "One set per agent: picking a taken agent unbinds the previous set.")));
+        b.Children.Add(Ui.Note(L.T("У агента один набор. Если выбрать занятого, прежний набор отвяжется.", "One set per agent: picking a taken agent unbinds the previous set.")));
     }
 
     static void Bind(string agent) {

@@ -28,13 +28,13 @@ static class PagesHome {
 
         var g = Group(sp, L.T("Настройки", "Settings"), false);
         string diff = s.Have && s.Same.HasValue ? L.Plural(s.Diff, "отличие", "отличия", "отличий", "difference", "differences") : "";
-        g.Children.Add(Ui.Nav("apply", L.T("Применить мои", "Apply mine"), Right(diff, false), () => P.Go("apply")));
+        g.Children.Add(Ui.Nav("apply", L.T("Перенести мои", "Apply mine"), Right(diff, false), () => P.Go("apply")));
         if (s.Diff > 0) g.Children.Add(Ui.Nav("diff", L.T("Что отличается", "What differs"), null, () => P.Go("diff")));
         g.Children.Add(Ui.Nav("save", L.T("Сохранить как мои", "Save as mine"), null, () => P.Go("save")));
         g.Children.Add(Ui.Nav("pros", L.T("Настройки про", "Pro settings"), null, () => P.Go("pros")));
         g.Children.Add(Ui.Nav("share", L.T("Код для друга", "Share code"), null, () => P.Go("share")));
 
-        g = Group(sp, L.T("Косметика", "Cosmetics"), true);
+        g = Group(sp, L.T("Скины", "Skins"), true);
         g.Children.Add(Ui.Nav("skins", L.T("Все скины", "All skins"), Ui.Keys("Ctrl", "Alt", "S"), () => P.Go("skins")));
         g.Children.Add(Ui.Nav("sets", L.T("Наборы", "Sets"), Right(s.NSets > 0 ? s.NSets.ToString() : "", true), () => P.Go("sets")));
 
@@ -75,7 +75,7 @@ static class PagesHome {
         }
         var sp = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         sp.Children.Add(Ui.Tb1(s.Account.Length > 0 ? s.Account : "VALSET", 16, Ui.T1, FontWeights.Medium));
-        string role = s.Account.Length == 0 ? "" : s.IsMain ? L.T("основной аккаунт", "main account") : s.Temp ? L.T("чужой · на время", "not yours · for now") : s.Own ? L.T("свой аккаунт", "your account") : L.T("чужой аккаунт", "not your account");
+        string role = s.Account.Length == 0 ? "" : s.IsMain ? L.T("основной аккаунт", "main account") : s.Temp ? L.T("не твой · на время", "not yours · for now") : s.Own ? L.T("свой аккаунт", "your account") : L.T("не твой аккаунт", "not your account");
         string region = now != null ? Json.Str(now, "region") : "";
         string meta = region.Length > 0 && role.Length > 0 ? region + " · " + role : region + role;
         if (meta.Length > 0) sp.Children.Add(Ui.MonoTb(meta, 11, Ui.T3));
@@ -92,7 +92,7 @@ static class PagesHome {
         var d = Ui.Dot(c, 8); d.Margin = new Thickness(0, 0, 8, 0); g.Children.Add(d);
         var t = Ui.Tb1(st.Text, 13, Ui.T2, null); Grid.SetColumn(t, 1); g.Children.Add(t);
         if (Ctl.HaveState && Ctl.StateAt > DateTime.MinValue) {
-            var m = Ui.MonoTb(L.T("сверено ", "checked ") + Ctl.StateAt.ToString("HH:mm"), 11, Ui.T3); m.Margin = new Thickness(8, 0, 0, 0);
+            var m = Ui.MonoTb(L.T("проверено ", "checked ") + Ctl.StateAt.ToString("HH:mm"), 11, Ui.T3); m.Margin = new Thickness(8, 0, 0, 0);
             Grid.SetColumn(m, 2); g.Children.Add(m);
         }
         return g;
@@ -119,7 +119,7 @@ static class PagesHome {
         lbl.ColumnDefinitions.Add(new ColumnDefinition());
         lbl.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var left = new TextBlock { FontSize = 12, Foreground = Ui.Br(Ui.T2), TextTrimming = TextTrimming.CharacterEllipsis };
-        left.Inlines.Add(new System.Windows.Documents.Run(L.T("Надето", "Wearing")));
+        left.Inlines.Add(new System.Windows.Documents.Run(L.T("Надето", "On")));
         if (set.Length > 0) {
             left.Inlines.Add(new System.Windows.Documents.Run(" · "));
             left.Inlines.Add(new System.Windows.Documents.Run(L.T("набор «", "set “") + set + L.T("»", "”")) { Foreground = Ui.Br(Ui.T1), FontWeight = FontWeights.Medium });
@@ -162,7 +162,7 @@ static class PagesHome {
     // Один раз после установки: включить автоперенос? Ответ (любой) больше не спрашивается; меняется в «Настройках».
     static UIElement AskAuto() {
         var a = Ui.Ask(L.T("Переносить твои настройки сами при входе в другие аккаунты?", "Apply your settings automatically when you log into other accounts?"),
-                       L.T("Основной не трогается; исходные чужих вернутся после игры", "Main is never touched; the originals come back after the game"),
+                       L.T("Основной аккаунт не меняется. Исходные настройки чужих аккаунтов вернутся после игры", "The main account is not changed. Other accounts get their originals back after the game"),
                        Ui.Pri(L.T("Да", "Yes"), 12, true, () => { Ctl.Cur.AskAuto = false; Ctl.DoAction("set:autoApply=on", false); }, 28, 8),
                        Ui.Sec(L.T("Нет", "No"), 12, true, () => { Ctl.Cur.AskAuto = false; Ctl.DoAction("set:autoAsked=on", false); }, 28, 8));
         a.Margin = new Thickness(12, 0, 12, 12);
@@ -175,7 +175,7 @@ static class PagesHome {
         string text; Action act;
         switch (s.Suggested) {
             case "save": text = L.T("Сохранить как мои", "Save as mine"); act = () => Ctl.DoAction("save", false); break;
-            case "apply": text = L.T("Применить мои", "Apply mine"); act = () => Ctl.DoAction("apply", false); break;
+            case "apply": text = L.T("Перенести мои", "Apply mine"); act = () => Ctl.DoAction("apply", false); break;
             case "untemp": text = L.T("Вернуть исходные", "Restore originals"); act = () => Ctl.DoAction("untemp", false); break;
             case "client": text = L.T("Открыть клиент Riot", "Open Riot Client"); act = Core.OpenRiotClient; break;
             default: return null;

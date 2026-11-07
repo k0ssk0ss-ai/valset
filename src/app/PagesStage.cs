@@ -120,7 +120,7 @@ static class Stage {
         if (equipped) {
             var eq = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 12, 16, 0) };
             var d = Ui.Dot(Ui.Acc, 8); d.Margin = new Thickness(0, 0, 6, 0); eq.Children.Add(d);
-            eq.Children.Add(Ui.Tb1(L.T("Надет сейчас", "Equipped"), 12, Ui.T2, null));
+            eq.Children.Add(Ui.Tb1(L.T("Надето", "On"), 12, Ui.T2, null));
             g.Children.Add(eq);
         }
         var bottom = new DockPanel { VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(16, 0, 16, 14), LastChildFill = true };

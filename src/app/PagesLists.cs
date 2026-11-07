@@ -96,7 +96,7 @@ static class PagesLists {
         foreach (var d in l) {
             string st = Json.Str(d, "state"), puuid = Json.Str(d, "puuid"), name = Json.Str(d, "name"), chk = Json.Str(d, "checked");
             var sub = new List<string>();
-            if (Json.Bool(d, "main")) sub.Add(L.T("главный", "main"));
+            if (Json.Bool(d, "main")) sub.Add(L.T("основной", "main"));
             if (d.ContainsKey("own") && !Json.Bool(d, "own")) sub.Add(L.T("не твой", "not yours"));
             if (st.Length > 2 && !IsOk(st)) sub.Add(st);
             if (chk.Length > 0) sub.Add(L.T("проверен ", "checked ") + chk);

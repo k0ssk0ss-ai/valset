@@ -148,7 +148,7 @@ static class Ctl {
 
     static void ApplyState(Dictionary<string, object> d) {
         if (d != null) { Cur = State.From(d); HaveState = true; if (Cur.Lang == "ru" || Cur.Lang == "en") L.En = Cur.Lang == "en"; }
-        else if (!HaveState) Cur.Error = L.T("Ядро не ответило", "Core did not answer");
+        else if (!HaveState) Cur.Error = L.T("Не получилось связаться с VALSET. Перезапусти", "VALSET did not respond. Restart it");
         StateAt = DateTime.Now;
         Raise();
     }
@@ -214,15 +214,15 @@ static class Ctl {
             var d = Json.Parse(Core.Run("do " + act, null, 180000));
             Ui.BeginInvoke(new Action(() => {
                 Busy = false; Lists.Reset();
-                if (d == null) { ResultOk = false; ResultUndo = false; ResultMsg = L.T("Ядро не ответило", "Core did not answer"); }
+                if (d == null) { ResultOk = false; ResultUndo = false; ResultMsg = L.T("Не получилось связаться с VALSET. Перезапусти", "VALSET did not respond. Restart it"); }
                 else {
                     ResultOk = Json.Bool(d, "ok"); ResultUndo = Json.Bool(d, "undo");
                     ResultMsg = Json.Str(d, "message");
-                    if (Json.Bool(d, "queued") && ResultMsg.Length == 0) ResultMsg = L.T("Применится после выхода из игры", "Will apply after the game closes");
+                    if (Json.Bool(d, "queued") && ResultMsg.Length == 0) ResultMsg = L.T("Перенесётся после выхода из игры", "Will apply after the game closes");
                     string code = Json.Str(d, "code");   // «Поделиться»: код в буфер обмена (буфер — только из потока интерфейса)
                     if (ResultOk && code.Length > 0) {
                         try { Clipboard.SetText(code); }
-                        catch (Exception e) { Dbg.Log("буфер: " + e.Message); ResultOk = false; ResultMsg = L.T("Не удалось положить код в буфер обмена — попробуй ещё раз", "Could not copy the code to the clipboard — try again"); }
+                        catch (Exception e) { Dbg.Log("буфер: " + e.Message); ResultOk = false; ResultMsg = L.T("Не удалось скопировать код. Попробуй ещё раз", "Could not copy the code. Try again"); }
                     }
                     string text = Json.Str(d, "text");   // «Сообщить об ошибке»: диагностика в буфер, форма issue — в браузере
                     if (ResultOk && act == "report" && text.Length > 0) { string err = BugReport.Open(text); if (err != null) { ResultOk = false; ResultMsg = err; } }
@@ -278,10 +278,10 @@ static class Ctl {
         if (s.Pending) return mk(Blue, L.T("Ждёт выхода из игры", "Waiting for the game to close"));
         if (s.Account.Length == 0) return mk(Gray, s.Error.Length > 0 ? s.Error : L.T("Нет входа в аккаунт", "Not logged in"));
         if (s.Suggested == "untemp") return mk(Amber, L.T("Исходные ждут возврата", "Originals are waiting to be restored"));
-        if (s.Same == false) return mk(Amber, L.T("Не твои: ", "Not yours: ") + L.Plural(Math.Max(1, s.Diff), "отличие", "отличия", "отличий", "difference", "differences"));
+        if (s.Same == false) return mk(Amber, L.T("Не твои настройки: ", "Not your settings: ") + L.Plural(Math.Max(1, s.Diff), "отличие", "отличия", "отличий", "difference", "differences"));
         if (s.Suggested == "save") return mk(Amber, L.T("Есть несохранённые правки", "Unsaved changes"));
         if (s.Suggested == "apply") return mk(Amber, L.T("Настройки не твои", "Not your settings"));
         if (s.Error.Length > 0) return mk(Gray, s.Error);
-        return mk(Green, s.Temp ? L.T("Твои настройки — на время", "Your settings — for now") : L.T("Настройки твои", "Your settings"));
+        return mk(Green, s.Temp ? L.T("Твои настройки на время", "Your settings, for now") : L.T("Настройки твои", "Your settings"));
     }
 }
