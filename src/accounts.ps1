@@ -121,8 +121,8 @@ function Show-Accounts {
         $s = Get-Session
         $keys = @($h.Keys | Sort-Object @{ Expression = { if ($_ -eq $main) { 0 } else { 1 } } }, @{ Expression = { "$($h[$_].seen)" }; Descending = $true })
         if (-not $keys) {
-            Write-Screen (L 'АККАУНТЫ' 'ACCOUNTS')
-            Write-Note (L 'пока пусто: аккаунт появится здесь, когда войдёшь в него при открытом VALSET или с автопереносом' 'empty so far: an account shows up here once you log into it with VALSET open or with auto-apply on')
+            Write-Screen (L 'Аккаунты' 'Accounts')
+            Write-Note (L 'Пока пусто. Аккаунт появится здесь, когда ты войдёшь в него при открытом VALSET или с автопереносом' 'Empty so far. An account shows up here once you log into it with VALSET open or with auto-apply on')
             Wait-AnyKey; return
         }
         $items = @(foreach ($k in $keys) {
@@ -131,15 +131,15 @@ function Show-Accounts {
             New-MenuEntry $label (Format-AccountState $h[$k]) $k
         })
         $gall = (Get-Config).gfxAll
-        $items += New-MenuSep (L 'ГРАФИКА НА ЭТОМ ПК' 'GRAPHICS ON THIS PC')
+        $items += New-MenuSep (L 'Графика на этом ПК' 'Graphics on this PC')
         $gopt = New-MenuEntry (L 'Писать графику' 'Write graphics') '' '' @(
             New-MenuOpt $(if ($gall -eq $true) { '• ' + (L 'во все' 'to all') } else { L 'во все' 'to all' }) 'gfx-all' (L 'во все аккаунты этого ПК' 'to all accounts on this PC')
             New-MenuOpt $(if ($gall -eq $false) { '• ' + (L 'в текущий' 'current') } else { L 'в текущий' 'current' }) 'gfx-one' (L 'только в аккаунт, где ты сейчас' 'only the account you are on'))
         if ($gall -eq $false) { $gopt.Opt = 1 }
         $items += $gopt
-        $i = Select-Item (L 'АККАУНТЫ' 'ACCOUNTS') $items $sel -Header {
-            Write-Host (L '    перенос — только на аккаунт, в который вошёл в клиенте Riot' '    applying works only on the account you are logged into in the Riot Client') -ForegroundColor DarkGray
-            Write-Host (L '    основной автоперенос не трогает: с него ты «Сохраняешь» свои настройки' '    auto-apply never touches the main account: that is where you “Save” yours') -ForegroundColor DarkGray
+        $i = Select-Item (L 'Аккаунты' 'Accounts') $items $sel -Header {
+            Write-Host (L '    Переносить можно только на аккаунт, в который ты вошёл' '    You can apply only to the account you are logged into') -ForegroundColor DarkGray
+            Write-Host (L '    Основной аккаунт автоперенос не меняет. С него ты сохраняешь свои настройки' '    Auto-apply never changes the main account. That is where you save yours') -ForegroundColor DarkGray
         }
         if ($i -lt 0) { return }
         $sel = $i
@@ -147,12 +147,12 @@ function Show-Accounts {
         if ($gid -in 'gfx-all', 'gfx-one') { Set-Config 'gfxAll' ($gid -eq 'gfx-all'); continue }
         $k = $items[$i].Id
         $acts = @(
-            if ($k -ne $main) { New-MenuEntry (L 'Сделать основным' 'Make main') (L 'автоперенос перестанет его трогать' 'auto-apply will stop touching it') 'main' }
+            if ($k -ne $main) { New-MenuEntry (L 'Сделать основным' 'Make main') (L 'автоперенос перестанет его менять' 'auto-apply will stop changing it') 'main' }
             if ($k -ne $main) {
-                if ($h[$k].own) { New-MenuEntry (L 'Не мой аккаунт' 'Not my account') (L 'переносить на время, исходные возвращать' 'apply for now, restore the originals') 'notown' }
-                else { New-MenuEntry (L 'Мой аккаунт' 'My account') (L 'переносить насовсем, без возврата исходных' 'apply permanently, no restore') 'own' }
+                if ($h[$k].own) { New-MenuEntry (L 'Не мой аккаунт' 'Not my account') (L 'переносить на время, исходные вернутся' 'apply for now, the originals come back') 'notown' }
+                else { New-MenuEntry (L 'Мой аккаунт' 'My account') (L 'переносить насовсем' 'apply permanently') 'own' }
             }
-            New-MenuEntry (L 'Забыть' 'Forget') (L 'убрать из списка (появится снова при входе)' 'remove from the list (comes back on next login)') 'forget'
+            New-MenuEntry (L 'Забыть' 'Forget') (L 'убрать из списка (вернётся при входе)' 'remove from the list (comes back on next login)') 'forget'
         )
         $j = Select-Item (Get-AccountLabel $k).ToUpper() $acts
         if ($j -lt 0) { continue }

@@ -124,7 +124,7 @@ function Read-ShareCode([string]$text) {
     if ($t -match '%[0-9A-Fa-f]{2}') { try { $t = [Uri]::UnescapeDataString($t) } catch {} }
     $i = $t.IndexOf('VALSET', [StringComparison]::OrdinalIgnoreCase)
     if ($i -ge 0) { $t = $t.Substring($i) } elseif (Test-HasCjk $t) { $t = 'VALSET2:' + $t }   # ссылка без префикса
-    else { throw (L 'Кода VALSET нет — скопируй его целиком (начинается с VALSET).' 'No VALSET code — copy all of it (it starts with VALSET).') }
+    else { throw (L 'Кода VALSET нет. Скопируй его целиком (он начинается с VALSET).' 'No VALSET code. Copy all of it (it starts with VALSET).') }
     try {
         if ($t.StartsWith('VALSET2:', [StringComparison]::OrdinalIgnoreCase))     { $d = Expand-Bytes (ConvertFrom-Cjk $t.Substring(8)) | ConvertFrom-Json }
         elseif ($t.StartsWith('VALSET1:', [StringComparison]::OrdinalIgnoreCase)) { $d = Expand-Pref ($t.Substring(8) -replace '\s', '') | ConvertFrom-Json }
@@ -192,7 +192,7 @@ function Get-ListCode([string]$text) {
 function Invoke-DoCode([string]$text) {
     $c = Read-ShareCode $text
     $s = Connect-Session
-    if (Test-GameRunning) { throw (L 'Игра запущена — вставь код после её закрытия.' 'The game is running — paste the code after closing it.') }
+    if (Test-GameRunning) { throw (L 'Игра запущена. Вставь код после её закрытия.' 'The game is running. Paste the code after closing it.') }
     $curJson = Get-Settings $s
     $cur = $curJson | ConvertFrom-Json
     $new = Join-SharePrefs $cur $c
@@ -208,7 +208,7 @@ function Invoke-DoCode([string]$text) {
     Set-SessionBase $s.Puuid $newJson 'all'
     Set-AccountState $s.Puuid @{ state = ''; checked = (Get-Stamp) }
     Log "код для друга ($($c.Kind)) → $(Get-AccountLabel $s.Puuid): $n изм."
-    L "Настройки из кода записаны: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Settings from the code written: $n change$(if ($n -ne 1) { 's' })"
+    L "Настройки из кода перенесены: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Settings from the code applied: $n change$(if ($n -ne 1) { 's' })"
 }
 
 # `valset do share` — код моих настроек; сам код — в ответе (поле code), в буфер его кладёт приложение.
@@ -216,5 +216,5 @@ function Invoke-DoShare($r, [switch]$BindsOnly) {
     $code = New-ShareCode -BindsOnly:$BindsOnly
     $r['code'] = $code
     Log "код для друга: $($code.Length) символов"
-    L "Код скопирован ($($code.Length) символов) — отправь другу" "Code copied ($($code.Length) characters) — send it to a friend"
+    L 'Код скопирован. Отправь его другу' 'Code copied. Send it to a friend'
 }

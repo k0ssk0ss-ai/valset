@@ -28,37 +28,37 @@ function Get-HistoryPoints {
 function Show-History {
     $points = Get-HistoryPoints
     if (-not $points) {
-        Write-Screen (L 'ИСТОРИЯ МОИХ НАСТРОЕК' 'MY SETTINGS HISTORY')
-        Write-Note (L 'пока пусто: версия сохраняется перед каждым «Сохранить», правкой и импортом' 'empty so far: a version is kept before every “Save”, edit and import')
+        Write-Screen (L 'История моих настроек' 'My settings history')
+        Write-Note (L 'Пока пусто. Версия сохраняется перед каждым «Сохранить» и изменением' 'Empty so far. A version is kept before every “Save” and change')
         Wait-AnyKey; return
     }
     $cur = if (Test-Path $ProfilePath) { Read-Profile } else { $null }
-    $items = @(New-MenuSep (L 'КАК БЫЛО · НОВЫЕ СВЕРХУ' 'AS IT WAS · NEWEST FIRST')) + @(foreach ($p in $points) {
+    $items = @(New-MenuSep (L 'Как было · новые сверху' 'As it was · newest first')) + @(foreach ($p in $points) {
         $hint = ''
         if ($cur) {
             try {
                 $old = Get-Content (Join-Path $p.Dir 'profile.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-                $hint = if (Test-PrefsEqual $cur $old) { L 'облачные — как сейчас' 'cloud part — same as now' } else { "$(L 'вернёт настроек' 'settings to restore'): $([Math]::Max(1, (Compare-Prefs $old $cur).Count))" }
-            } catch { $hint = L 'не читается' 'unreadable' }
+                $hint = if (Test-PrefsEqual $cur $old) { L 'то же, что сейчас' 'same as now' } else { "$(L 'вернёт настроек' 'settings to restore'): $([Math]::Max(1, (Compare-Prefs $old $cur).Count))" }
+            } catch { $hint = L 'не прочитать' 'unreadable' }
         }
         New-MenuEntry "$(Format-When $p.When) · $($p.Why)" $hint $p.Dir
     })
-    $i = Select-Item (L 'ИСТОРИЯ МОИХ НАСТРОЕК' 'MY SETTINGS HISTORY') $items -Header {
-        Write-Host (L '    версия — твои настройки перед изменением (последние 50); выбери — покажу, что вернётся' '    a version = your settings before a change (last 50); pick one to see what comes back') -ForegroundColor DarkGray
+    $i = Select-Item (L 'История моих настроек' 'My settings history') $items -Header {
+        Write-Host (L '    Версия: твои настройки до изменения (хранятся последние 50). Выбери, и я покажу, что вернётся' '    A version: your settings before a change (the last 50 are kept). Pick one to see what comes back') -ForegroundColor DarkGray
     }
     if ($i -lt 0) { return }
     $p = $points | Where-Object Dir -eq $items[$i].Id
-    Write-Screen (L 'ИСТОРИЯ МОИХ НАСТРОЕК' 'MY SETTINGS HISTORY')
+    Write-Screen (L 'История моих настроек' 'My settings history')
     Write-Field (L 'Версия' 'Version') "$(Format-When $p.When) · $($p.Why)"
-    if ($p.From -and $p.From -ne '—') { Write-Field (L 'Запомнены с' 'Saved from') $p.From }
+    if ($p.From -and $p.From -ne '—') { Write-Field (L 'Сохранены с' 'Saved from') $p.From }
     $old = Get-Content (Join-Path $p.Dir 'profile.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($cur) { Show-Diff (Compare-Prefs $cur $old) }
-    if (-not (Confirm-Key (L 'Вернуть твои настройки к этой версии? Текущие сохранятся в истории' 'Restore your settings to this version? The current ones stay in history'))) { Write-Note (L 'отменено' 'cancelled'); Wait-AnyKey; return }
+    if (-not (Confirm-Key (L 'Вернуть твои настройки к этой версии? Текущие сохранятся в истории' 'Restore your settings to this version? The current ones stay in history'))) { Write-Note (L 'Отменено' 'Cancelled'); Wait-AnyKey; return }
     try {
         New-HistoryPoint (L 'до возврата из истории' 'before restoring from history')
         Copy-ProfileFiles $p.Dir $Root
         Log "мои настройки возвращены к версии $(Format-When $p.When) ($($p.Why))"
-        Write-Ok (L 'Твои настройки возвращены. На аккаунт — «Перенести мои»' 'Your settings restored. To an account — “Apply mine”')
+        Write-Ok (L 'Твои настройки возвращены. Чтобы перенести их на аккаунт, нажми «Перенести мои»' 'Your settings restored. To apply them to an account, use “Apply mine”')
         $cs = Get-Session; Sync-Graphics $(if ($cs) { $cs.Puuid } else { '' })
     } catch {
         Log "ошибка: $($_.Exception.Message)"
@@ -81,20 +81,20 @@ function Copy-ProfileFiles([string]$from, [string]$to) {
 # Откат: бэкап — настройки аккаунта перед применением эталона (облако). Перед откатом — ещё один бэкап.
 function Show-Restore {
     $files = @(Get-ChildItem $BackupDir -Filter '*.json' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 15)
-    if (-not $files) { Write-Screen (L 'ОТКАТ АККАУНТА' 'ACCOUNT ROLLBACK'); Write-Note (L 'бэкапов пока нет — они делаются перед каждым переносом' 'no backups yet — one is made before every apply'); Wait-AnyKey; return }
+    if (-not $files) { Write-Screen (L 'Бэкап аккаунта' 'Account backup'); Write-Note (L 'Бэкапов пока нет. Они делаются перед каждым переносом' 'No backups yet. One is made before every apply'); Wait-AnyKey; return }
     $s = Get-Session
     $me = if ($s) { Short $s.Puuid } else { '' }
     $meName = if ($s) { Get-AccountLabel $s.Puuid } else { '' }
     # Сверяем каждый бэкап этого аккаунта с тем, что на нём сейчас, — в списке видно, сколько вернётся.
     $curJson = $null; $cur = $null
     if ($s) {
-        Write-Screen (L 'ОТКАТ АККАУНТА' 'ACCOUNT ROLLBACK')
-        try { $curJson = Invoke-Step (L 'Чтение текущих настроек аккаунта' 'Reading the account''s current settings') { Get-Settings $s }; $cur = $curJson | ConvertFrom-Json } catch {}
+        Write-Screen (L 'Бэкап аккаунта' 'Account backup')
+        try { $curJson = Invoke-Step (L 'Читаю настройки аккаунта' 'Reading the account settings') { Get-Settings $s }; $cur = $curJson | ConvertFrom-Json } catch {}
     }
     $mine = @($files | Where-Object { $_.BaseName.Split('_')[0] -eq $me })
     $other = @($files | Where-Object { $_.BaseName.Split('_')[0] -ne $me })
     $items = @()
-    $groups = @(@{ T = (L 'ЭТОТ АККАУНТ · НОВЫЕ СВЕРХУ' 'THIS ACCOUNT · NEWEST FIRST'); F = $mine }, @{ T = $(if ($me) { L 'ДРУГИЕ АККАУНТЫ' 'OTHER ACCOUNTS' } else { L 'ВСЕ АККАУНТЫ · НОВЫЕ СВЕРХУ' 'ALL ACCOUNTS · NEWEST FIRST' }); F = $other })
+    $groups = @(@{ T = (L 'Этот аккаунт · новые сверху' 'This account · newest first'); F = $mine }, @{ T = $(if ($me) { L 'Другие аккаунты' 'Other accounts' } else { L 'Все аккаунты · новые сверху' 'All accounts · newest first' }); F = $other })
     foreach ($grp in $groups) {
         if (-not $grp.F.Count) { continue }
         $items += New-MenuSep $grp.T
@@ -104,35 +104,35 @@ function Show-Restore {
             if ($acc -eq $me -and $cur) {
                 try {
                     $o = Get-Content $f.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
-                    $hint = if (Test-PrefsEqual $cur $o) { L 'как сейчас — откатывать нечего' 'same as now — nothing to roll back' } else { "$(L 'вернёт настроек' 'settings to restore'): $([Math]::Max(1, (Compare-Prefs $cur $o).Count))" }
-                } catch { $hint = L 'не читается' 'unreadable' }
+                    $hint = if (Test-PrefsEqual $cur $o) { L 'то же, что сейчас' 'same as now' } else { "$(L 'вернёт настроек' 'settings to restore'): $([Math]::Max(1, (Compare-Prefs $cur $o).Count))" }
+                } catch { $hint = L 'не прочитать' 'unreadable' }
             }
             $label = if ($acc -eq $me) { "$(L 'до переноса' 'before apply') $(Format-When $f.LastWriteTime)" } else { "$(Format-When $f.LastWriteTime) · $(Get-LabelByShort $acc)" }
             $items += New-MenuEntry $label $hint $f.FullName
         }
     }
-    $i = Select-Item (L 'ОТКАТ АККАУНТА' 'ACCOUNT ROLLBACK') $items -Header {
+    $i = Select-Item (L 'Бэкап аккаунта' 'Account backup') $items -Header {
         Write-Field (L 'Аккаунт' 'Account') $(if ($meName) { $meName } else { L 'нет входа в клиент Riot' 'not logged into the Riot Client' })
-        Write-Host (L '    бэкап — как было на аккаунте перед переносом; выбери — покажу, что именно вернётся' '    a backup = the account before an apply; pick one to see exactly what comes back') -ForegroundColor DarkGray
+        Write-Host (L '    Бэкап: как было на аккаунте до переноса. Выбери, и я покажу, что вернётся' '    A backup: the account before an apply. Pick one to see what comes back') -ForegroundColor DarkGray
     }
     if ($i -lt 0) { return }
-    Write-Screen (L 'ОТКАТ АККАУНТА' 'ACCOUNT ROLLBACK')
+    Write-Screen (L 'Бэкап аккаунта' 'Account backup')
     try {
         if (-not $s) { $s = Connect-Session }
         $f = Get-Item -LiteralPath $items[$i].Id
         $acc = $f.BaseName.Split('_')[0]
-        if ($acc -ne (Short $s.Puuid) -and -not (Confirm-Key (L "Это бэкап аккаунта $(Get-LabelByShort $acc), а вошёл $(Get-AccountLabel $s.Puuid). Залить всё равно?" "This backup is of $(Get-LabelByShort $acc), but you are logged into $(Get-AccountLabel $s.Puuid). Write it anyway?"))) {
-            Write-Note (L 'отменено' 'cancelled'); Wait-AnyKey; return
+        if ($acc -ne (Short $s.Puuid) -and -not (Confirm-Key (L "Это бэкап аккаунта $(Get-LabelByShort $acc), а ты вошёл в $(Get-AccountLabel $s.Puuid). Вернуть всё равно?" "This backup is of $(Get-LabelByShort $acc), but you are logged into $(Get-AccountLabel $s.Puuid). Restore it anyway?"))) {
+            Write-Note (L 'Отменено' 'Cancelled'); Wait-AnyKey; return
         }
         $json = (Get-Content $f.FullName -Raw -Encoding UTF8).Trim()
         $old = $json | ConvertFrom-Json
-        if (-not $curJson) { $curJson = Invoke-Step (L 'Чтение текущих настроек аккаунта' 'Reading the account''s current settings') { Get-Settings $s }; $cur = $curJson | ConvertFrom-Json }
+        if (-not $curJson) { $curJson = Invoke-Step (L 'Читаю настройки аккаунта' 'Reading the account settings') { Get-Settings $s }; $cur = $curJson | ConvertFrom-Json }
         if (Test-PrefsEqual $cur $old) { Write-Ok (L 'Аккаунт уже в этом состоянии' 'The account is already in this state'); Wait-AnyKey; return }
         Show-Diff (Compare-Prefs $cur $old)
-        if (-not (Confirm-Key (L 'Вернуть так?' 'Restore it?'))) { Write-Note (L 'отменено, аккаунт не тронут' 'cancelled, account untouched'); Wait-AnyKey; return }
-        $null = Invoke-Step (L 'Резервная копия' 'Backup') { New-Backup $s $curJson }
-        Invoke-Step (L 'Запись в облако Riot' 'Writing to the Riot cloud') { Set-Settings $s $json }
-        Invoke-Step (L 'Проверка записи' 'Verifying') {
+        if (-not (Confirm-Key (L 'Вернуть так?' 'Restore it?'))) { Write-Note (L 'Отменено, аккаунт не изменён' 'Cancelled, account unchanged'); Wait-AnyKey; return }
+        $null = Invoke-Step (L 'Делаю бэкап' 'Backup') { New-Backup $s $curJson }
+        Invoke-Step (L 'Записываю настройки' 'Writing the settings') { Set-Settings $s $json }
+        Invoke-Step (L 'Проверяю запись' 'Verifying') {
             $check = Get-Settings $s | ConvertFrom-Json
             foreach ($k in $BindKeys + 'floatSettings' + 'intSettings') {
                 if ((Get-JsonPart $check $k) -ne (Get-JsonPart $old $k)) { throw "в облаке '$k' не совпадает с бэкапом" }
@@ -140,7 +140,7 @@ function Show-Restore {
         }
         Log "откат $(Short $s.Puuid) к бэкапу $($f.Name)"
         Write-Ok (L "Настройки аккаунта $(Get-AccountLabel $s.Puuid) возвращены к $(Format-When $f.LastWriteTime)" "Settings of $(Get-AccountLabel $s.Puuid) restored to $(Format-When $f.LastWriteTime)")
-        Write-Note (L 'графику этот откат не трогает: прошлые файлы — *.valset.bak в папке аккаунта' 'this rollback does not touch graphics: previous files are *.valset.bak in the account folder')
+        Write-Note (L 'Графику откат не меняет' 'The rollback does not change graphics')
     } catch {
         Log "ошибка: $($_.Exception.Message)"
         Write-Fail $_.Exception.Message

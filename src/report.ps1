@@ -61,5 +61,5 @@ function New-ReportText([int]$tail = 40) {
 # `valset do report` — диагностика в ответе (поле text); точку отмены не трогает.
 function Invoke-DoReport($r) {
     $r['text'] = New-ReportText
-    L 'Диагностика скопирована — вставь в сообщение об ошибке' 'Diagnostics copied — paste them into the bug report'
+    L 'Диагностика скопирована. Вставь её в сообщение об ошибке' 'Diagnostics copied. Paste them into the bug report'
 }

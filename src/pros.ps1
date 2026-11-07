@@ -53,7 +53,7 @@ function Add-ProCrosshair($prof, $pro) {
 # DPI мыши спрашиваем один раз.
 function Get-MyDpi {
     $dpi = (Get-Config).dpi
-    if ($script:Lib -and $dpi -lt 100) { throw (L 'Сначала укажи DPI мыши (set:dpi=N).' 'Set your mouse DPI first (set:dpi=N).') }   # в lib спрашивать нельзя
+    if ($script:Lib -and $dpi -lt 100) { throw (L 'Сначала укажи DPI мыши в настройках.' 'Set your mouse DPI in settings first.') }   # в lib спрашивать нельзя
     while ($dpi -lt 100) {
         $dpi = (Read-Host (L '    DPI твоей мыши (обычно 400, 800 или 1600)' '    Your mouse DPI (usually 400, 800 or 1600)')) -as [int]
         if ($dpi -ge 100 -and $dpi -le 32000) { Set-Config 'dpi' $dpi } else { $dpi = 0 }
@@ -67,7 +67,7 @@ function Join-Pro($cur, $pro) {
     if ($pro.dpi -and (@($prefs.floatSettings) | Where-Object { $_.settingEnum -eq $SensEnum })) {
         $my = Get-MyDpi
         Convert-ProSens $prefs ([int]$pro.dpi) $my
-        if ([int]$pro.dpi -ne $my) { Write-Note (L "чувствительность пересчитана с его $($pro.dpi) DPI на твои $my" "sensitivity converted from their $($pro.dpi) DPI to your $my") }
+        if ([int]$pro.dpi -ne $my) { Write-Note (L "Чувствительность пересчитана с его $($pro.dpi) DPI на твои $my" "Sensitivity converted from their $($pro.dpi) DPI to your $my") }
     }
     $new = Join-ProPrefs $cur $prefs
     if ($pro.crosshair) { Add-ProCrosshair $new $pro }
@@ -90,28 +90,28 @@ function Get-ListProPreview([string]$nick) {
 
 function Invoke-ApplyPro($pro, $s) {
     if (-not $s) { $s = Connect-Session }
-    $curJson = Invoke-Step (L 'Чтение текущих настроек аккаунта' 'Reading the account''s current settings') { Get-Settings $s }
+    $curJson = Invoke-Step (L 'Читаю настройки аккаунта' 'Reading the account settings') { Get-Settings $s }
     $cur = $curJson | ConvertFrom-Json
     $new = Join-Pro $cur $pro
     if (Test-PrefsEqual $cur $new) { $script:LastOp = 'same'; Write-Ok (L "Уже как у $($pro.nick)" "Already like $($pro.nick)"); return }
     Show-Diff (Compare-Prefs $cur $new)
-    Write-Note (L 'на время: «Вернуть исходные» вернёт аккаунт как был' 'for now: “Restore originals” brings the account back')
+    Write-Note (L 'На время: «Вернуть исходные» вернёт аккаунт как был' 'For now: “Restore originals” brings the account back')
     if ($script:Fancy) {
-        if (-not (Confirm-Key (L 'Примерить?' 'Try on?'))) { Write-Note (L 'отменено, аккаунт не тронут' 'cancelled, account untouched'); return }
+        if (-not (Confirm-Key (L 'Примерить?' 'Try on?'))) { Write-Note (L 'Отменено, аккаунт не изменён' 'Cancelled, account unchanged'); return }
         if (Test-GameRunning) {   # игра записала бы свою копию поверх (valset.ps1, Invoke-Apply)
             Request-CloudAfterExit $s.Puuid "pro:$($pro.nick)"
-            Write-Note (L 'игра запущена — примерю сам, когда закроешь её (в этом же аккаунте)' 'the game is running — will apply once you close it (on this same account)')
+            Write-Note (L 'Игра запущена. Перенесу, когда ты её закроешь (в этом же аккаунте)' 'The game is running. Will apply once you close it (on this same account)')
             return
         }
     }
     Save-UndoPoint 'account' $s.Puuid $curJson
-    $null = Invoke-Step (L 'Резервная копия' 'Backup') { New-Backup $s $curJson }
+    $null = Invoke-Step (L 'Делаю бэкап' 'Backup') { New-Backup $s $curJson }
     $null = Update-Reference $s $curJson   # твои правки в игре — в эталон до примерки
     Clear-SessionBase $s.Puuid             # дальше на аккаунте настройки про — в эталон не попадут
     Save-TempOriginal $s.Puuid $curJson   # до записи: упадёт посередине — исходные всё равно вернутся
     $newJson = ConvertTo-Json -InputObject $new -Depth 32 -Compress
-    Invoke-Step (L 'Запись в облако Riot' 'Writing to the Riot cloud') { Set-Settings $s $newJson }
-    Invoke-Step (L 'Проверка записи' 'Verifying') { Assert-Written $s $newJson $pro.nick }
+    Invoke-Step (L 'Записываю настройки' 'Writing the settings') { Set-Settings $s $newJson }
+    Invoke-Step (L 'Проверяю запись' 'Verifying') { Assert-Written $s $newJson $pro.nick }
     Log "настройки $($pro.nick) → $(Get-AccountLabel $s.Puuid) (на время)"
     Write-Ok (L "Настройки $($pro.nick) на аккаунте $(Get-AccountLabel $s.Puuid)" "$($pro.nick)'s settings on $(Get-AccountLabel $s.Puuid)")
     if ($script:Fancy) { Write-TempNote }
@@ -129,7 +129,7 @@ function Show-Pros {
         if ($pg + 1 -lt $pages) { $items += New-MenuEntry (L 'Дальше →' 'Next →') "$($pg + 2)/$pages" 'next' }
         if ($pg -gt 0) { $items += New-MenuEntry (L '← Раньше' '← Previous') "$pg/$pages" 'prev' }
         $items += New-MenuEntry (L 'Назад' 'Back') '' 'back'
-        $title = "$(L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS')$(if ($pages -gt 1) { " · $($pg + 1)/$pages" })"
+        $title = "$(L 'Настройки про' 'Pro settings')$(if ($pages -gt 1) { " · $($pg + 1)/$pages" })"
         $i = Select-Item $title $items
         if ($i -lt 0) { return $false }
         switch ($items[$i].Id) {
@@ -137,17 +137,17 @@ function Show-Pros {
             'prev'   { $pg--; continue }
             'back'   { return $false }
             'search' {
-                Write-Screen (L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS')
-                $q = (Read-Host (L '    Ник (Enter — все)' '    Nick (Enter — all)')).Trim()
+                Write-Screen (L 'Настройки про' 'Pro settings')
+                $q = (Read-Host (L '    Ник (Enter, чтобы показать всех)' '    Nick (Enter to show all)')).Trim()
                 $list = if ($q) { @($all | Where-Object { $_.nick -like "*$q*" }) } else { $all }
-                if (-not $list.Count) { Write-Note (L "не нашёл «$q»" "`“$q`” not found"); $q = ''; $list = $all; Start-Sleep 2 }
+                if (-not $list.Count) { Write-Note (L "Не нашёл «$q»" "`“$q`” not found"); $q = ''; $list = $all; Start-Sleep 2 }
                 $pg = 0; continue
             }
         }
         if ($items[$i].Id -eq 'pro') { break }
     }
     $pro = $shown[$i - 1]
-    Write-Screen "$(L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS') · $($pro.nick)"
+    Write-Screen "$(L 'Настройки про' 'Pro settings') · $($pro.nick)"
     if ($pro.source) { Write-Field (L 'Источник' 'Source') $pro.source }
     Invoke-ApplyPro $pro
     $true

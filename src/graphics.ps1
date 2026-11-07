@@ -64,7 +64,7 @@ function Set-GraphicsFor([string]$dir) {
 
 # $puuid пустой — все аккаунты, которые уже запускали игру на этом ПК.
 function Invoke-ApplyGraphics([string]$puuid) {
-    if (-not (Test-GraphicsSaved)) { throw (L 'Графика не сохранена — «Сохранить» на аккаунте, который играл на этом ПК.' 'Graphics not saved — use “Save” on an account that has played on this PC.') }
+    if (-not (Test-GraphicsSaved)) { throw (L 'Графика не сохранена. Нажми «Сохранить» на аккаунте, который играл на этом ПК.' 'Graphics not saved. Use “Save” on an account that has played on this PC.') }
     if (Get-Process $GameProc -ErrorAction SilentlyContinue) { Request-GraphicsAfterExit $puuid; return -1 }
     if ($puuid) {
         $all = @(Get-AccountDirs | Where-Object { $_.Name.StartsWith("$puuid-") })  # все регионы аккаунта (-eu, -ap)
@@ -162,11 +162,11 @@ function Invoke-CloudQueue {
             }
             $script:UndoAction = $null
             $undoBtn = if (Test-Path $LastActionPath) { @(@{ label = (L 'Отменить' 'Undo'); arg = 'undo' }) } else { @() }
-            try { Send-Toast 'VALSET' $(if ($action -like 'pro:*') { L "Настройки $($action.Substring(4)) применены" "$($action.Substring(4))'s settings applied" } else { L 'Твои настройки применены' 'Your settings applied' }) $undoBtn } catch {}
+            try { Send-Toast 'VALSET' $(if ($action -like 'pro:*') { L "Настройки $($action.Substring(4)) перенесены" "$($action.Substring(4))'s settings applied" } else { L 'Твои настройки перенесены' 'Your settings applied' }) $undoBtn } catch {}
         } catch {
             $script:UndoAction = $null
             Log "$action ($(Short $puuid)): ошибка: $($_.Exception.Message)"
-            try { Send-Toast 'VALSET' (L "Не удалось применить: $($_.Exception.Message)" "Could not apply: $($_.Exception.Message)") } catch {}
+            try { Send-Toast 'VALSET' (L "Не удалось перенести: $($_.Exception.Message)" "Could not apply: $($_.Exception.Message)") } catch {}
         }
     }
 }
@@ -193,10 +193,10 @@ function Sync-Graphics([string]$current = '') {
             if (-not $script:Fancy) { $all = $false }
             else {
                 Write-Host ''
-                Write-Note (L "графика хранится на этом ПК, а не в облаке; аккаунтов на этом ПК: $n" "graphics live on this PC, not in the cloud; accounts on this PC: $n")
-                $all = Confirm-Key (L 'Записывать твою графику во все аккаунты этого ПК? (n — только в тот, где ты сейчас)' 'Write your graphics to all accounts on this PC? (n — only the current one)')
+                Write-Note (L "Графика хранится на этом ПК, а не в облаке. Аккаунтов на этом ПК: $n" "Graphics live on this PC, not in the cloud. Accounts on this PC: $n")
+                $all = Confirm-Key (L 'Записывать твою графику во все аккаунты этого ПК? (n: только в этот)' 'Write your graphics to all accounts on this PC? (n: only the current one)')
                 Set-Config 'gfxAll' $all
-                Write-Note (L 'передумаешь — «Аккаунты» → «Графика на этом ПК»' 'change later — “Accounts” → “Graphics on this PC”')
+                Write-Note (L 'Передумаешь: «Аккаунты» → «Графика на этом ПК»' 'Change later: “Accounts” → “Graphics on this PC”')
             }
         } else { $all = [bool]$cfg.gfxAll }
     }
@@ -204,7 +204,7 @@ function Sync-Graphics([string]$current = '') {
     $c = Invoke-ApplyGraphics $(if ($all) { '' } else { $current })
     if (-not $script:Fancy) { return }
     $where = if ($all) { L "во все аккаунты этого ПК ($c)" "to all accounts on this PC ($c)" } else { L 'в текущий аккаунт' 'to the current account' }
-    if ($c -lt 0) { Write-Note (L "графика запишется $(if ($all) { 'во все аккаунты этого ПК' } else { 'в текущий аккаунт' }) после выхода из игры" "graphics will be written $(if ($all) { 'to all accounts on this PC' } else { 'to the current account' }) after you exit the game") }
+    if ($c -lt 0) { Write-Note (L "Графика запишется $(if ($all) { 'во все аккаунты этого ПК' } else { 'в текущий аккаунт' }) после выхода из игры" "Graphics will be written $(if ($all) { 'to all accounts on this PC' } else { 'to the current account' }) after you exit the game") }
     else { Write-Ok "$(L 'Графика записана' 'Graphics written') $where" }
 }
 

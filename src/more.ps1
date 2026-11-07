@@ -7,15 +7,15 @@ function Get-MoreItems($st) {
     $acc = @($h.Keys | ForEach-Object { "$(Get-AccountLabel $_) $(switch ("$($h[$_].state)") { 'same' { '√' } 'diff' { '‼' } default { '·' } })" }) -join '  '
     $on  = { param($v, $t) if ($v) { '• ' + $t } else { $t } }
     @(
-        New-MenuSep (L 'ВРУЧНУЮ' 'MANUAL')
+        New-MenuSep (L 'Вручную' 'Manual')
         if ($st.Have) { New-ApplyEntry $st }
         New-SaveEntry
         if ($st.Session -and (Test-Temp $st.Session.Puuid)) { New-MenuEntry (L 'Вернуть исходные' 'Restore originals') (L 'настройки аккаунта до твоего переноса' 'the account''s settings before your apply') 'untemp' }
         if ($st.Session -and (Get-Pros).Count) { New-MenuEntry (L 'Настройки про' 'Pro settings') (L 'примерить на время' 'try on for now') 'pros' }
-        New-MenuSep (L 'VALSET' 'VALSET')
+        New-MenuSep (L 'Сервис' 'Service')
         New-MenuEntry (L 'Аккаунты' 'Accounts') $(if ($acc) { $acc } else { L 'пока пусто' 'empty so far' }) 'accounts'
         New-MenuEntry (L 'Уведомления' 'Notifications') '' '' @(
-            New-MenuOpt (& $on $c.notify (L 'вкл' 'on')) 'notify-on' (L 'подскажет, если настройки разошлись' 'tells you when settings differ')
+            New-MenuOpt (& $on $c.notify (L 'вкл' 'on')) 'notify-on' (L 'подскажет, если настройки не совпали' 'tells you when settings differ')
             New-MenuOpt (& $on (-not $c.notify) (L 'выкл' 'off')) 'notify-off' (L 'без уведомлений' 'no notifications'))
         New-MenuEntry (L 'Автоперенос' 'Auto-apply') '' '' @(
             New-MenuOpt (& $on $c.autoApply (L 'вкл' 'on')) 'auto-on' (L 'сам при входе, кроме основного' 'on login, except the main account')
@@ -31,7 +31,7 @@ function Get-MoreItems($st) {
 # Возвращает $true, если после действия ждать клавишу (как Invoke-MenuAction).
 function Show-More($st) {
     $items = Get-MoreItems $st
-    $i = Select-Item (L 'ЕЩЁ' 'MORE') $items -Header { Write-State $st }
+    $i = Select-Item (L 'Ещё' 'More') $items -Header { Write-State $st }
     if ($i -lt 0) { return $false }
     $id = Get-EntryId $items[$i]
     if ($id -eq 'back') { return $false }
