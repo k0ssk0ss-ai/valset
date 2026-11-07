@@ -55,6 +55,10 @@ right now (apply, save, restore originals) — usually 1–3 items. Everything e
 - **Graphics** are per PC: after “Save” they go to every account on this PC (asks once if the PC is shared).
 - **Accounts** by Riot ID: where settings match, where they don't, which one is main.
 - **Backups** (More → Backups): an account as it was before an apply; your own settings at an earlier version.
+- **Share code** (tray panel → Share code): “Share” copies a short `VALSET3:…` line (about 200 characters: binds,
+  sensitivity, crosshair, HUD, audio; no graphics, no account data). With “Add worn skins” on, the code also carries
+  what you wear (weapons, sprays, flexes, card, title); your friend gets the ones they own. The friend presses
+  “Paste code”, sees what changes and applies it (backup + Undo). Your friend needs VALSET.
 - **Tray app** (on by default, starts with Windows, can be turned off in its settings): shows the account status,
   notifications with buttons, auto-apply on login. It polls nothing — it waits for Riot Client events.
 - **All skins** (tray panel → Skins → All skins, or the “VALSET · skins” button over the game menu in Windowed
@@ -106,7 +110,9 @@ src\diff.ps1       preview: what will change
 src\crosshair.ps1  crosshair profiles: “for now” — only yours, “permanently” — merged
 src\backups.ps1    account rollback and my settings history
 src\pros.ps1       “Pro settings”: try a pro's settings for now (list — pros.json in this repo)
-src\share.ps1      “Share code”: my settings as one line (VALSET2:…), paste preview and write
+src\share.ps1      “Share code”: my settings as one line (VALSET3:…; VALSET2/1 still read), paste preview and write
+src\codes.ps1, codec.ps1, codeparts.ps1   VALSET3 format: dictionaries (append only), bytes and numbers, sections + CRC
+src\shareskins.ps1 worn skins in the share code (UUID prefixes resolved via the catalog; only owned ones go on)
 src\sets.ps1       “Skins”: cosmetic sets (save, preview, put on, bind to an agent, auto on agent lock-in)
 src\skins.ps1      “All skins”: owned items by category (valorant-api catalog by game version, entitlements), put one on
 src\collections.ps1  “All skins” → Collections: skins by collection (valorant-api themes), put on a collection, set pictures
