@@ -17,7 +17,7 @@ function Get-ListPros {
     @($all | ForEach-Object {
         $sens = @($_.prefs.floatSettings) | Where-Object { $_.settingEnum -eq $SensEnum } | Select-Object -First 1
         $hint = @(
-            if ($sens) { "$(L 'чувств.' 'sens') $(Format-Num $sens.value)" }
+            if ($sens) { "$(L 'чувствительность' 'sensitivity') $(Format-Num $sens.value)" }
             if ($_.dpi) { "$($_.dpi) DPI" }
             if ($sens -and $_.dpi) { "eDPI $(Format-Num ($(try { [double]@($sens.value)[0] * [double]@($_.dpi)[0] } catch { 0 })))" }
             if ($_.crosshair) { L 'прицел' 'crosshair' }
@@ -75,7 +75,7 @@ function Get-ListJson([string]$kind) {
     $items = if ($kind -match '^code:(.+)$') { Get-ListCode $Matches[1] } elseif ($kind -match '^pro:(.+)$') { Get-ListProPreview $Matches[1] } elseif ($kind -match '^loadout:(.+)$') { Get-ListLoadoutPreview $Matches[1] } elseif ($kind -match '^skin:(.+)$') { Get-ListSkinPreview $Matches[1] } elseif ($kind -match '^collection:(.+)$') { Get-ListCollection $Matches[1] } elseif ($kind -match '^coll:(.+)$') { Get-ListCollPreview $Matches[1] } else { switch ($kind) {
         'pros' { Get-ListPros } 'accounts' { Get-ListAccounts } 'backups' { Get-ListBackups }
         'history' { Get-ListHistory } 'diff' { Get-ListDiff } 'loadouts' { Get-ListLoadouts } 'agents' { Get-ListAgents } 'skins' { Get-ListSkins } 'now' { Get-ListNow } 'collections' { Get-ListCollections }
-        default { throw (L "неизвестный список: $kind" "unknown list: $kind") }
+        default { Stop-Internal "неизвестный список: $kind" }
     } }
     ConvertTo-Json -InputObject @($items) -Depth 5 -Compress
 }

@@ -40,7 +40,7 @@ function Restore-UndoExtra($a) {
 }
 
 function Get-LeafId([string]$id) {
-    if ($id -match '[\\/:]' -or $id -eq '..') { throw (L "некорректный идентификатор: $id" "invalid id: $id") }
+    if ($id -match '[\\/:]' -or $id -eq '..') { Stop-Internal "некорректный идентификатор: $id" }
     $id
 }
 
@@ -52,7 +52,7 @@ function Invoke-DoPro([string]$nick, $r) {
         Request-CloudAfterExit $s.Puuid "pro:$($pro.nick)"; $r.queued = $true
         return (L 'Ждёт выхода из игры' 'Waiting for the game to close')
     }
-    if (Test-ProNeedsDpi $pro) { throw (L 'Нужен DPI мыши, чтобы пересчитать чувствительность — задай его в настройках.' 'Your mouse DPI is needed to convert the sensitivity — set it in settings.') }
+    if (Test-ProNeedsDpi $pro) { throw (L 'Нужен DPI мыши, чтобы пересчитать чувствительность. Задай его в настройках.' 'Your mouse DPI is needed to convert the sensitivity. Set it in settings.') }
     $script:LastOp = $null
     Invoke-ApplyPro $pro $s 6>$null
     if ($script:LastOp -eq 'same') { L "Уже как у $($pro.nick)" "Already like $($pro.nick)" } else { L "Настройки $($pro.nick) на время" "$($pro.nick)'s settings, for now" }
@@ -63,8 +63,8 @@ function Invoke-DoRestore([string]$id) {
     if (-not (Test-Path $f)) { throw (L 'Такого бэкапа нет.' 'No such backup.') }
     $s = Connect-Session
     $acc = $id.Split('_')[0]
-    if ($acc -ne (Short $s.Puuid)) { throw (L "Это бэкап аккаунта $(Get-LabelByShort $acc), а вошёл $(Get-AccountLabel $s.Puuid)." "This backup is of $(Get-LabelByShort $acc), but you are logged into $(Get-AccountLabel $s.Puuid).") }
-    if (Test-GameRunning) { throw (L 'Игра запущена — откатывай после её закрытия.' 'The game is running — roll back after closing it.') }
+    if ($acc -ne (Short $s.Puuid)) { throw (L "Это бэкап аккаунта $(Get-LabelByShort $acc), а ты вошёл в $(Get-AccountLabel $s.Puuid)." "This backup is of $(Get-LabelByShort $acc), but you are logged into $(Get-AccountLabel $s.Puuid).") }
+    if (Test-GameRunning) { throw (L 'Игра запущена. Откатывай после её закрытия.' 'The game is running. Roll back after closing it.') }
     $json = (Get-Content $f -Raw -Encoding UTF8).Trim()
     $old = $json | ConvertFrom-Json
     $curJson = Get-Settings $s
@@ -97,18 +97,18 @@ function Invoke-DoHistory([string]$id) {
 function Invoke-DoSet([string]$key, [string]$val) {
     $c = Get-Config
     if ($SetBools.Contains($key)) {
-        if ($val -notin 'on', 'off') { throw (L "значение должно быть on или off: $val" "value must be on or off: $val") }
+        if ($val -notin 'on', 'off') { Stop-Internal "значение должно быть on или off: $val" }
         $v = $val -eq 'on'; $name = L ($SetBools[$key].Split('|')[0]) ($SetBools[$key].Split('|')[1])
         if ($null -ne $c.$key -and [bool]$c.$key -eq $v) { return "${name}: $(L 'без изменений' 'unchanged')" }
         $msg = "${name}: $(if ($v) { L 'вкл' 'on' } else { L 'выкл' 'off' })"
     } elseif ($key -eq 'lang') {
-        if ($val -notin 'ru', 'en') { throw (L 'язык: ru или en' 'language: ru or en') }
+        if ($val -notin 'ru', 'en') { throw (L 'Выбери язык' 'Pick a language') }
         $v = $val
     } elseif ($key -eq 'dpi') {
         $v = $val -as [int]
-        if ($v -lt 100 -or $v -gt 32000) { throw (L 'DPI мыши: число от 100 до 32000' 'Mouse DPI: a number from 100 to 32000') }
+        if ($v -lt 100 -or $v -gt 32000) { throw (L 'DPI мыши: от 100 до 32000' 'Mouse DPI: from 100 to 32000') }
         $msg = L "DPI мыши: $v" "Mouse DPI: $v"
-    } else { throw (L "неизвестная настройка: $key" "unknown setting: $key") }
+    } else { Stop-Internal "неизвестная настройка: $key" }
     Save-UndoFiles @($ConfigPath)
     Set-Config $key $v
     if ($key -eq 'autoApply') { Set-Config 'autoAsked' $true }   # выбрал сам — вопрос в панели больше не нужен
@@ -120,14 +120,14 @@ function Invoke-DoSet([string]$key, [string]$val) {
 function Invoke-DoAccount([string]$puuid, [string]$act) {
     $h = Read-Accounts
     if (-not $h.ContainsKey($puuid)) { throw (L 'Такого аккаунта нет в списке.' 'No such account in the list.') }
-    if ($act -notin 'main', 'own', 'notown', 'forget') { throw (L "неизвестное действие с аккаунтом: $act" "unknown account action: $act") }
+    if ($act -notin 'main', 'own', 'notown', 'forget') { Stop-Internal "неизвестное действие с аккаунтом: $act" }
     if ($act -in 'own', 'notown' -and $puuid -eq (Get-MainPuuid)) { throw (L 'Для основного аккаунта это не применимо.' 'Not applicable to the main account.') }
     $name = Get-AccountLabel $puuid
     Save-UndoFiles @($AccountsPath)
     switch ($act) {
         'main'   { Set-MainAccount $puuid; L "Основной аккаунт: $name" "Main account: $name" }
-        'own'    { Set-AccountState $puuid @{ own = $true }; L "$name — мой, переношу насовсем" "$name is mine, applying permanently" }
-        'notown' { Set-AccountState $puuid @{ own = $false }; L "$name — не мой, переношу на время" "$name is not mine, applying for now" }
+        'own'    { Set-AccountState $puuid @{ own = $true }; L "${name}: твой аккаунт, настройки переносятся насовсем" "${name}: your account, settings are applied permanently" }
+        'notown' { Set-AccountState $puuid @{ own = $false }; L "${name}: не твой аккаунт, настройки переносятся на время" "${name}: not your account, settings are applied for now" }
         'forget' { $h.Remove($puuid); Save-Accounts $h; Log "аккаунт забыт: $(Short $puuid)"; L "$name убран из списка" "$name removed from the list" }
     }
 }

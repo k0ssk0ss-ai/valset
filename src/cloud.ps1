@@ -64,11 +64,11 @@ function Invoke-Cloud([scriptblock]$call, $s = $null) {
             try { return (& $call) } catch {
                 $rcErr = $_; $rcCode = Get-HttpCode $rcErr
                 if ($rcCode -eq 403 -and "$($rcErr.ErrorDetails.Message)" -match 'cloudflare|have been blocked') {
-                    throw (L 'Riot временно не пускает к облаку настроек (защита Cloudflare). Обычно проходит само за ~20 минут — повтори позже; игра в это время тоже не сохраняет настройки.' 'Riot is temporarily blocking the settings cloud (Cloudflare). It usually clears in ~20 minutes — try again later; the game cannot save settings meanwhile either.')
+                    throw (L 'Riot временно не пускает к облаку настроек. Обычно это проходит само, попробуй позже. В это время игра тоже не сохранит настройки.' 'Riot is temporarily blocking the settings cloud. It usually clears by itself, try again later. The game cannot save settings meanwhile either.')
                 }
                 if ($rcCode -eq 401) {
                     if (-not $rcFresh -and (Update-SessionToken $s)) { $rcFresh = $true; continue }
-                    throw (L 'Вход в клиенте Riot устарел — перезайди в аккаунт и повтори.' 'The Riot Client login expired — log in again and retry.')
+                    throw (L 'Вход в клиенте Riot устарел. Перезайди в аккаунт и повтори.' 'The Riot Client login expired. Log in again and retry.')
                 }
                 if ($rcCode -ge 400 -and $rcCode -lt 500 -and $rcCode -notin 408, 429) { throw }
                 $rcLeft = if ($s) { Get-TokenSecondsLeft $s.Token } else { $null }
@@ -82,16 +82,16 @@ function Invoke-Cloud([scriptblock]$call, $s = $null) {
                 }
                 if ($rcTry -ge $rcPlan.Count) {
                     if (-not $rcPlan.Count -and -not $rcWaited) {
-                        if ($null -ne $rcLeft -and $rcLeft -lt $CloudRetry.TokenSlackSec) { throw (L 'Вход в клиенте Riot истекает — подожди минуту (клиент обновит его сам) и повтори.' 'The Riot Client login is expiring — wait a minute (the client renews it) and retry.') }
+                        if ($null -ne $rcLeft -and $rcLeft -lt $CloudRetry.TokenSlackSec) { throw (L 'Вход в клиенте Riot скоро истечёт. Подожди минуту и повтори.' 'The Riot Client login is about to expire. Wait a minute and retry.') }
                         throw
                     }
                     $rcSec = [Math]::Round($rcWaited / 1000)
                     Log "облако: сдаюсь после $($rcTry + 1) попыток (~$rcSec с): $($rcErr.Exception.Message)"
-                    throw (L "Сервер Riot не отвечает ($($rcTry + 1) попыток за ~$rcSec с). Повтори чуть позже." "The Riot server is not responding ($($rcTry + 1) attempts in ~$rcSec s). Try again a bit later.")
+                    throw (L 'Riot не отвечает. Попробуй чуть позже.' 'Riot is not responding. Try again a bit later.')
                 }
                 $rcMs = $rcPlan[$rcTry]; $rcTry++
                 $rcStatus = $true
-                Set-CloudStatus (L "Riot не отвечает — повтор $rcTry через $([Math]::Round($rcMs / 1000)) с…" "Riot is not responding — retry $rcTry in $([Math]::Round($rcMs / 1000)) s…")
+                Set-CloudStatus (L "Riot не отвечает, пробую снова через $([Math]::Round($rcMs / 1000)) с…" "Riot is not responding, retrying in $([Math]::Round($rcMs / 1000)) s…")
                 Log "облако: $(if ($rcCode) { "ошибка $rcCode" } else { 'сбой сети' }), повтор $rcTry через $rcMs мс"
                 & $script:CloudSleep $rcMs
                 $rcWaited += $rcMs

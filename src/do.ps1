@@ -78,7 +78,7 @@ function Invoke-Undo {
     elseif ($a.kind -eq 'account') {
         $s = Connect-Session
         if ($s.Puuid -ne $a.puuid) { throw (L "Отменить можно только в том аккаунте, где было действие ($(Get-AccountLabel $a.puuid))." "Undo works only on the account where it happened ($(Get-AccountLabel $a.puuid)).") }
-        if (Test-GameRunning) { throw (L 'Игра запущена — отмени после её закрытия.' 'The game is running — undo after closing it.') }
+        if (Test-GameRunning) { throw (L 'Игра запущена. Отмени после её закрытия.' 'The game is running. Undo after closing it.') }
         Set-Settings $s $a.json
         Assert-Written $s $a.json (L 'отмена' 'undo')
         if ($a.base) { Set-SessionBase $a.puuid $a.base.json $a.base.scope } else { Clear-SessionBase $a.puuid }
@@ -106,7 +106,7 @@ function Invoke-Do([string]$action) {
     $script:LastApply = $null; $script:LastOp = $null; $script:UndoAction = $null
     try {
         $writes = 'apply', 'binds', 'applyperm', 'save', 'savebinds', 'untemp'
-        if ($action -notin ($writes + 'undo') -and -not (Test-ExtraAction $action)) { throw (L "неизвестное действие: $action" "unknown action: $action") }
+        if ($action -notin ($writes + 'undo') -and -not (Test-ExtraAction $action)) { Stop-Internal "неизвестное действие: $action" }
         if ($action -notin 'undo', 'share', 'report', 'loadoutauto') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
         $msg = $null
         switch ($action) {
@@ -118,7 +118,7 @@ function Invoke-Do([string]$action) {
                 elseif ($action -eq 'binds') { $msg = L 'Бинды перенесены' 'Binds applied' }
                 else {
                     $n = [int]$la.Count
-                    $msg = L "Применено$(if ($la.Temp) { ' на время' }): $n $(Get-Plural $n 'настройка' 'настройки' 'настроек')" "Applied$(if ($la.Temp) { ' for now' }): $n setting$(if ($n -ne 1) { 's' })"
+                    $msg = L "Перенесено$(if ($la.Temp) { ' на время' }): $n $(Get-Plural $n 'настройка' 'настройки' 'настроек')" "Applied$(if ($la.Temp) { ' for now' }): $n setting$(if ($n -ne 1) { 's' })"
                 }
             }
             'save' {
@@ -132,7 +132,7 @@ function Invoke-Do([string]$action) {
             'untemp' {
                 $s = Connect-Session
                 if (-not (Test-Temp $s.Puuid)) { $msg = L 'Нечего возвращать' 'Nothing to restore' }
-                elseif (Test-GameRunning) { throw (L 'Игра запущена — исходные вернутся после её закрытия.' 'The game is running — the originals come back after it closes.') }
+                elseif (Test-GameRunning) { throw (L 'Игра запущена. Исходные вернутся после её закрытия.' 'The game is running. The originals come back after it closes.') }
                 else {
                     Save-UndoPoint 'account' $s.Puuid (Get-Settings $s)
                     $null = Invoke-RestoreTemp $s 6>$null
@@ -170,10 +170,10 @@ function Show-OneScreen([string]$which) {
     $script:InMenu = $true
     try {
         if ($which -eq 'pros') {
-            if (-not (Get-Pros).Count) { Write-Screen (L 'НАСТРОЙКИ ПРО' 'PRO SETTINGS'); Write-Note (L 'список про пока пуст или не скачался' 'the pro list is empty or could not be downloaded'); Wait-AnyKey; return }
+            if (-not (Get-Pros).Count) { Write-Screen (L 'Настройки про' 'Pro settings'); Write-Note (L 'Список про пока пуст или не загрузился' 'The pro list is empty or could not be loaded'); Wait-AnyKey; return }
             $pause = Show-Pros
         } else {
-            Clear-Host; Write-Host ''; Write-Host (L '    проверяю аккаунт…' '    checking the account…') -ForegroundColor DarkGray
+            Clear-Host; Write-Host ''; Write-Host (L '    Проверяю аккаунт…' '    Checking the account…') -ForegroundColor DarkGray
             $pause = Show-More (Get-MenuState)
         }
     } catch {

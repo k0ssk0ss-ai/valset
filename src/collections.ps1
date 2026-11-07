@@ -33,9 +33,9 @@ function Get-CatalogThemes($cat) {
 }
 
 function Find-CatalogTheme($cat, [string]$id) {
-    if (-not (Test-Guid $id)) { throw (L 'Некорректная коллекция.' 'Invalid collection.') }
+    if (-not (Test-Guid $id)) { throw (L 'Не удалось открыть коллекцию.' 'Could not open the collection.') }
     $t = Get-CatalogThemes $cat | Where-Object { $_.id -eq $id.ToLowerInvariant() } | Select-Object -First 1
-    if (-not $t) { throw (L 'Такой коллекции нет в каталоге — обнови список.' 'No such collection in the catalog — refresh the list.') }
+    if (-not $t) { throw (L 'Такой коллекции нет. Обнови список.' 'No such collection. Refresh the list.') }
     $t
 }
 
@@ -106,7 +106,7 @@ function Get-CollChange([string]$id) {
     $cat = Get-SkinCatalog; $t = Find-CatalogTheme $cat $id
     $cur = Get-Loadout $s
     $guns = @(Get-CollGuns $t $cur (Get-OwnedItems $s))
-    if (-not $guns.Count) { throw (L "Из коллекции «$($t.name)» на аккаунте ничего нет — надеть нечего." "Nothing from the `“$($t.name)`” collection on this account — nothing to put on.") }
+    if (-not $guns.Count) { throw (L "Из коллекции «$($t.name)» на аккаунте ничего нет, надеть нечего." "Nothing from the `“$($t.name)`” collection on this account, nothing to put on.") }
     [pscustomobject]@{ s = $s; t = $t; cat = $cat; cur = $cur; guns = $guns }
 }
 
@@ -125,7 +125,7 @@ function Invoke-CollApply([string]$id) {
     $c = Get-CollChange $id
     $n = (Write-LoadoutChange $c.s $c.cur (Join-CollLoadout $c.cur $c.guns) "коллекция «$($c.t.name)»").Count
     if (-not $n) { return $(if ($script:ForcedWrite) { L "Коллекция «$($c.t.name)» записана заново" "Collection `“$($c.t.name)`” written again" } else { L "Коллекция «$($c.t.name)» уже надета" "Collection `“$($c.t.name)`” is already on" }) }
-    L "Коллекция «$($c.t.name)» надета: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Collection `“$($c.t.name)`” on: $n change$(if ($n -ne 1) { 's' })"
+    L "Коллекция «$($c.t.name)» надета: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений'). Скины видны после входа в матч или стрельбище" "Collection `“$($c.t.name)`” on: $n change$(if ($n -ne 1) { 's' }). Skins show after you enter a match or the range"
 }
 
 # Набор из коллекции (Invoke-SetSave): только оружие коллекции; спреи, карточка и титул — пустые (не меняются).

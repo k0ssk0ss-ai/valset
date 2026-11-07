@@ -10,12 +10,18 @@ $script:CoreAt = @{ Pros = [DateTime]::UtcNow; PrefUrl = [DateTime]::UtcNow }
 # Записали — прочитать обратно и сверить целиком (все группы, включая прицел и миникарту). Читаем только из облака, не из кэша.
 function Assert-Written($s, [string]$json, [string]$what) {
     $norm = { param($j) ConvertTo-Json -InputObject ($j | ConvertFrom-Json) -Depth 32 -Compress }
-    if ((& $norm (Get-Settings $s -Fresh)) -cne (& $norm $json)) { throw (L "в облаке не то, что записали ($what)" "the cloud doesn't match what was written ($what)") }
+    if ((& $norm (Get-Settings $s -Fresh)) -cne (& $norm $json)) { Log "в облаке не то, что записали ($what)"; throw (L 'Проверка не прошла: настройки в облаке не совпали с отправленными.' 'Check failed: the settings in the cloud do not match what was sent.') }
+}
+
+# Внутренняя ошибка (неизвестное действие, плохой id): подробности в журнал, игроку одна понятная фраза.
+function Stop-Internal([string]$what) {
+    Log "внутренняя ошибка: $what"
+    throw (L 'Что-то пошло не так. Нажми «Сообщить об ошибке».' 'Something went wrong. Use “Report a bug”.')
 }
 
 function Read-CloudSettings($s) {
     $r = Invoke-Cloud { Invoke-RestMethod "$PrefUrl/getPreference/Ares.PlayerSettings" -Headers (Get-Headers $s) -TimeoutSec 15 } $s
-    if (-not $r.data) { throw (L 'Облако вернуло пустые настройки (аккаунт ни разу не заходил в Valorant?).' 'The cloud returned empty settings (has this account never played VALORANT?).') }
+    if (-not $r.data) { throw (L 'Облако Riot вернуло пустые настройки. Аккаунт заходил в VALORANT?' 'The Riot cloud returned empty settings. Has this account played VALORANT?') }
     $json = Expand-Pref $r.data
     Register-Actions $json
     $json

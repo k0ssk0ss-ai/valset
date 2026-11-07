@@ -372,7 +372,7 @@ Check 'state: чужой аккаунт — предлагает apply' ($stO.pu
 
     $r = Invoke-Do 'apply'
     $la = Get-Content $LastActionPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    Check 'do apply: ok, можно отменить, сообщение' ($r.ok -and $r.undo -and -not $r.queued -and $r.message -like 'Применено*') ($r | ConvertTo-Json -Compress)
+    Check 'do apply: ok, можно отменить, сообщение' ($r.ok -and $r.undo -and -not $r.queued -and $r.message -like 'Перенесено*') ($r | ConvertTo-Json -Compress)
     Check 'do apply: last-action.json — что было до' ($la.action -eq 'apply' -and $la.kind -eq 'account' -and $la.puuid -eq $tp -and $la.json -ceq $cloud0)
     Check 'do apply: облако изменилось, исходные на время сохранены' ($script:cloud -cne $cloud0 -and (Test-Temp $tp))
     $aO = Get-StateJson | ConvertFrom-Json

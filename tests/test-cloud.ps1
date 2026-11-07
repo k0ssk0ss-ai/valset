@@ -26,7 +26,7 @@ Check 'сбой сети — повтор через 1 с, удалось' ($r -
 Check 'после повторов строка состояния для панели убрана' (-not $env:VALSET_STATUS)
 $script:n = 0; $script:slept = @(); $msg = ''
 try { Invoke-Cloud { $script:n++; throw 'лежит' } } catch { $msg = $_.Exception.Message }
-Check 'сервер лежит: 5 попыток за 15 с, понятная ошибка' ($script:n -eq 5 -and ($script:slept | Measure-Object -Sum).Sum -eq 15000 -and $msg -like 'Сервер Riot не отвечает (5 попыток*') "$($script:n) / $msg"
+Check 'сервер лежит: 5 попыток за 15 с, понятная ошибка' ($script:n -eq 5 -and ($script:slept | Measure-Object -Sum).Sum -eq 15000 -and $msg -like 'Riot не отвечает. Попробуй*') "$($script:n) / $msg"
 $script:n = 0; $script:slept = @()
 try { Invoke-Cloud { $script:n++; throw 'Удаленный сервер возвратил ошибку: (404) Не найден.' } } catch {}
 Check '4xx — без повторов' ($script:n -eq 1 -and -not $script:slept.Count)
@@ -47,6 +47,6 @@ try { Invoke-Cloud { throw 'Удаленный сервер возвратил �
 Check '401, а клиент нового токена не дал — просим перезайти' ($msg -like 'Вход в клиенте Riot устарел*') $msg
 $ts.Token = (New-TestJwt 5); $msg = ''
 try { Invoke-Cloud { throw 'лежит' } $ts } catch { $msg = $_.Exception.Message }
-Check 'токен истёк, свежего нет — понятная ошибка без ожидания' ($msg -like 'Вход в клиенте Riot истекает*') $msg
+Check 'токен истёк, свежего нет — понятная ошибка без ожидания' ($msg -like 'Вход в клиенте Riot скоро истечёт*') $msg
 Set-Item Function:\Get-Session $gsKeep
 $script:CloudSleep = { param([int]$ms) }

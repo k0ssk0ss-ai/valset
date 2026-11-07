@@ -32,7 +32,7 @@ function Get-RiotRoute($s) {
         $d = @(Get-AccountDirs | Where-Object { $_.Name.StartsWith("$($s.Puuid)-") }) | Select-Object -First 1
         if ($d) { $region = $d.Name.Substring(37) }
     }
-    if (-not $region) { throw (L 'Не знаю регион аккаунта — запусти VALORANT хотя бы раз на этом ПК.' 'Unknown account region — launch VALORANT on this PC at least once.') }
+    if (-not $region) { throw (L 'Не знаю регион аккаунта. Запусти VALORANT хотя бы раз на этом ПК.' 'Unknown account region. Launch VALORANT on this PC at least once.') }
     if (-not $shard) { $shard = if ($ShardOf[$region]) { $ShardOf[$region] } else { $region } }
     if (-not $ver) { try { $ver = (Invoke-RestMethod "$ValApi/version" -TimeoutSec 5).data.riotClientVersion } catch {} }
     $plat = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('{"platformType":"PC","platformOS":"Windows","platformOSVersion":"10.0.19042.1.256.64bit","platformChipset":"Unknown"}'))
@@ -63,10 +63,11 @@ function Send-LoadoutPut($s, [string]$body) {
 }
 
 function Get-LoadoutError([int]$code) {
-    if ($code -in 400, 403, 409, 422) { return (L 'Riot не принял набор: в нём есть предмет, которого нет на этом аккаунте (или его сейчас нельзя менять). Ничего не изменено.' 'Riot rejected the set: it has an item this account does not own (or it cannot be changed right now). Nothing was changed.') }
-    if ($code -eq 401) { return (L 'Вход в клиенте Riot устарел — перезайди в аккаунт и повтори.' 'The Riot Client login expired — log in again and retry.') }
-    if ($code -eq 404) { return (L 'Riot не нашёл лоадаут аккаунта (аккаунт ни разу не заходил в VALORANT?).' 'Riot did not find the account loadout (has it never played VALORANT?).') }
-    L "Не удалось записать набор (ошибка Riot $code). Ничего не изменено." "Could not write the set (Riot error $code). Nothing was changed."
+    if ($code -in 400, 403, 409, 422) { return (L 'Riot не принял набор: в нём есть предмет, которого нет на этом аккаунте. Ничего не изменилось.' 'Riot rejected the set: it has an item this account does not own. Nothing was changed.') }
+    if ($code -eq 401) { return (L 'Вход в клиенте Riot устарел. Перезайди в аккаунт и повтори.' 'The Riot Client login expired. Log in again and retry.') }
+    if ($code -eq 404) { return (L 'Riot не нашёл снаряжение аккаунта. Он заходил в VALORANT?' 'Riot did not find the account loadout. Has it played VALORANT?') }
+    Log "набор: ошибка Riot $code"
+    L 'Не удалось надеть набор. Ничего не изменилось.' 'Could not put on the set. Nothing was changed.'
 }
 
 function Set-Loadout($s, $lo) {
