@@ -71,6 +71,7 @@ function Get-ListHistory {
 function Get-ListDiff { ConvertTo-DiffItems (Get-MenuState 6>$null).DiffList }
 
 function Get-ListJson([string]$kind) {
+    if ($kind -match '^update(:now)?$') { return (Get-UpdateJson -Force:([bool]$Matches[1])) }   # объект, не массив — update.ps1
     # предпросмотр: code:<код> — вставка кода для друга (share.ps1), pro:<ник> — примерка про (pros.ps1)
     $items = if ($kind -match '^code:(.+)$') { Get-ListCode $Matches[1] } elseif ($kind -match '^pro:(.+)$') { Get-ListProPreview $Matches[1] } elseif ($kind -match '^loadout:(.+)$') { Get-ListLoadoutPreview $Matches[1] } elseif ($kind -match '^skin:(.+)$') { Get-ListSkinPreview $Matches[1] } elseif ($kind -match '^collection:(.+)$') { Get-ListCollection $Matches[1] } elseif ($kind -match '^coll:(.+)$') { Get-ListCollPreview $Matches[1] } else { switch ($kind) {
         'pros' { Get-ListPros } 'accounts' { Get-ListAccounts } 'backups' { Get-ListBackups }

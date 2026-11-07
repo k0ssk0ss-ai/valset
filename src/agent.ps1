@@ -143,11 +143,11 @@ function Get-Config {
     # autoApply/notify — помощник только по личному выбору; gfxAll — писать графику во все аккаунты ПК ($null — ещё не спрашивали)
     # app — трей-приложение (заменяет сторожа), badge — значок у окна клиента Riot; оба включены по умолчанию
     # overlay — кнопка поверх игры ($null — по режиму экрана: вкл, если не «Полноэкранный»), overlayHint — подсказка про неё показана
-    $c = [pscustomobject]@{ autoApply = $false; autoAsked = $false; notify = $false; gfxAll = $null; tempAuto = $null; lang = ''; dpi = 0; app = $true; badge = $true; setsAuto = $false; overlay = $null; overlayHint = $false }
+    $c = [pscustomobject]@{ autoApply = $false; autoAsked = $false; notify = $false; gfxAll = $null; tempAuto = $null; lang = ''; dpi = 0; app = $true; badge = $true; setsAuto = $false; overlay = $null; overlayHint = $false; updateCheck = $true }
     if (Test-Path $ConfigPath) {
         try {
             $j = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
-            foreach ($k in 'autoApply', 'autoAsked', 'notify', 'gfxAll', 'tempAuto', 'app', 'badge', 'setsAuto', 'overlay', 'overlayHint') { if ($null -ne $j.$k) { $c.$k = [bool]$j.$k } }
+            foreach ($k in 'autoApply', 'autoAsked', 'notify', 'gfxAll', 'tempAuto', 'app', 'badge', 'setsAuto', 'overlay', 'overlayHint', 'updateCheck') { if ($null -ne $j.$k) { $c.$k = [bool]$j.$k } }
             if ($j.lang -in 'ru', 'en') { $c.lang = $j.lang }
             if ($j.dpi -as [int]) { $c.dpi = [int]$j.dpi }
         } catch {}

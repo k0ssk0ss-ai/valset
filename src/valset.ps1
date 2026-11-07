@@ -27,6 +27,7 @@ param(
     [string]$Action = '',
     [switch]$BindsOnly,
     [switch]$AfterGame,
+    [switch]$Yes,
     [int]$Interval = 3
 )
 $ErrorActionPreference = 'Stop'
@@ -102,6 +103,7 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'core.ps1')
 . (Join-Path $PSScriptRoot 'app.ps1')
 . (Join-Path $PSScriptRoot 'install.ps1')
+. (Join-Path $PSScriptRoot 'update.ps1')
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 # У локального клиента Riot самоподписанный сертификат — доверяем ему только для 127.0.0.1.
@@ -376,7 +378,7 @@ try {
         'status'    { Write-Banner; Write-State (Get-MenuState) }
         'watch'     { Invoke-Watch -AfterGame:$AfterGame }
         'gfxwait'   { Invoke-GfxWait }
-        'install'   { Invoke-Install }
+        'install'   { if ($Yes) { Invoke-InstallQuiet } else { Invoke-Install } }   # -Yes — тихо поверх установленного (do update, update.ps1)
         'uninstall' { Invoke-Uninstall }
         'pros'      { Show-OneScreen 'pros' }
         'more'      { Show-OneScreen 'more' }

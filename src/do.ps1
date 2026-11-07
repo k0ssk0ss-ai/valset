@@ -33,7 +33,7 @@ function ConvertTo-StateObject($st) {
         temp = [bool]($p -and (Test-Temp $p)); own = [bool]($p -and -not (Test-TempDefault $p)); pending = $pending
         synced = @($st.Synced | Where-Object { $_ } | ForEach-Object { "$_" })
         suggested = (Get-SuggestedId $st)
-        autoApply = [bool]$c.autoApply; askAuto = [bool](-not $c.autoApply -and -not $c.autoAsked); notify = [bool]$c.notify; badge = [bool]$c.badge; setsAuto = [bool]$c.setsAuto
+        autoApply = [bool]$c.autoApply; askAuto = [bool](-not $c.autoApply -and -not $c.autoAsked); notify = [bool]$c.notify; badge = [bool]$c.badge; setsAuto = [bool]$c.setsAuto; updateCheck = [bool]$c.updateCheck
         overlay = $(if ($null -ne $c.overlay) { [bool]$c.overlay } else { $null }); overlayHint = [bool]$c.overlayHint
         lang = $script:Lang; error = "$($st.Error)"; ver = "$Version"
         nSets = @(Read-Sets).Count; nAccounts = $(try { @((Read-Accounts).Keys).Count } catch { 0 })
@@ -107,7 +107,7 @@ function Invoke-Do([string]$action) {
     try {
         $writes = 'apply', 'binds', 'applyperm', 'save', 'savebinds', 'untemp'
         if ($action -notin ($writes + 'undo') -and -not (Test-ExtraAction $action)) { Stop-Internal "неизвестное действие: $action" }
-        if ($action -notin 'undo', 'share', 'report', 'loadoutauto') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
+        if ($action -notin 'undo', 'share', 'report', 'loadoutauto', 'update') { Remove-LastAction; $script:UndoAction = $action }   # старая отмена после новой записи не нужна
         $msg = $null
         switch ($action) {
             { $_ -in 'apply', 'binds', 'applyperm' } {

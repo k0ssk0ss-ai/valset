@@ -6,10 +6,10 @@
 $SetBools = [ordered]@{ notify = 'Уведомления|Notifications'; autoApply = 'Автоперенос|Auto-apply'; badge = 'Значок у клиента|Badge at the client'
                         app = 'Приложение в автозапуске|App at startup'; tempAuto = 'Автовозврат исходных|Auto-restore of originals'; gfxAll = 'Графика во все аккаунты ПК|Graphics to all PC accounts'
                         autoAsked = 'Вопрос про автоперенос|Auto-apply question'; setsAuto = 'Скины при выборе агента|Skins on agent select'
-                        overlay = 'Кнопка поверх игры|Button over the game'; overlayHint = 'Подсказка про кнопку поверх игры|Overlay button hint' }
+                        overlay = 'Кнопка поверх игры|Button over the game'; overlayHint = 'Подсказка про кнопку поверх игры|Overlay button hint'; updateCheck = 'Проверка обновлений|Update check' }
 
 function Test-ExtraAction([string]$a) {
-    $a -in 'gfxsave', 'share', 'report', 'loadoutauto' -or $a -match '^(loadout(save|bind|del)?|skin|coll):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
+    $a -in 'gfxsave', 'share', 'report', 'loadoutauto', 'update' -or $a -match '^(loadout(save|bind|del)?|skin|coll):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
 }
 
 function Write-UndoExtra([string]$kind, $data) {
@@ -144,6 +144,7 @@ function Invoke-DoExtra([string]$action, $r) {
         '^share$'        { Invoke-DoShare $r }
         '^report$'       { Invoke-DoReport $r }   # диагностика для сообщения об ошибке — report.ps1
         '^loadoutauto$'  { Invoke-DoLoadoutAuto $r }   # наборы косметики — sets.ps1
+        '^update$'       { Invoke-Update }   # скачать, сверить хэш, поставить — update.ps1
         '^loadout:([^!]+)(!force)?$' { $script:ForceWrite = [bool]$Matches[2]; Invoke-SetApply $Matches[1] }   # !force — записать, даже если уже так (игра могла прочитать старое)
         '^loadoutsave:([^:]+)(?::(.+))?$' { Invoke-SetSave (ConvertFrom-B64Url $Matches[1]) "$($Matches[2])" }   # :<коллекция> — набор из коллекции
         '^loadoutbind:([^:]+):(.+)$' { Invoke-SetBind $Matches[1] $Matches[2] }
