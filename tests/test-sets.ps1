@@ -73,6 +73,9 @@ $r = Invoke-Do "loadout:$sid"
 Check 'do loadout: одна запись, бэкап, отмена' ($r.ok -and $r.undo -and $script:puts.Count -eq 1 -and $r.message -like 'Набор «Мой набор» надет: 4*' -and @(Get-ChildItem $LoadoutBackupDir -Filter *.json | Where-Object { $_.LastWriteTime -gt $bkT }).Count -eq 1) ($r | ConvertTo-Json -Compress)
 $r = Invoke-Do "loadout:$sid"
 Check 'do loadout повторно: уже надет, без записи' ($r.ok -and $script:puts.Count -eq 1 -and $r.message -like '*уже надет')
+$r = Invoke-Do "loadout:$sid!force"
+Check 'do loadout!force: уже надет, но запись есть (игра могла прочитать старое)' ($r.ok -and $script:puts.Count -eq 2 -and $r.message -like '*записан заново') ($r | ConvertTo-Json -Compress)
+$script:ForceWrite = $false
 $script:lo = $loA; $null = Invoke-Do "loadout:$sid"; $r = Invoke-Do 'undo'
 Check 'do undo после набора: прежний лоадаут записан' ($r.ok -and @($script:lo.Guns)[0].SkinID -eq (G 'skina000') -and @(@($script:lo.Guns)[0].Attachments)[0].ItemID -eq (G 'buddy001')) ($r | ConvertTo-Json -Compress)
 $script:putFail = 'Удаленный сервер возвратил ошибку: (400) Недопустимый запрос.'; $script:puts = @()

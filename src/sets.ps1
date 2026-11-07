@@ -184,7 +184,7 @@ function Invoke-SetApply([string]$id, $s = $null) {
     if (-not $s) { $s = Connect-Session }
     $cur = Get-Loadout $s
     $n = (Write-LoadoutChange $s $cur (Join-SetLoadout $cur $set) "набор «$($set.name)»").Count
-    if (-not $n) { return (L "Набор «$($set.name)» уже надет" "Set `“$($set.name)`” is already on") }
+    if (-not $n) { return $(if ($script:ForcedWrite) { L "Набор «$($set.name)» записан заново" "Set `“$($set.name)`” written again" } else { L "Набор «$($set.name)» уже надет" "Set `“$($set.name)`” is already on" }) }
     L "Набор «$($set.name)» надет: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Set `“$($set.name)`” on: $n change$(if ($n -ne 1) { 's' })"
 }
 
@@ -192,7 +192,8 @@ function Invoke-SetApply([string]$id, $s = $null) {
 # Общая для наборов и «Всех скинов» (skins.ps1).
 function Write-LoadoutChange($s, $cur, $new, [string]$what) {
     $rows = Compare-Loadout $cur $new (Get-CosmeticNames)
-    if (-not $rows.Count) { return }
+    $script:ForcedWrite = $false
+    if (-not $rows.Count) { if (-not $script:ForceWrite) { return }; $script:ForcedWrite = $true }   # !force: писать и без отличий
     $curJson = ConvertTo-Json -InputObject $cur -Depth 10 -Compress
     if ($script:UndoAction) { Write-UndoExtra 'loadout' ([ordered]@{ puuid = $s.Puuid; loadout = $curJson }) }
     $bk = New-LoadoutBackup $s $curJson

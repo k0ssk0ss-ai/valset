@@ -1,4 +1,4 @@
-// PagesSkins.cs — «Все скины»: что есть на аккаунте (ядро — skins.ps1, `list skins`), по вкладкам: оружие (слева список,
+﻿// PagesSkins.cs — «Все скины»: что есть на аккаунте (ядро — skins.ps1, `list skins`), по вкладкам: оружие (слева список,
 // справа сцена выбранного скина с цветом и уровнем и сетка своих скинов), коллекции (PagesColl.cs), брелоки, спреи, флексы,
 // карточки, титулы. «Надеть» — предпросмотр «было → станет» (PagesShare.cs, вид skin; бэкап и «Отменить», как у наборов).
 // Оформление — PagesStage.cs; картинки — Img.cs, только видимые.
@@ -186,7 +186,7 @@ static class Skins {
             ctl.Children.Add(Stage.Chip(t, vid == selLv, L.T("Уровень ", "Level ") + Json.Str(v, "n"), () => { selLv = vid; Ctl.Panel.Refresh(); }));
         }
         bool on = Json.Bool(d, "on"), same = on && selLv == Json.Str(d, "curLv") && selCh == Json.Str(d, "curCh");
-        var put = Ui.Pri(L.T("Надеть", "Put on"), 13, !Ctl.Busy && !same, () => Share.Open("skin", "gun:" + gunId + ":" + id + ":" + selLv + ":" + selCh), 32, 8);
+        var put = Ui.Pri(L.T("Надеть", "Put on"), 13, !Ctl.Busy, () => Share.Open("skin", "gun:" + gunId + ":" + id + ":" + selLv + ":" + selCh), 32, 8);
         put.Margin = new Thickness(12, 0, 0, 0); put.VerticalAlignment = VerticalAlignment.Bottom;
         string tag = gunName.ToUpperInvariant() + " · " + (idx + 1) + L.T(" из ", " of ") + n;
         return Stage.Make(236, Json.Str(d, "bn"), hero, tag, on, Stage.Info(Short(Json.Str(d, "name")), sub), put, chips.Children.Count > 0 ? chips : null);

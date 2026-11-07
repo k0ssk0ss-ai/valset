@@ -144,12 +144,12 @@ function Invoke-DoExtra([string]$action, $r) {
         '^share$'        { Invoke-DoShare $r }
         '^report$'       { Invoke-DoReport $r }   # диагностика для сообщения об ошибке — report.ps1
         '^loadoutauto$'  { Invoke-DoLoadoutAuto $r }   # наборы косметики — sets.ps1
-        '^loadout:(.+)$' { Invoke-SetApply $Matches[1] }
+        '^loadout:([^!]+)(!force)?$' { $script:ForceWrite = [bool]$Matches[2]; Invoke-SetApply $Matches[1] }   # !force — записать, даже если уже так (игра могла прочитать старое)
         '^loadoutsave:([^:]+)(?::(.+))?$' { Invoke-SetSave (ConvertFrom-B64Url $Matches[1]) "$($Matches[2])" }   # :<коллекция> — набор из коллекции
         '^loadoutbind:([^:]+):(.+)$' { Invoke-SetBind $Matches[1] $Matches[2] }
         '^loadoutdel:(.+)$' { Invoke-SetDelete $Matches[1] }
-        '^skin:(.+)$'    { Invoke-SkinApply $Matches[1] }   # «Все скины» — skins.ps1
-        '^coll:(.+)$'    { Invoke-CollApply $Matches[1] }   # коллекция — collections.ps1
+        '^skin:([^!]+)(!force)?$'    { $script:ForceWrite = [bool]$Matches[2]; Invoke-SkinApply $Matches[1] }   # «Все скины» — skins.ps1
+        '^coll:([^!]+)(!force)?$'    { $script:ForceWrite = [bool]$Matches[2]; Invoke-CollApply $Matches[1] }   # коллекция — collections.ps1
         '^code:(.+)$'    { Invoke-DoCode $Matches[1] }
         '^pro:(.+)$'     { Invoke-DoPro $Matches[1] $r }
         '^restore:(.+)$' { Invoke-DoRestore $Matches[1] }

@@ -124,7 +124,7 @@ function Get-ListCollPreview([string]$id) {
 function Invoke-CollApply([string]$id) {
     $c = Get-CollChange $id
     $n = (Write-LoadoutChange $c.s $c.cur (Join-CollLoadout $c.cur $c.guns) "коллекция «$($c.t.name)»").Count
-    if (-not $n) { return (L "Коллекция «$($c.t.name)» уже надета" "Collection `“$($c.t.name)`” is already on") }
+    if (-not $n) { return $(if ($script:ForcedWrite) { L "Коллекция «$($c.t.name)» записана заново" "Collection `“$($c.t.name)`” written again" } else { L "Коллекция «$($c.t.name)» уже надета" "Collection `“$($c.t.name)`” is already on" }) }
     L "Коллекция «$($c.t.name)» надета: $n $(Get-Plural $n 'изменение' 'изменения' 'изменений')" "Collection `“$($c.t.name)`” on: $n change$(if ($n -ne 1) { 's' })"
 }
 

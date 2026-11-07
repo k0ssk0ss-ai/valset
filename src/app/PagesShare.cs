@@ -1,4 +1,4 @@
-// PagesShare.cs — «Код для друга» и предпросмотр перед записью: вставка кода (кнопка, ссылка valset:code/<код>)
+﻿// PagesShare.cs — «Код для друга» и предпросмотр перед записью: вставка кода (кнопка, ссылка valset:code/<код>)
 // и примерка про (список «Про», ссылка valset:pro/<ник>), набор косметики (PagesSets.cs, вид loadout), один предмет («Все скины», PagesSkins.cs, вид skin). Пишет только кнопка в предпросмотре — ссылка сама ничего не применяет.
 using System;
 using System.Text;
@@ -77,7 +77,16 @@ static class Share {
             }
         }
         if (!ok) return;
-        if (same) { b.Children.Add(Ui.Note(L.T("Уже так — менять нечего.", "Already like this — nothing to change."))); return; }
+        if (same) {
+            b.Children.Add(Ui.Note(L.T("Уже так в облаке Riot — менять нечего. Игра могла прочитать старое (стрельбище и матч читают скины при входе): запиши заново и перезайди.", "Already like this in the Riot cloud — nothing to change. The game may have read the old one (range and matches read skins on entry): write again and re-enter.")));
+            if (Kind == "loadout" || Kind == "skin" || Kind == "coll") {
+                string fid = Id() + "!force";
+                var again = Ui.Sec(L.T("Записать всё равно", "Write anyway"), 13, !Ctl.Busy, () => { Ctl.Panel.Back(); Ctl.DoAction(fid, false); }, 32, 6);
+                again.MinWidth = 150; again.Margin = new Thickness(0, 4, 0, 4);
+                b.Children.Add(again);
+            }
+            return;
+        }
         if (n == 0) b.Children.Add(Ui.Note(L.T("Отличия только служебные (профили прицела, агентские бинды и т. п.)", "Only internal differences (crosshair profiles, agent binds, etc.)")));
         b.Children.Add(Ui.Note(Kind == "loadout" || Kind == "skin" || Kind == "coll"
             ? L.T("Перед записью — бэкап; «Отменить» — сразу. Скины матча и стрельбища игра читает при входе: надето посреди них — виден после перезахода (смена агента в стрельбище скины не обновляет); «Коллекция» в игре покажет старое до перезапуска игры.", "A backup first; “Undo” right away. The game reads match and range skins on entry: put on mid-way, they show after re-entering (switching agents in the range does not refresh them); the in-game Collection shows the old one until the game restarts.")

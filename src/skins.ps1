@@ -196,7 +196,7 @@ function Invoke-SkinApply([string]$spec) {
     $s = Connect-Session
     $cur = Get-Loadout $s
     $rows = Write-LoadoutChange $s $cur (Join-SkinLoadout $cur $spec) "скин $spec"
-    if (-not $rows.Count) { return (L 'Уже надето' 'Already on') }
+    if (-not $rows.Count) { return ($(if ($script:ForcedWrite) { L 'Записано заново' 'Written again' } else { L 'Уже надето' 'Already on' })) }
     $r = $rows[0]
     L "Надето: $($r.what) — $($r.new)" "Put on: $($r.what) — $($r.new)"
 }
