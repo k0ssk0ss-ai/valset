@@ -1,6 +1,6 @@
 # VALSET
 
-**Your VALORANT settings on all your accounts — in two seconds.**
+**Your VALORANT settings on all your accounts.**
 Binds, sensitivity, crosshair, interface, on-screen stats and graphics: save them once on your main account,
 then apply them to any account you play on — and if it isn't yours, its own settings come back afterwards.
 
@@ -11,7 +11,7 @@ then apply them to any account you play on — and if it isn't yours, its own se
 
 ## Install
 
-**One command** — press **Win+R**, paste this line, press Enter:
+**One command**: press **Win+R**, paste this line, press Enter:
 
 ```
 powershell -c "[Net.ServicePointManager]::SecurityProtocol=3072;irm https://raw.githubusercontent.com/k0ssk0ss-ai/valset/main/install.ps1|iex"
@@ -61,11 +61,11 @@ right now (apply, save, restore originals) — usually 1–3 items. Everything e
 ## Safety — honestly
 
 - VALSET **does not touch the game**: not its files, memory or process. It doesn't need or interfere with Vanguard.
-- It only talks to the **Riot Client on your PC** (the same local interface trackers and overlays use) and to the
-  **Riot settings cloud** — the same place the game itself saves your settings to. No password is needed or asked
+- It only works with the **Riot Client on your PC** and the **Riot settings cloud**, the same place the game
+  itself saves your settings to. No password is needed or asked
   for: you log in yourself in the Riot Client.
 - It only writes what you could change in the game's settings yourself. A backup is made before every write.
-- Nothing is sent anywhere else. The code is open — you can read all of it.
+- It sends your data nowhere except Riot. The code is open — you can read all of it.
 - Riot's Terms of Service forbid sharing accounts — whose account you log into is your own responsibility.
 - This is an **unofficial** tool, not reviewed or endorsed by Riot Games. The Riot Client interfaces it uses are
   unofficial and may change after an update — VALSET may stop working until it's fixed. Use at your own risk
