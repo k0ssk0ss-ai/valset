@@ -68,7 +68,7 @@ static class Json {
 
 // Ответ `valset state`.
 class State {
-    public bool Client, Game, IsMain, Have, Temp, Pending, AutoApply, AskAuto, Notify, Badge, SetsAuto, OverlayHint, Own = true;
+    public bool Client, Game, IsMain, Have, Temp, Pending, AutoApply, AskAuto, Notify, Badge, SetsAuto, OverlayHint, Own = true, UpdateCheck = true;
     public bool? Same, Overlay;   // Overlay: null — по режиму экрана
     public int Diff, NSets, NAccounts;
     public string Account = "", Puuid = "", Suggested = "", Lang = "", Error = "", Ver = "";
@@ -83,6 +83,7 @@ class State {
         s.Same = Json.NBool(d, "same"); s.Overlay = Json.NBool(d, "overlay"); s.OverlayHint = Json.Bool(d, "overlayHint"); s.Diff = Json.Int(d, "diff");
         s.Account = Json.Str(d, "account"); s.Puuid = Json.Str(d, "puuid"); s.Suggested = Json.Str(d, "suggested");
         s.Lang = Json.Str(d, "lang"); s.Error = Json.Str(d, "error"); s.Ver = Json.Str(d, "ver");
+        s.UpdateCheck = Json.NBool(d, "updateCheck") ?? true;
         s.NSets = Json.Int(d, "nSets"); s.NAccounts = Json.Int(d, "nAccounts");
         s.DiffList = Json.Dicts(Json.Get(d, "diffList"));
         s.Own = Json.NBool(d, "own") ?? (s.IsMain || s.Have); s.Synced = Json.List(d, "synced");

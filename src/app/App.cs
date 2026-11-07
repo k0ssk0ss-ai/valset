@@ -151,6 +151,7 @@ static class Ctl {
         else if (!HaveState) Cur.Error = L.T("Не получилось связаться с VALSET. Перезапусти", "VALSET did not respond. Restart it");
         StateAt = DateTime.Now;
         Raise();
+        Upd.TryStart();   // одна проверка обновлений за запуск — Update.cs
     }
 
     // Вход в аккаунт (или клиент уже был открыт): проверка ядром, потом состояние.

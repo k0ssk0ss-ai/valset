@@ -43,6 +43,7 @@ static class PagesHome {
         g.Children.Add(Ui.Nav("backups", L.T("Бэкапы и история", "Backups and history"), null, () => P.Go("backups")));
         g.Children.Add(Ui.Nav("settings", L.T("Настройки", "Settings"), null, () => P.Go("settings")));
 
+        var up = Upd.Row(); if (up != null) sp.Children.Add(up);   // «Вышла версия X» — Update.cs
         sp.Children.Add(Foot(s));
     }
 

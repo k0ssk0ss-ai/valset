@@ -29,6 +29,7 @@ class OverlayWin : IDisposable {
     // Включена ли кнопка: выбор в настройках, иначе — по режиму экрана (только если безопасно).
     public static bool Enabled() { return Ctl.Cur.Overlay ?? (FsMode >= 1); }
     public static bool Safe() { return FsMode >= 1; }
+    public bool Shown { get { return w != null && w.IsVisible; } }   // кнопка на экране (Update.cs: не проверять обновления)
 
     // Режим экрана: GameUserSettings.ini аккаунта (LastConfirmedFullscreenMode, иначе FullscreenMode / PreferredFullscreenMode).
     public static void ReadFsMode() {

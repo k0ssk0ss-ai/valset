@@ -82,6 +82,10 @@ static class Pages {
         if (OverlayWin.FsMode == 0) b.Children.Add(Ui.Note(L.T("Работает в режиме «Оконный полноэкранный». Сейчас в игре «Полноэкранный». В меню игры нажми Ctrl+Alt+S: откроются «Все скины».",
                                                                 "Works in “Windowed Fullscreen”. The game is in “Fullscreen” now. In the game menu press Ctrl+Alt+S to open All skins.")));
         b.Children.Add(Ui.Toggle(L.T("Автозапуск", "Start with Windows"), Config.IsAutostart(), on => { Config.SetAutostart(on); Ctl.DoAction(Set("app", on), false); }));
+        b.Children.Add(Ui.Toggle(L.T("Проверять обновления", "Check for updates"), s.UpdateCheck, on => { s.UpdateCheck = on; if (!on) Upd.Off(); Ctl.DoAction(Set("updateCheck", on), false); }));
+        b.Children.Add(Ui.Note(L.T("При запуске VALSET спрашивает GitHub, вышла ли новая версия. Ничего о тебе не отправляется",
+                                   "On start VALSET asks GitHub whether a new version is out. Nothing about you is sent")));
+        b.Children.Add(Ui.Row(L.T("Проверить сейчас", "Check now"), "", Upd.Checking ? "…" : Upd.Status, Ui.T3, () => Upd.Check(true)));
 
         var lang = new Grid { Margin = new Thickness(8, 4, 8, 4) };
         lang.ColumnDefinitions.Add(new ColumnDefinition());
