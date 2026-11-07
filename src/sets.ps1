@@ -258,8 +258,10 @@ function Invoke-DoLoadoutAuto($r) {
     Remove-LastAction; $script:UndoAction = 'loadoutauto'
     $r['applied'] = $true
     $an = Get-AgentName (Get-CosmeticNames) $pre.Agent
+    $mx = New-Object Threading.Mutex($false, $LoadoutAutoMutex)   # пока надевается — перезаход в стрельбище ждёт (range.ps1)
     try { $msg = "${an}: $(Invoke-SetApply $set.id $s)" }
     catch { if ((Get-Config).notify) { Send-Toast 'VALSET' "${an}: $($_.Exception.Message)" }; throw }
+    finally { $mx.Dispose() }
     if ((Get-Config).notify) { Send-Toast 'VALSET' $msg }
     $msg
 }
@@ -291,6 +293,6 @@ function Get-ListLoadoutPreview([string]$id) {
         if (Test-SetV2 $set) { $info += "`n" + (L 'Это старый набор: брелоки из него не надеваются. Надень их и сохрани набор заново.' 'This is an old set: its buddies are not put on. Put them on and save the set again.') }
         if ($set.puuid -and $set.puuid -ne $s.Puuid) { $info += "`n" + (L "Сохранён на другом аккаунте ($(Get-AccountLabel $set.puuid)). Надеются только предметы, которые есть здесь." "Saved on another account ($(Get-AccountLabel $set.puuid)). Only items owned here are put on.") }
         $pics = @(); try { $pics = @(Get-SetPics $set) } catch { Log "картинки набора: $($_.Exception.Message)" }   # без каталога — без картинок
-        @([ordered]@{ info = $info; account = (Get-AccountLabel $s.Puuid); same = (-not $rows.Count); pics = $pics }) + @($rows)
+        @([ordered]@{ info = $info; account = (Get-AccountLabel $s.Puuid); same = (-not $rows.Count); inRange = (Test-InRange $s); pics = $pics }) + @($rows)
     } catch { @([ordered]@{ error = $_.Exception.Message }) }
 }

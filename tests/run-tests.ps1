@@ -523,6 +523,7 @@ Check 'state: чужой аккаунт — предлагает apply' ($stO.pu
     . "$PSScriptRoot\test-sets.ps1"   # наборы косметики
     . "$PSScriptRoot\test-skins.ps1"  # «Все скины»
     . "$PSScriptRoot\test-collections.ps1"  # «Коллекции»
+    . "$PSScriptRoot\test-range.ps1"  # перезаход в стрельбище
     . "$PSScriptRoot\test-report.ps1"  # «Сообщить об ошибке»
     . "$PSScriptRoot\test-update.ps1"  # обновления
     # откат аккаунта из бэкапа

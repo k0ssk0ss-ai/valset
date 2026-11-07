@@ -98,6 +98,7 @@ if (Test-Path $GameLog) {
 . (Join-Path $PSScriptRoot 'sets.ps1')
 . (Join-Path $PSScriptRoot 'skins.ps1')
 . (Join-Path $PSScriptRoot 'collections.ps1')
+. (Join-Path $PSScriptRoot 'range.ps1')
 . (Join-Path $PSScriptRoot 'shareskins.ps1')
 . (Join-Path $PSScriptRoot 'more.ps1')
 . (Join-Path $PSScriptRoot 'do.ps1')

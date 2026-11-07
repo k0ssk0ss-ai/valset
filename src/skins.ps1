@@ -187,7 +187,7 @@ function Get-ListSkinPreview([string]$spec) {
         $s = Connect-Session
         $cur = Get-Loadout $s
         $rows = Compare-Loadout $cur (Join-SkinLoadout $cur $spec) (Get-CosmeticNames)
-        @([ordered]@{ info = ''; account = (Get-AccountLabel $s.Puuid); same = (-not $rows.Count) }) + @($rows)
+        @([ordered]@{ info = ''; account = (Get-AccountLabel $s.Puuid); same = (-not $rows.Count); inRange = (Test-InRange $s) }) + @($rows)
     } catch { @([ordered]@{ error = $_.Exception.Message }) }
 }
 

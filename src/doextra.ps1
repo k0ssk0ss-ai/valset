@@ -9,7 +9,7 @@ $SetBools = [ordered]@{ notify = 'Уведомления|Notifications'; autoApp
                         overlay = 'Кнопка поверх игры|Button over the game'; overlayHint = 'Подсказка про кнопку поверх игры|Overlay button hint'; updateCheck = 'Проверка обновлений|Update check' }
 
 function Test-ExtraAction([string]$a) {
-    $a -in 'gfxsave', 'share', 'share:skins', 'report', 'loadoutauto', 'update' -or $a -match '^(loadout(save|bind|del)?|skin|coll):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
+    $a -in 'gfxsave', 'share', 'share:skins', 'report', 'loadoutauto', 'update', 'rejoin' -or $a -match '^(loadout(save|bind|del)?|skin|coll):.+$' -or $a -match '^(pro|restore|history|code):.+$' -or $a -match '^set:\w+=.+$' -or $a -match '^account:[^:]+:\w+$'
 }
 
 function Write-UndoExtra([string]$kind, $data) {
@@ -146,6 +146,8 @@ function Invoke-DoExtra([string]$action, $r) {
         '^report$'       { Invoke-DoReport $r }   # диагностика для сообщения об ошибке — report.ps1
         '^loadoutauto$'  { Invoke-DoLoadoutAuto $r }   # наборы косметики — sets.ps1
         '^update$'       { Invoke-Update }   # скачать, сверить хэш, поставить — update.ps1
+        '^rejoin$'       { Invoke-RejoinRange }   # перезайти в стрельбище — range.ps1
+        '^(loadout|skin|coll):[^+]+\+rejoin$' { Invoke-DoWithRejoin ($action.Substring(0, $action.Length - 7)) $r; break }   # <арг>[!force]+rejoin
         '^loadout:([^!]+)(!force)?$' { $script:ForceWrite = [bool]$Matches[2]; Invoke-SetApply $Matches[1] }   # !force — записать, даже если уже так (игра могла прочитать старое)
         '^loadoutsave:([^:]+)(?::(.+))?$' { Invoke-SetSave (ConvertFrom-B64Url $Matches[1]) "$($Matches[2])" }   # :<коллекция> — набор из коллекции
         '^loadoutbind:([^:]+):(.+)$' { Invoke-SetBind $Matches[1] $Matches[2] }

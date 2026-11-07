@@ -116,7 +116,7 @@ function Get-ListCollPreview([string]$id) {
         $c = Get-CollChange $id
         $rows = Compare-Loadout $c.cur (Join-CollLoadout $c.cur $c.guns) (Get-CosmeticNames)
         $info = "$(L 'Коллекция' 'Collection') «$($c.t.name)»: $(L 'своих скинов' 'own skins') $($c.guns.Count)"
-        @([ordered]@{ info = $info; account = (Get-AccountLabel $c.s.Puuid); same = (-not $rows.Count); pics = @(Get-SetPics ([ordered]@{ guns = $c.guns }) $c.cat) }) + @($rows)
+        @([ordered]@{ info = $info; account = (Get-AccountLabel $c.s.Puuid); same = (-not $rows.Count); inRange = (Test-InRange $c.s); pics = @(Get-SetPics ([ordered]@{ guns = $c.guns }) $c.cat) }) + @($rows)
     } catch { @([ordered]@{ error = $_.Exception.Message }) }
 }
 
