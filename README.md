@@ -64,7 +64,8 @@ right now (apply, save, restore originals) — usually 1–3 items. Everything e
 - **All skins** (tray panel → Skins → All skins, or the “VALSET · skins” button over the game menu in Windowed
   Fullscreen, or Ctrl+Alt+S in the game menu): everything your account owns, with pictures; pick one — see what changes —
   put it on (backup + undo). The Collections tab groups skins by collection (bundle): preview all its weapons, put on
-  every owned skin of a collection at once, or save it as a set.
+  every owned skin of a collection at once, or save it as a set. In the shooting range the preview also offers
+  “Put on and re-enter”: VALSET restarts the range so the game picks the skins up (not available in a match).
 - **Report a bug** (bottom of the tray panel): copies diagnostics (versions, last log lines; Riot IDs, PUUIDs, your
   Windows user name and tokens masked) to the clipboard and opens a new GitHub issue form — paste them there.
 
